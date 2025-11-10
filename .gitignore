@@ -1,0 +1,28 @@
+# Node
+node_modules/
+dist/
+build/
+coverage/
+.env
+.env.*
+
+# Python / ML
+__pycache__/
+venv/
+env/
+.ipynb_checkpoints/
+models/
+data/
+datasets/
+*.pkl
+*.h5
+
+# Logs
+logs/
+*.log
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
