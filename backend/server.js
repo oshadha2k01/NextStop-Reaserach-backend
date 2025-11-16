@@ -3,14 +3,18 @@ const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const predictionController = require('./controllers/predictionController');
+require('dotenv').config(); // Load environment variables from .env
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
+// FIX: Ensure body-parser is configured to handle both JSON and URL-encoded data
 app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 // --- MongoDB Connection ---
-const MONGODB_URI = 'mongodb://localhost:27017/BusCrowdDB'; // UPDATE THIS!
+// Use the URI from .env if available, otherwise fallback to local
+const MONGODB_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/BusCrowdDB';
 
 mongoose.connect(MONGODB_URI)
     .then(() => console.log('✅ MongoDB Connected'))

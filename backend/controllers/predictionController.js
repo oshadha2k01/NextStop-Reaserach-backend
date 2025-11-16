@@ -1,12 +1,17 @@
 // FILE: /backend/controllers/predictionController.js
 const Prediction = require('../models/Prediction');
-// Require the fetch library
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args)); 
 
-// --- Configuration ---
 const FLASK_API_URL = 'http://localhost:5000/predict'; 
 
 exports.getPredictionAndSave = async (req, res) => {
+    // FIX: Safety check to ensure req.body exists
+    if (!req.body || Object.keys(req.body).length === 0) {
+        return res.status(400).json({ 
+            message: 'Empty request body. Ensure you are sending JSON and the Content-Type header is set.' 
+        });
+    }
+
     const { date, time } = req.body; 
 
     if (!date || !time) {
@@ -14,7 +19,6 @@ exports.getPredictionAndSave = async (req, res) => {
     }
 
     try {
-        // --- 1. Call the Flask API Service ---
         const flaskResponse = await fetch(FLASK_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -23,7 +27,6 @@ exports.getPredictionAndSave = async (req, res) => {
 
         const result = await flaskResponse.json();
 
-        // Check for non-200 status or error message from Flask
         if (!flaskResponse.ok || result.error) {
             console.error('Flask API Error:', result.error || 'Unknown error');
             return res.status(500).json({ 
@@ -32,26 +35,26 @@ exports.getPredictionAndSave = async (req, res) => {
             });
         }
         
-        // --- 2. Save to MongoDB ---
+        // --- Save to MongoDB ---
         const newPrediction = new Prediction({
             date: new Date(result.date),
             time: result.time,
-            predictedCrowd: result.predicted_crowd,
+            // FIX: Ensure key matches 'predicted_count' returned by app.py
+            predictedCrowd: result.predicted_count, 
             dayOfWeek: result.day_of_week
         });
 
         await newPrediction.save();
 
-        // 3. Send final response
         res.status(200).json({
-            message: '✅ Prediction retrieved, processed, and saved.',
+            message: '✅ Prediction retrieved and saved.',
             prediction: result
         });
 
     } catch (error) {
         console.error('Node.js Controller Error:', error.message);
         res.status(500).json({ 
-            message: 'Internal server error during API call or saving.', 
+            message: 'Internal server error.', 
             details: error.message 
         });
     }
