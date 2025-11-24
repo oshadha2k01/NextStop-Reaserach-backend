@@ -1,16 +1,41 @@
 const express = require('express');
-const { saveBusData, getLatestBusLocation } = require('../controllers/dataController');
-const { getPredictedTime } = require('../controllers/predictionTimeController');
-
 const router = express.Router();
+const BusData = require('../models/BusRealTimeData');
+const predictionTimeController = require('../controllers/predictionTimeController');
 
-// 1. Receive data from IoT Bus Simulator (POST)
-router.post('/data', saveBusData);
+// POST endpoint to receive bus data from IoT devices
+router.post('/data', async (req, res) => {
+    try {
+        const { latitude, longitude, speed, rain_level, device_id, timestamp } = req.body;
 
-// 2. Get the latest location of the bus (GET)
-router.get('/latest/:busId', getLatestBusLocation);
+        // Validate required fields
+        if (!latitude || !longitude || speed === undefined || !device_id) {
+            console.error('Validation failed. Received:', req.body);
+            return res.status(400).json({ 
+                message: 'Missing required fields: latitude, longitude, speed, or device_id',
+                received: req.body
+            });
+        }
 
-// 3. Get predicted travel time and alert (POST)
-router.post('/predict', getPredictedTime);
+        const busData = new BusData({
+            latitude,
+            longitude,
+            speed,
+            rain_level: rain_level || 0,
+            device_id,
+            timestamp: timestamp ? new Date(timestamp) : new Date()
+        });
+
+        await busData.save();
+        console.log(`✓ Saved: ${device_id} at (${latitude.toFixed(4)}, ${longitude.toFixed(4)}) - Speed: ${speed} km/h`);
+        res.status(201).json({ message: 'Bus data saved successfully' });
+    } catch (error) {
+        console.error('Error saving bus data:', error.message);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+});
+
+// POST endpoint for time prediction
+router.post('/predict', predictionTimeController.getPredictedTime);
 
 module.exports = router;

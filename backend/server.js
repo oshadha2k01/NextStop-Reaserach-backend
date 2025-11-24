@@ -1,7 +1,9 @@
+require('dotenv').config();
+console.log('Environment check - API Key exists:', !!process.env.GOOGLE_MAPS_API_KEY);
+
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const dotenv = require("dotenv");
 const adminAuthRoutes = require("./routes/Admin/adminAuthRoutes");
 const busRoutes = require("./routes/Bus/busRoutes");
 const superAdminAuthRoutes = require("./routes/SuperAdmin/superAdminAuthRoutes");
@@ -9,7 +11,6 @@ const predictionController = require("./controllers/predictionController");
 const predictiveTimeBusRoutes = require("./routes/predictiveTimeBusRoutes");
 
 
-dotenv.config();
 const app = express();
 
 app.use(cors());
