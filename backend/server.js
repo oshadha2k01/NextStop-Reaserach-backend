@@ -2,44 +2,28 @@
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
-const cors = require('cors');
-const axios = require('axios');
+const bodyParser = require('body-parser');
+const predictionController = require('./controllers/predictionController');
 
 const app = express();
+const PORT = 3000;
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+app.use(bodyParser.json());
 
-// MongoDB Connection
-mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log('✅ MongoDB Connected Successfully'))
-    .catch((err) => console.error('❌ MongoDB Connection Error:', err.message));
+// --- MongoDB Connection ---
+const MONGODB_URI = 'mongodb://localhost:27017/BusCrowdDB'; // UPDATE THIS!
 
-// Routes
-app.get('/', (req, res) => {
-    res.json({ message: 'NextStop Research Backend API' });
-});
+mongoose.connect(MONGODB_URI)
+    .then(() => console.log('✅ MongoDB Connected'))
+    .catch(err => {
+        console.error('❌ MongoDB Connection Error:', err.message);
+        process.exit(1);
+    });
 
-// Prediction Route - Forward to Flask ML Service
-app.post('/api/predict', async (req, res) => {
-    try {
-        const response = await axios.post('http://localhost:5000/predict', req.body);
-        res.json(response.data);
-    } catch (error) {
-        console.error('❌ Error calling Flask ML service:', error.message);
-        res.status(500).json({ 
-            error: 'Failed to get prediction',
-            message: 'Make sure Flask ML service is running on port 5000'
-        });
-    }
-});
+// --- API Route ---
+app.post('/api/predict', predictionController.getPredictionAndSave);
 
-// Import routes here
-// const predictionRoutes = require('./routes/predictions');
-// app.use('/api/predictions', predictionRoutes);
-
-const PORT = process.env.PORT || 3000;
+// Start Server
 app.listen(PORT, () => {
     console.log( Node.js Server running on http://localhost:${PORT});
     console.log('--- Start Flask service on Port 5000 BEFORE testing ---');
