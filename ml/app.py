@@ -10,7 +10,7 @@ CORS(app)
 # Load model at startup
 try:
     MODEL = joblib.load('models/crowd_model.pkl')
-    print("✅ Model loaded successfully")
+    print(" Model loaded successfully")
 except:
     MODEL = None
     print(" Model not found. Train the model first.")
