@@ -1,0 +1,15 @@
+{
+  "features": [
+    "speed",
+    "rain_level",
+    "hour",
+    "is_rush_hour",
+    "is_raining",
+    "rain_severity"
+  ],
+  "training_samples": 200035,
+  "model_type": "GradientBoostingRegressor",
+  "trained_at": "2026-01-04T16:57:06.794755",
+  "mean_travel_time": 253.6654555662333,
+  "std_travel_time": 280.3982968085032
+}
