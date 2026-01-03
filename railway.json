@@ -1,10 +1,16 @@
 {
   "$schema": "https://railway.app/schema.json",
+  "rootDirectory": "backend",
   "build": {
-    "builder": "dockerfile"
+    "builder": "nixpacks",
+    "watchPatterns": ["**/*.js", "package.json"]
   },
   "deploy": {
-    "startCommand": "cd backend && npm run start",
-    "restartPolicyMaxRetries": 5
+    "startCommand": "npm start",
+    "restartPolicyMaxRetries": 5,
+    "healthchecks": {
+      "enabled": true,
+      "cpu": 100
+    }
   }
 }
