@@ -1,16 +1,4 @@
 {
-  "$schema": "https://railway.app/schema.json",
-  "rootDirectory": "backend",
-  "build": {
-    "builder": "nixpacks",
-    "watchPatterns": ["**/*.js", "package.json"]
-  },
-  "deploy": {
-    "startCommand": "npm start",
-    "restartPolicyMaxRetries": 5,
-    "healthchecks": {
-      "enabled": true,
-      "cpu": 100
-    }
-  }
+  "$schema": "https://railway.app/schema.json"
 }
+
