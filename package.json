@@ -2,11 +2,10 @@
   "name": "nextstop-research-backend",
   "version": "0.1.0",
   "description": "Smart Bus System for Real-Time Passenger Management",
-  "main": "backend/server.js",
+  "main": "index.js",
   "scripts": {
-    "start": "cd backend && npm run start",
-    "dev": "cd backend && npm run dev",
-    "install-all": "cd backend && npm install"
+    "start": "node index.js",
+    "dev": "cd backend && npm run dev"
   },
   "engines": {
     "node": "18.x"
@@ -20,3 +19,4 @@
   "author": "NextStop Team",
   "license": "MIT"
 }
+
