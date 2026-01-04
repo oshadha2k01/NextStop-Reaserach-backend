@@ -307,7 +307,7 @@ export default function AdminDashboard() {
 				<aside className="w-64 bg-[#ff6b35] text-white flex flex-col">
 					<div className="px-6 py-5 border-b border-white/20">
 						<h1 className="text-xl font-bold">Admin Dashboard</h1>
-						<p className="text-sm text-white/80">Transit Control Panel</p>
+						<p className="text-sm text-white/80">Nextstop Control Panel</p>
 					</div>
 					<nav className="flex-1 py-4 space-y-1">
 						{navItems.map((item) => {
