@@ -3,28 +3,27 @@
 
 :root {
   --font-inter: "Inter", sans-serif;
-  
-  /* Professional Bus Monitoring Dashboard Color Palette */
-  /* Primary Colors */
-  --primary: #1E40AF;          /* Deep Blue - Trust, reliability */
-  --primary-light: #3B82F6;    /* Bright Blue - Active elements */
-  --primary-dark: #1E3A8A;     /* Darker Blue */
-  
+
+  /* Warm Orange Theme anchored on #FF6B35 */
+  --primary: #ff6b35;          /* Bold accent */
+  --primary-light: #ff8f66;    /* Hover/active */
+  --primary-dark: #cc562a;     /* Pressed/contrast */
+
   /* Status Colors */
-  --success: #10B981;          /* Green - On-time, active buses */
-  --warning: #F59E0B;          /* Amber - Delays, warnings */
-  --danger: #EF4444;           /* Red - Critical alerts, offline */
-  --info: #0891B2;             /* Cyan - Information */
-  
+  --success: #10b981;          /* Green - On-time, active buses */
+  --warning: #f59e0b;          /* Amber - Delays, warnings */
+  --danger: #ef4444;           /* Red - Critical alerts, offline */
+  --info: #0891b2;             /* Cyan - Information */
+
   /* Neutral Colors */
-  --background: #F9FAFB;       /* Light Gray background */
-  --surface: #FFFFFF;          /* White surface */
-  --border: #E5E7EB;           /* Border color */
-  
+  --background: #fff4ec;       /* Soft warm background */
+  --surface: #ffffff;          /* White surface */
+  --border: #f2d9cc;           /* Warm border */
+
   /* Text Colors */
-  --text-primary: #1F2937;     /* Dark Gray */
-  --text-secondary: #6B7280;   /* Medium Gray */
-  --text-light: #9CA3AF;       /* Light Gray */
+  --text-primary: #2a1a15;     /* Deep brown for contrast */
+  --text-secondary: #6b4b3d;   /* Muted brown */
+  --text-light: #a17869;       /* Light brown */
 }
 
 * {
@@ -34,5 +33,5 @@
 body {
   font-family: "Inter", sans-serif;
   color: var(--text-primary);
-  background-color: #D1D5DB;
+  background-color: var(--background);
 }
