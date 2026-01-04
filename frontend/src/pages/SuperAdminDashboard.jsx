@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { BusFront, CheckCircle, XCircle, AlertCircle, Info, Check, Trash2, Search, User, MessageSquare, Star } from 'lucide-react';
 import { busAPI } from '../utils/api';
+import Feedbacks from './Feedbacks';
 
 export default function SuperAdminDashboard() {
 	const dummyBuses = [
@@ -207,134 +208,153 @@ export default function SuperAdminDashboard() {
 						<h1 className="text-xl font-bold">Super Admin</h1>
 						<p className="text-sm text-white/80">Bus Approval Panel</p>
 					</div>
-					<nav className="flex-1 py-4 space-y-1">
-						<button className="w-full flex items-center gap-3 px-5 py-3 text-left bg-white text-[#ff6b35] shadow-sm">
-							<BusFront className="h-5 w-5 text-[#ff6b35]" />
-							<span className="font-medium">Bus Approvals</span>
+				<nav className="flex-1 py-4 space-y-2 px-3">
+					<button 
+						onClick={() => setActiveNav('approvals')}
+						className={`w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg transition-all ${
+							activeNav === 'approvals' 
+								? 'bg-white text-[#ff6b35] shadow-sm' 
+								: 'text-white hover:bg-white/10'
+						}`}
+					>
+						<BusFront className="h-5 w-5" />
+						<span className="font-medium">Bus Approvals</span>
+					</button>
+					<button 
+						onClick={() => setActiveNav('feedbacks')}
+						className={`w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg transition-all ${
+							activeNav === 'feedbacks' 
+								? 'bg-white text-[#ff6b35] shadow-sm' 
+								: 'text-white hover:bg-white/10'
+						}`}
+					>
+						<Star className="h-5 w-5" />
+						<span className="font-medium">Feedbacks</span>
 						</button>
 					</nav>
 				</aside>
 
 				{/* Main Content */}
-				<main className="flex-1 p-6 sm:p-10 space-y-6">
-					<div>
-						<p className="text-sm text-[#6b4b3d]">Control Center</p>
-						<h2 className="text-2xl font-semibold">Bus Registration Approvals</h2>
-					</div>
+				{activeNav === 'approvals' && (
+					<main className="flex-1 p-6 sm:p-10 space-y-6">
+						<div>
+							<p className="text-sm text-[#6b4b3d]">Control Center</p>
+							<h2 className="text-2xl font-semibold">Bus Registration Approvals</h2>
+						</div>
 
-					{/* Stats */}
-					<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-						<div className="rounded-2xl bg-white shadow-sm border border-[#f2d9cc] p-4 flex items-center justify-between">
-							<div>
-								<p className="text-sm text-[#6b4b3d]">Pending Approval</p>
-								<p className="text-2xl font-semibold text-[#2a1a15]">{pendingBuses.length}</p>
-							</div>
-							<AlertCircle className="h-8 w-8 text-[#f59e0b]" />
-						</div>
-						<div className="rounded-2xl bg-white shadow-sm border border-[#f2d9cc] p-4 flex items-center justify-between">
-							<div>
-								<p className="text-sm text-[#6b4b3d]">Approved</p>
-								<p className="text-2xl font-semibold text-[#2a1a15]">{approvedBuses.length}</p>
-							</div>
-							<CheckCircle className="h-8 w-8 text-[#10b981]" />
-						</div>
-						<div className="rounded-2xl bg-white shadow-sm border border-[#f2d9cc] p-4 flex items-center justify-between">
-							<div>
-								<p className="text-sm text-[#6b4b3d]">Rejected</p>
-								<p className="text-2xl font-semibold text-[#2a1a15]">{rejectedBuses.length}</p>
-							</div>
-							<XCircle className="h-8 w-8 text-[#ef4444]" />
-						</div>
-					</div>
-
-					{/* Loading State */}
-					{loading && (
-						<div className="rounded-2xl bg-white shadow-sm border border-[#f2d9cc] p-8 text-center">
-							<p className="text-[#6b4b3d]">Loading buses...</p>
-						</div>
-					)}
-
-					{/* Error State */}
-					{error && !loading && (
-						<div className="rounded-2xl bg-[#ef4444]/10 border border-[#ef4444]/20 p-4 text-[#991b1b]">
-							<p>{error}</p>
-							<button
-								onClick={fetchBuses}
-								className="mt-2 px-3 py-1 bg-[#ef4444] text-white rounded text-sm hover:bg-[#dc2626]"
-							>
-								Retry
-							</button>
-						</div>
-					)}
-
-					{/* Pending Buses */}
-					{!loading && !error && (    
-						<>
-							<div className="bg-white rounded-2xl shadow-sm border border-[#f2d9cc]">
-								<div className="px-6 py-4 border-b border-[#f2d9cc]">
-									<h3 className="text-lg font-semibold text-[#2a1a15]">Pending Bus Registrations</h3>
-									<p className="text-sm text-[#6b4b3d]">Review and approve or reject new bus registrations</p>
+						{/* Stats */}
+						<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+							<div className="rounded-2xl bg-white shadow-sm border border-[#f2d9cc] p-4 flex items-center justify-between">
+								<div>
+									<p className="text-sm text-[#6b4b3d]">Pending Approval</p>
+									<p className="text-2xl font-semibold text-[#2a1a15]">{pendingBuses.length}</p>
 								</div>
+								<AlertCircle className="h-8 w-8 text-[#f59e0b]" />
+							</div>
+							<div className="rounded-2xl bg-white shadow-sm border border-[#f2d9cc] p-4 flex items-center justify-between">
+								<div>
+									<p className="text-sm text-[#6b4b3d]">Approved</p>
+									<p className="text-2xl font-semibold text-[#2a1a15]">{approvedBuses.length}</p>
+								</div>
+								<CheckCircle className="h-8 w-8 text-[#10b981]" />
+							</div>
+							<div className="rounded-2xl bg-white shadow-sm border border-[#f2d9cc] p-4 flex items-center justify-between">
+								<div>
+									<p className="text-sm text-[#6b4b3d]">Rejected</p>
+									<p className="text-2xl font-semibold text-[#2a1a15]">{rejectedBuses.length}</p>
+								</div>
+								<XCircle className="h-8 w-8 text-[#ef4444]" />
+							</div>
+						</div>
 
-								{pendingBuses.length === 0 ? (
-									<div className="px-6 py-8 text-center text-[#6b4b3d]">
-										<p>No pending bus approvals</p>
+						{/* Loading State */}
+						{loading && (
+							<div className="rounded-2xl bg-white shadow-sm border border-[#f2d9cc] p-8 text-center">
+								<p className="text-[#6b4b3d]">Loading buses...</p>
+							</div>
+						)}
+
+						{/* Error State */}
+						{error && !loading && (
+							<div className="rounded-2xl bg-[#ef4444]/10 border border-[#ef4444]/20 p-4 text-[#991b1b]">
+								<p>{error}</p>
+								<button
+									onClick={fetchBuses}
+									className="mt-2 px-3 py-1 bg-[#ef4444] text-white rounded text-sm hover:bg-[#dc2626]"
+								>
+									Retry
+								</button>
+							</div>
+						)}
+
+						{/* Pending Buses */}
+						{!loading && !error && (
+							<>
+								<div className="bg-white rounded-2xl shadow-sm border border-[#f2d9cc]">
+									<div className="px-6 py-4 border-b border-[#f2d9cc]">
+										<h3 className="text-lg font-semibold text-[#2a1a15]">Pending Bus Registrations</h3>
+										<p className="text-sm text-[#6b4b3d]">Review and approve or reject new bus registrations</p>
 									</div>
-								) : (
-									<div className="overflow-x-auto">
-										<table className="min-w-full text-left">
-											<thead className="bg-[#fff4ec] text-[#6b4b3d] text-sm">
-												<tr>
-													<th className="px-6 py-3">Image</th>
-													<th className="px-6 py-3">Reg No</th>
-													<th className="px-6 py-3">Route</th>
-													<th className="px-6 py-3">Driver</th>
-													<th className="px-6 py-3">Seats</th>
-													<th className="px-6 py-3">Status</th>
-													<th className="px-6 py-3">Actions</th>
-												</tr>
-											</thead>
-											<tbody className="divide-y divide-[#f2d9cc] text-sm text-[#2a1a15]">
-												{pendingBuses.map((bus) => (
-													<tr key={bus._id} className="hover:bg-[#fff4ec]">
-														<td className="px-6 py-3"><img src={bus.image} alt={bus.regNo} className="h-12 w-20 object-cover rounded" /></td>
-														<td className="px-6 py-3 font-medium">{bus.regNo}</td>
-														<td className="px-6 py-3">{bus.route}</td>
-														<td className="px-6 py-3">{bus.driverName}</td>
-														<td className="px-6 py-3">{bus.seats}</td>
-														<td className="px-6 py-3">
-															<span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(bus.approvalStatus)}`}>
-																{getStatusIcon(bus.approvalStatus)}
-																{bus.approvalStatus === 'pending' ? 'Pending' : bus.approvalStatus}
-															</span>
-														</td>
-														<td className="px-6 py-3 space-x-2">
-															<button
-															onClick={() => handleViewDetails(bus)}
-															className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-[#3b82f6]/10 text-[#3b82f6] hover:bg-[#3b82f6] hover:text-white transition-all duration-200"
-															disabled={actionLoading}
-															title="View Details"
-														>
-															<Info className="h-4 w-4" />
-														</button>
-														<button
-															onClick={() => handleApprove(bus._id)}
-															disabled={actionLoading}
-															className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-[#10b981]/10 text-[#10b981] hover:bg-[#10b981] hover:text-white transition-all duration-200"
-															title="Approve Bus"
-														>
-															<Check className="h-4 w-4" />
-														</button>
-														<button
-															onClick={() => handleRejectClick(bus._id)}
-															disabled={actionLoading}
-															className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-[#ef4444]/10 text-[#ef4444] hover:bg-[#ef4444] hover:text-white transition-all duration-200"
-															title="Reject Bus"
-														>
-															<Trash2 className="h-4 w-4" />
-															</button>
-														</td>
+
+									{pendingBuses.length === 0 ? (
+										<div className="px-6 py-8 text-center text-[#6b4b3d]">
+											<p>No pending bus approvals</p>
+										</div>
+									) : (
+										<div className="overflow-x-auto">
+											<table className="min-w-full text-left">
+												<thead className="bg-[#fff4ec] text-[#6b4b3d] text-sm">
+													<tr>
+														<th className="px-6 py-3">Image</th>
+														<th className="px-6 py-3">Reg No</th>
+														<th className="px-6 py-3">Route</th>
+														<th className="px-6 py-3">Driver</th>
+														<th className="px-6 py-3">Seats</th>
+														<th className="px-6 py-3">Status</th>
+														<th className="px-6 py-3">Actions</th>
 													</tr>
+												</thead>
+												<tbody className="divide-y divide-[#f2d9cc] text-sm text-[#2a1a15]">
+													{pendingBuses.map((bus) => (
+														<tr key={bus._id} className="hover:bg-[#fff4ec]">
+															<td className="px-6 py-3"><img src={bus.image} alt={bus.regNo} className="h-12 w-20 object-cover rounded" /></td>
+															<td className="px-6 py-3 font-medium">{bus.regNo}</td>
+															<td className="px-6 py-3">{bus.route}</td>
+															<td className="px-6 py-3">{bus.driverName}</td>
+															<td className="px-6 py-3">{bus.seats}</td>
+															<td className="px-6 py-3">
+																<span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(bus.approvalStatus)}`}>
+																	{getStatusIcon(bus.approvalStatus)}
+																	{bus.approvalStatus === 'pending' ? 'Pending' : bus.approvalStatus}
+																</span>
+															</td>
+															<td className="px-6 py-3 space-x-2">
+																<button
+																	onClick={() => handleViewDetails(bus)}
+																	className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-[#3b82f6]/10 text-[#3b82f6] hover:bg-[#3b82f6] hover:text-white transition-all duration-200"
+																	disabled={actionLoading}
+																	title="View Details"
+																>
+																	<Info className="h-4 w-4" />
+																</button>
+																<button
+																	onClick={() => handleApprove(bus._id)}
+																	disabled={actionLoading}
+																	className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-[#10b981]/10 text-[#10b981] hover:bg-[#10b981] hover:text-white transition-all duration-200"
+																	title="Approve Bus"
+																>
+																	<Check className="h-4 w-4" />
+																</button>
+																<button
+																	onClick={() => handleRejectClick(bus._id)}
+																	disabled={actionLoading}
+																	className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-[#ef4444]/10 text-[#ef4444] hover:bg-[#ef4444] hover:text-white transition-all duration-200"
+																	title="Reject Bus"
+																>
+																	<Trash2 className="h-4 w-4" />
+																</button>
+															</td>
+														</tr>
 												))}
 											</tbody>
 										</table>
@@ -454,8 +474,15 @@ export default function SuperAdminDashboard() {
 								)}
 							</div>
 						</>
-					)}
-				</main>
+						)}
+					</main>
+				)}
+
+				{activeNav === 'feedbacks' && (
+					<div className="flex-1">
+						<Feedbacks />
+					</div>
+				)}
 			</div>
 
 			{/* Details Modal */}
