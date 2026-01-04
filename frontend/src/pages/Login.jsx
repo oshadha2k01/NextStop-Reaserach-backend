@@ -2,19 +2,20 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
 import { showSuccessAlert, showErrorAlert, showToast } from '../utils/alerts';
+import { authAPI } from '../utils/api';
 
 export default function Login() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    email: '',
+    username: '',
     password: '',
   });
   const [errors, setErrors] = useState({
-    email: '',
+    username: '',
     password: '',
   });
   const [touched, setTouched] = useState({
-    email: false,
+    username: false,
     password: false,
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -50,18 +51,18 @@ export default function Login() {
 
   const validateForm = () => {
     const newErrors = {
-      email: '',
+      username: '',
       password: '',
     };
 
     let isValid = true;
 
-    // Email validation
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
+    // Username validation
+    if (!formData.username.trim()) {
+      newErrors.username = 'Username is required';
       isValid = false;
-    } else if (!validateEmail(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
+    } else if (formData.username.length < 3) {
+      newErrors.username = 'Username must be at least 3 characters';
       isValid = false;
     }
 
@@ -83,7 +84,7 @@ export default function Login() {
 
     // Mark all fields as touched
     setTouched({
-      email: true,
+      username: true,
       password: true,
     });
 
@@ -95,28 +96,21 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      // Add your login logic here
-      setTimeout(async () => {
-        setIsLoading(false);
-        
-        // Simulate error for demonstration
-        // Uncomment below to test error handling
-        // setErrors({
-        //   email: '',
-        //   password: 'Invalid password',
-        // });
-        // showErrorAlert('Login Failed', 'Invalid email or password');
-        // return;
+      const response = await authAPI.adminLogin({
+        username: formData.username,
+        password: formData.password,
+      });
 
-        // Simulate success
-        await showSuccessAlert('Success!', 'Login successful');
-        // Or use toast notification
-        // showToast('success', 'Login successful');
-        // navigate('/dashboard');
-      }, 1000);
+      // Store token and user info
+      localStorage.setItem('token', response.token);
+      localStorage.setItem('username', response.username);
+
+      setIsLoading(false);
+      await showSuccessAlert('Success!', 'Login successful');
+      navigate('/admindashbord');
     } catch (error) {
       setIsLoading(false);
-      showErrorAlert('Login Failed', 'Invalid email or password');
+      showErrorAlert('Login Failed', error.message || 'Invalid credentials');
     }
   };
 
@@ -138,33 +132,33 @@ export default function Login() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Email Input */}
+            {/* Username Input */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
+                Username
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className={`h-5 w-5 ${errors.email ? 'text-red-400' : 'text-gray-400'}`} />
+                  <Mail className={`h-5 w-5 ${errors.username ? 'text-red-400' : 'text-gray-400'}`} />
                 </div>
                 <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
+                  id="username"
+                  name="username"
+                  type="text"
+                  value={formData.username}
                   onChange={handleChange}
                   onBlur={handleBlur}
                   className={`block w-full pl-10 pr-3 py-2 border ${
-                    errors.email 
+                    errors.username 
                       ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
                       : 'border-gray-300 focus:ring-[#FFA500] focus:border-transparent'
                   } rounded-lg focus:ring-1 transition-all duration-200 outline-none h-9`}
-                  placeholder="Enter your email"
+                  placeholder="Enter your username"
                 />
               </div>
-              {errors.email && (
+              {errors.username && (
                 <p className="mt-1 text-sm text-red-500">
-                  {errors.email}
+                  {errors.username}
                 </p>
               )}
             </div>

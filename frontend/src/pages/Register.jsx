@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, Loader2, Eye, EyeOff, User, Phone } from 'lucide-react';
 import { showSuccessAlert, showErrorAlert, showToast } from '../utils/alerts';
+import { authAPI } from '../utils/api';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -165,19 +166,26 @@ export default function Register() {
     setIsLoading(true);
 
     try {
-      // Add your registration logic here
-      setTimeout(async () => {
-        setIsLoading(false);
-        
-        // Simulate success
-        await showSuccessAlert('Success!', 'Registration successful');
-        // Or use toast notification
-        // showToast('success', 'Registration successful');
-        // navigate('/login');
-      }, 1000);
+      const response = await authAPI.adminRegister({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        username: formData.username,
+        email: formData.email,
+        phoneNo: formData.phoneNo,
+        password: formData.password,
+      });
+
+      // Store token and user info
+      localStorage.setItem('token', response.token);
+      localStorage.setItem('username', response.username);
+
+      showSuccessAlert('Success!', 'Registration successful');
+      setTimeout(() => {
+        navigate('/admindashbord');
+      }, 500);
     } catch (error) {
       setIsLoading(false);
-      showErrorAlert('Registration Failed', 'Something went wrong');
+      showErrorAlert('Registration Failed', error.message || 'Something went wrong');
     }
   };
 
