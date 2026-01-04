@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BusFront, CheckCircle, XCircle, AlertCircle, Info, Check, Trash2 } from 'lucide-react';
+import { BusFront, CheckCircle, XCircle, AlertCircle, Info, Check, Trash2, Search, User, MessageSquare, Star } from 'lucide-react';
 import { busAPI } from '../utils/api';
 
 export default function SuperAdminDashboard() {
@@ -81,6 +81,14 @@ export default function SuperAdminDashboard() {
 	const [actionLoading, setActionLoading] = useState(false);
 	const [showDetailsModal, setShowDetailsModal] = useState(false);
 	const [selectedBusDetails, setSelectedBusDetails] = useState(null);
+	const [searchQuery, setSearchQuery] = useState('');
+	const [showComplaintsModal, setShowComplaintsModal] = useState(false);
+	const [showFeedbacksModal, setShowFeedbacksModal] = useState(false);
+	const [selectedDriverForModal, setSelectedDriverForModal] = useState(null);
+	const [activeNav, setActiveNav] = useState('approvals');
+	const [complaintsSearchQuery, setComplaintsSearchQuery] = useState('');
+	const [driversSearchQuery, setDriversSearchQuery] = useState('');
+	const [feedbacksSearchQuery, setFeedbacksSearchQuery] = useState('');
 
 	useEffect(() => {
 		// Uncomment to fetch from API instead of using dummy data
@@ -167,6 +175,25 @@ export default function SuperAdminDashboard() {
 		}
 	};
 
+	const handleViewDriverDetails = (bus) => {
+		setSelectedDriverForModal(bus);
+	};
+
+	const handleViewComplaints = (bus) => {
+		setSelectedDriverForModal(bus);
+		setShowComplaintsModal(true);
+	};
+
+	const handleViewFeedbacks = (bus) => {
+		setSelectedDriverForModal(bus);
+		setShowFeedbacksModal(true);
+	};
+
+	// Filter buses by search query
+	const filteredBuses = buses.filter((bus) =>
+		bus.regNo.toLowerCase().includes(searchQuery.toLowerCase())
+	);
+
 	const pendingBuses = buses.filter((b) => b.approvalStatus === 'pending');
 	const approvedBuses = buses.filter((b) => b.approvalStatus === 'approved');
 	const rejectedBuses = buses.filter((b) => b.approvalStatus === 'rejected');
@@ -241,7 +268,7 @@ export default function SuperAdminDashboard() {
 					)}
 
 					{/* Pending Buses */}
-					{!loading && !error && (
+					{!loading && !error && (    
 						<>
 							<div className="bg-white rounded-2xl shadow-sm border border-[#f2d9cc]">
 								<div className="px-6 py-4 border-b border-[#f2d9cc]">
