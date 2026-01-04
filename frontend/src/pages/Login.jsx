@@ -157,7 +157,7 @@ export default function Login() {
                   className={`block w-full pl-10 pr-3 py-2 border ${
                     errors.email 
                       ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
-                      : 'border-gray-300 focus:ring-blue-600 focus:border-transparent'
+                      : 'border-gray-300 focus:ring-[#FFA500] focus:border-transparent'
                   } rounded-lg focus:ring-1 transition-all duration-200 outline-none h-9`}
                   placeholder="Enter your email"
                 />
@@ -188,7 +188,7 @@ export default function Login() {
                   className={`block w-full pl-10 pr-10 py-2 border ${
                     errors.password 
                       ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
-                      : 'border-gray-300 focus:ring-blue-600 focus:border-transparent'
+                      : 'border-gray-300 focus:ring-[#FFA500] focus:border-transparent'
                   } rounded-lg focus:ring-1 transition-all duration-200 outline-none h-9`}
                   placeholder="••••••••"
                 />
@@ -215,7 +215,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex items-center justify-center py-3 px-4 border border-transparent rounded-xl shadow-md text-white bg-blue-700 hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600 font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] h-10"
+              className="w-full flex items-center justify-center py-3 px-4 border border-transparent rounded-xl shadow-md text-white bg-[#FFA500] hover:bg-[#e69500] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#FFA500] font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] h-10"
             >
               {isLoading ? (
                 <Loader2 className="h-5 w-5 text-white animate-spin" />
@@ -229,7 +229,7 @@ export default function Login() {
           <div className="text-center pt-4 border-t border-gray-200">
             <p className="text-sm text-gray-600">
               Don't have an account?{' '}
-              <Link to="/register" className="font-medium text-blue-600 hover:text-blue-700 transition-colors text-decoration-none">
+              <Link to="/register" className="font-medium text-[#FFA500] hover:text-[#e69500] transition-colors text-decoration-none">
                 Sign up for free
               </Link>
             </p>
