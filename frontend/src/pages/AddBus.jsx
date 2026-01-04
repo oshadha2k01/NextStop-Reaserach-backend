@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { busAPI } from '../utils/api';
 
 export default function AddBus() {
 	const [form, setForm] = useState({
@@ -46,12 +47,11 @@ export default function AddBus() {
 			fd.append('driverName', form.driverName.trim());
 			fd.append('image', form.imageFile);
 
-			// TODO: replace with real endpoint
-			await new Promise((r) => setTimeout(r, 800));
-			alert('Bus submitted (mock). Wire to backend when ready.');
+			const result = await busAPI.createBusWithImage(fd);
+			alert(result.message || 'Bus added successfully!');
 			setForm({ route: '', regNo: '', seats: '', driverName: '', imageFile: null });
 		} catch (err) {
-			alert('Submission failed.');
+			alert(`Submission failed: ${err.message}`);
 		} finally {
 			setIsSubmitting(false);
 		}

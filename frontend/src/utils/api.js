@@ -31,6 +31,37 @@ export const apiCall = async (method, endpoint, data = null) => {
   }
 };
 
+// FormData API call for file uploads
+export const apiCallFormData = async (method, endpoint, formData) => {
+  try {
+    const config = {
+      method,
+    };
+
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers = {
+        Authorization: `Bearer ${token}`,
+      };
+    }
+
+    if (formData) {
+      config.body = formData;
+    }
+
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+    const jsonData = await response.json();
+
+    if (!response.ok) {
+      throw new Error(jsonData.message || 'An error occurred');
+    }
+
+    return jsonData;
+  } catch (error) {
+    throw new Error(error.message || 'Network error');
+  }
+};
+
 // Auth API calls
 export const authAPI = {
   // Admin Auth
@@ -53,6 +84,7 @@ export const busAPI = {
   getAllBuses: () => apiCall('GET', '/buses'),
   getBusById: (id) => apiCall('GET', `/buses/${id}`),
   createBus: (data) => apiCall('POST', '/buses', data),
+  createBusWithImage: (formData) => apiCallFormData('POST', '/buses', formData),
   updateBus: (id, data) => apiCall('PUT', `/buses/${id}`, data),
   deleteBus: (id) => apiCall('DELETE', `/buses/${id}`),
 };
