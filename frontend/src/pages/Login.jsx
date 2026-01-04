@@ -93,6 +93,31 @@ export default function Login() {
       return;
     }
 
+    const isSuperAdmin = formData.username.trim().toLowerCase().endsWith('@superadmin');
+
+    // Handle super admin locally to avoid backend dependency
+    if (isSuperAdmin) {
+      if (formData.password !== 'admin@123') {
+        showErrorAlert('Login Failed', 'Invalid super admin credentials');
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        // Set a fixed token and username for super admin session
+        localStorage.setItem('token', 'superadmin-static-token');
+        localStorage.setItem('username', formData.username);
+
+        setIsLoading(false);
+        await showSuccessAlert('Success!', 'Super admin login successful');
+        navigate('/superadmindashbord');
+      } catch (error) {
+        setIsLoading(false);
+        showErrorAlert('Login Failed', error.message || 'Invalid credentials');
+      }
+      return;
+    }
+
     setIsLoading(true);
 
     try {
