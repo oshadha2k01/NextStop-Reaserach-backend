@@ -22,7 +22,16 @@ const BusSchema = new mongoose.Schema(
     driverName: {
       type: String,
       required: true, 
-  }
+    },
+    approvalStatus: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected'],
+      default: 'pending',
+    },
+    rejectionReason: {
+      type: String,
+      default: null,
+    },
   },
   { timestamps: true }
 );

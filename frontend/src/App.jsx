@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import AdminDashboard from './pages/AdminDashboard';
 import AddBus from './pages/AddBus';
+import SuperAdminDashboard from './pages/SuperAdminDashboard';
 
 // Protected Route Component
 const ProtectedRoute = ({ element }) => {
@@ -28,6 +29,7 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/admindashbord" element={<ProtectedRoute element={<AdminDashboard />} />} />
           <Route path="/add-bus" element={<ProtectedRoute element={<AddBus />} />} />
+          <Route path="/superadmindashbord" element={<ProtectedRoute element={<SuperAdminDashboard />} />} />
         </Routes>
       </AuthProvider>
     </Router>

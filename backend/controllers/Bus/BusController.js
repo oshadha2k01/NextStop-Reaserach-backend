@@ -119,6 +119,41 @@ const deleteBus = async (req, res) => {
 	}
 };
 
+const approveBus = async (req, res) => {
+	try {
+		const bus = await Bus.findByIdAndUpdate(
+			req.params.id,
+			{ approvalStatus: 'approved', rejectionReason: null },
+			{ new: true, runValidators: true }
+		).lean();
+		if (!bus) return res.status(404).json({ message: "Bus not found" });
+		if (bus.image) delete bus.image.data;
+		return res.json({ message: "Bus approved successfully", bus });
+	} catch (err) {
+		return res.status(500).json({ message: err.message || "Server error" });
+	}
+};
+
+const rejectBus = async (req, res) => {
+	try {
+		const { reason } = req.body;
+		if (!reason) {
+			return res.status(400).json({ message: "Rejection reason is required" });
+		}
+
+		const bus = await Bus.findByIdAndUpdate(
+			req.params.id,
+			{ approvalStatus: 'rejected', rejectionReason: reason },
+			{ new: true, runValidators: true }
+		).lean();
+		if (!bus) return res.status(404).json({ message: "Bus not found" });
+		if (bus.image) delete bus.image.data;
+		return res.json({ message: "Bus rejected successfully", bus });
+	} catch (err) {
+		return res.status(500).json({ message: err.message || "Server error" });
+	}
+};
+
 module.exports = {
 	createBus,
 	getBuses,
@@ -126,4 +161,6 @@ module.exports = {
 	getBusImage,
 	updateBus,
 	deleteBus,
+	approveBus,
+	rejectBus,
 };
