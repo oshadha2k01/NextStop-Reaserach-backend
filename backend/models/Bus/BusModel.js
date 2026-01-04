@@ -19,15 +19,10 @@ const BusSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
-    ownerName: {
+    driverName: {
       type: String,
-      required: true,
-    },
-    phoneNo: {
-      type: String,
-      required: true,
-      match: [/^[0-9]{10}$/, "Invalid phone number"],
-    },
+      required: true, 
+  }
   },
   { timestamps: true }
 );

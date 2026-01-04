@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
 	BusFront,
 	MapPin,
@@ -18,6 +19,7 @@ const navItems = [
 
 export default function AdminDashboard() {
 	const [active, setActive] = useState('registeredBuses');
+	const navigate = useNavigate();
 
 	const data = useMemo(
 		() => ({
@@ -338,8 +340,12 @@ export default function AdminDashboard() {
 							<h2 className="text-2xl font-semibold capitalize">{active.replace(/([A-Z])/g, ' $1')}</h2>
 						</div>
 						<div className="flex items-center gap-3">
-							<button className="px-4 py-2 rounded-lg bg-white border border-[#f2d9cc] text-[#2a1a15] shadow-sm">Export</button>
-							<button className="px-4 py-2 rounded-lg bg-[#ff6b35] text-white shadow-sm">Add New</button>
+							<button
+								onClick={() => navigate('/add-bus')}
+								className="px-4 py-2 rounded-lg bg-[#ff6b35] text-white shadow-sm hover:bg-[#cc562a]"
+							>
+								Add New Bus
+							</button>
 						</div>
 					</div>
 
