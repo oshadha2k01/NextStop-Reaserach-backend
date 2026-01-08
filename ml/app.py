@@ -1,8 +1,7 @@
-# FILE: /ml-service-flask/app.py
+# FILE: /ml/app.py
 from flask import Flask, request, jsonify
 from flask_cors import CORS 
 import joblib
-import pandas as pd
 import os
 from pymongo import MongoClient
 
@@ -10,81 +9,82 @@ app = Flask(__name__)
 CORS(app) 
 
 # --- Configuration ---
-MODEL_PATH = 'models/trained_model.pkl'
-MODEL = None 
-
-# FIX: Completed MongoDB URI with database name 'NextBusDB'
+# Update with your specific database name
 MONGO_URI = 'mongodb+srv://NextBus:RPSLIIT@researchp.pf7k4qq.mongodb.net/NextBusDB?retryWrites=true&w=majority' 
 
 # Initialize MongoDB Client
 try:
     mongo_client = MongoClient(MONGO_URI)
     db = mongo_client.get_database()
-    bus_data_collection = db.busrealtime_data 
-    print(f"✅ Connected to MongoDB at {MONGO_URI}")
+    # Ensure this matches the collection name in your Atlas
+    # Mongoose typically pluralizes your model "BusRealTimeData" to "busrealtimedatas"
+    bus_data_collection = db.busrealtimedatas 
+    print(f"✅ Flask ML Service: Connected to MongoDB")
 except Exception as e:
-    mongo_client = None
-    db = None
+    print(f"❌ Flask ML Service: MongoDB Error: {e}")
     bus_data_collection = None
-    print(f"❌ Could not initialize MongoDB client: {e}")
 
-
-def load_model():
-    """Loads the model and sets up the global MODEL variable."""
-    global MODEL
-    try:
-        MODEL = joblib.load(MODEL_PATH)
-        print(f"✅ Model loaded successfully from {MODEL_PATH}")
-    except FileNotFoundError:
-        print(f"❌ ERROR: Model file not found at {MODEL_PATH}. Using fallback logic.")
-        MODEL = None 
-
-# --- API Endpoint ---
 @app.route('/predict_bus', methods=['POST'])
 def predict_bus():
-    """FIXED: Uses the correct route /predict_bus which is called by the Node.js .env variable."""
+    """
+    Calculates a two-stage journey prediction.
+    Stage 1: Bus -> User (Onboarding)
+    Stage 2: User -> Destination (Ride)
+    """
     data = request.get_json() or {}
     bus_id = data.get('busId')
-    distance_meters = data.get('distanceMeters')
     
-    if not bus_id or distance_meters is None:
-        return jsonify({"error": "Missing busId or distanceMeters"}), 400
-
-    if bus_data_collection is None:
-        return jsonify({"error": "MongoDB client not initialized on server."}), 500
+    # Distance data from Google
+    seg1_dist = data.get('segment1_meters', 0)
+    seg1_google_time = data.get('segment1_google_seconds', 0)
+    seg2_dist = data.get('segment2_meters', 0)
+    seg2_google_time = data.get('segment2_google_seconds', 0)
+    
+    if not bus_id:
+        return jsonify({"error": "busId is required"}), 400
 
     try:
-        # A. Fetch Real-Time Features from MongoDB
-        latest_bus_data = bus_data_collection.find_one(
+        # 1. Fetch live sensor data from MongoDB
+        latest = bus_data_collection.find_one(
             {"busId": bus_id},
             sort=[('timestamp', -1)]
         )
         
-        if not latest_bus_data:
-            return jsonify({"error": f"No real-time data found for bus {bus_id}"}), 404
-
-        # B. Feature Extraction (with sensible defaults)
-        current_speed_kmh = latest_bus_data.get('speed', 40)
-        current_passengers = latest_bus_data.get('passengerCount', 10)
+        current_speed = latest.get('speed', 35) if latest else 35
+        passenger_count = latest.get('passengerCount', 10) if latest else 10
         
-        # C. SIMPLE PREDICTION LOGIC 
-        distance_km = distance_meters / 1000.0
-        speed_factor = min(1.0, current_speed_kmh / 40.0)
-        passenger_delay_factor = (current_passengers / 50.0) * 0.1
-        effective_speed_kmh = max(10, current_speed_kmh) * speed_factor
-        base_time_hours = distance_km / max(effective_speed_kmh, 0.0001)
-        predicted_time_seconds = base_time_hours * 3600 * (1 + passenger_delay_factor)
+        # --- HIGH ACCURACY PREDICTION LOGIC ---
+        
+        # A. Calculate Time to User (Segment 1)
+        # We adjust Google's traffic time based on current bus speed variance
+        speed_factor = max(0.85, 40 / max(current_speed, 10))
+        predicted_time_to_user = seg1_google_time * speed_factor
+        
+        # B. Calculate Boarding Delay (The time the bus sits at the stop)
+        # 5 seconds per existing passenger + 15 seconds base stop time
+        boarding_delay = (passenger_count * 5) + 15
+        
+        # C. Calculate Time on Bus (Segment 2)
+        # Buses travel slower than Google's 'driving' mode due to frequent stops.
+        # We apply a 20% "Transit Overhead" factor.
+        predicted_time_on_bus = seg2_google_time * 1.20
+        
+        # D. Total Calculation
+        total_seconds = predicted_time_to_user + boarding_delay + predicted_time_on_bus
         
         return jsonify({
-            "predictedTimeSeconds": int(predicted_time_seconds),
-            "source": "ML-Service-Flask"
+            "timeToUserSeconds": int(predicted_time_to_user),
+            "timeOnBusSeconds": int(predicted_time_on_bus + boarding_delay),
+            "totalJourneySeconds": int(total_seconds),
+            "debug_speed": current_speed,
+            "debug_passengers": passenger_count,
+            "source": "ML-Hybrid-V3-TwoStage"
         }), 200
 
     except Exception as e:
-        print(f"Prediction Error: {e}")
-        return jsonify({"error": "Internal prediction service error"}), 500
+        print(f"Flask Prediction Error: {e}")
+        return jsonify({"error": str(e)}), 500
 
-# --- Main Execution ---
 if __name__ == '__main__':
-    load_model()
+    # Ensure Port matches your Node.js .env
     app.run(host='0.0.0.0', port=5000)

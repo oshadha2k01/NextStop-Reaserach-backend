@@ -19,14 +19,18 @@ const BusSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
-    ownerName: {
+    driverName: {
       type: String,
-      required: true,
+      required: true, 
     },
-    phoneNo: {
+    approvalStatus: {
       type: String,
-      required: true,
-      match: [/^[0-9]{10}$/, "Invalid phone number"],
+      enum: ['pending', 'approved', 'rejected'],
+      default: 'pending',
+    },
+    rejectionReason: {
+      type: String,
+      default: null,
     },
   },
   { timestamps: true }
