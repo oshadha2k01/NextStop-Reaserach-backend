@@ -13,6 +13,13 @@ const predictiveTimeBusRoutes = require("./routes/predictiveTimeBusRoutes");
 
 const app = express();
 
+const { MONGO_URI, PORT = 3000 } = process.env;
+
+if (!MONGO_URI) {
+  console.error("Missing MONGO_URI environment variable. Set it in a .env file at the project root.");
+  process.exit(1);
+}
+
 app.use(cors());
 app.use(express.json());
 
@@ -24,7 +31,7 @@ app.use("/api/predictive-time-buses", predictiveTimeBusRoutes);
 
 // MongoDB Connection
 mongoose
-  .connect(process.env.MONGO_URI) // removed deprecated options
+  .connect(MONGO_URI) // removed deprecated options
   .then(() => console.log("MongoDB Connected Successfully"))
   .catch((err) => {
     console.error("MongoDB Connection Error:", err);
@@ -32,7 +39,6 @@ mongoose
   });
 
 // Server Running
-const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`API endpoint: POST http://localhost:${PORT}/api/predict`);
