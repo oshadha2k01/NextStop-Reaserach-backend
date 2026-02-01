@@ -7,6 +7,7 @@ const adminAuthRoutes = require("./routes/Admin/adminAuthRoutes");
 const busRoutes = require("./routes/Bus/busRoutes");
 const superAdminAuthRoutes = require("./routes/SuperAdmin/superAdminAuthRoutes");
 const predictiveTimeBusRoutes = require("./routes/predictiveTimeBusRoutes");
+const fareRoutes = require("./routes/fareRoutes");
 
 
 const app = express();
@@ -25,6 +26,7 @@ app.use("/api/admin", adminAuthRoutes);
 app.use("/api/buses", busRoutes); 
 app.use("/api/superadmin", superAdminAuthRoutes);
 app.use("/api/predictive-time-buses", predictiveTimeBusRoutes);
+app.use("/api/fare", fareRoutes);
 
 // MongoDB Connection
 mongoose

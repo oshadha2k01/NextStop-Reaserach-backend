@@ -6,3 +6,5 @@ numpy
 flask-cors
 pymongo
 schedule
+requests
+python-dotenv
