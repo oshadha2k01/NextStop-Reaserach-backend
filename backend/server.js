@@ -1,5 +1,5 @@
 require('dotenv').config();
-console.log('Environment check - API Key exists:', !!process.env.AIzaSyBmgWCSt6zznmFD1XiuzKMW4gaxO5LANUc);
+console.log('Environment check - API Key exists:', !!process.env.GOOGLE_MAPS_API_KEY);
 
 const express = require("express");
 const mongoose = require("mongoose");
@@ -19,6 +19,9 @@ const iotRoutes = require("./routes/IoTDevice/IoTRoutes");
 
 // Import Passenger Boarding Notification Routes
 const boardingNotificationRoutes = require("./routes/Passenger/boardingNotificationRoutes");
+
+// Import ETA Routes
+const etaRoutes = require("./routes/etaRoutes");
 
 const app = express();
 const { MONGO_URI, PORT = 3000 } = process.env;
@@ -77,7 +80,10 @@ app.use("/api/fare", fareRoutes);
 app.use("/api", iotRoutes);
 
 // Mount Passenger Boarding Notification Routes
-app.use("/api/notify", boardingNotificationRoutes); 
+app.use("/api/notify", boardingNotificationRoutes);
+
+// Mount ETA Routes
+app.use("/api/eta", etaRoutes); 
 
 // MongoDB Connection
 mongoose
