@@ -38,4 +38,7 @@ router.post('/data', async (req, res) => {
 // POST endpoint for time prediction
 router.post('/predict', predictionTimeController.getPredictedTime);
 
+// POST endpoint for simplified compare (3-field input: boardingLocation, destinationLocation, userExpectedTime)
+router.post('/predictive-journey', predictionTimeController.predictAndCompare);
+
 module.exports = router;

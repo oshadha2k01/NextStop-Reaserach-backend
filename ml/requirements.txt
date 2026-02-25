@@ -8,3 +8,4 @@ pymongo
 schedule
 requests
 python-dotenv
+xgboost
