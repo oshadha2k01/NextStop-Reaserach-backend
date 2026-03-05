@@ -7,6 +7,10 @@ const cors = require("cors");
 const adminAuthRoutes = require("./routes/Admin/adminAuthRoutes");
 const busRoutes = require("./routes/Bus/busRoutes");
 const superAdminAuthRoutes = require("./routes/SuperAdmin/superAdminAuthRoutes");
+const driverRoutes = require("./routes/driverRoutes");
+const complaintRoutes = require("./routes/complaintRoutes");
+const feedbackRoutes = require("./routes/feedbackRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
 const predictionController = require("./controllers/predictionController");
 const predictiveTimeBusRoutes = require("./routes/predictiveTimeBusRoutes");
 
@@ -26,6 +30,10 @@ app.use(express.json());
 app.use("/api/admin", adminAuthRoutes);
 app.use("/api/buses", busRoutes); 
 app.use("/api/superadmin", superAdminAuthRoutes);
+app.use("/api/drivers", driverRoutes);
+app.use("/api/complaints", complaintRoutes);
+app.use("/api/feedbacks", feedbackRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 app.post("/api/predict", predictionController.getPredictionAndSave);
 app.use("/api/predictive-time-buses", predictiveTimeBusRoutes);
 

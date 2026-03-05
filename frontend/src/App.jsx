@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import AdminDashboard from './pages/AdminDashboard';
 import AddBus from './pages/AddBus';
+import AddDriver from './pages/AddDriver';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
 
 // Protected Route Component
@@ -28,7 +29,9 @@ export default function App() {
           <Route path="/" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/admindashbord" element={<ProtectedRoute element={<AdminDashboard />} />} />
+          <Route path="/admin-dashboard" element={<ProtectedRoute element={<AdminDashboard />} />} />
           <Route path="/add-bus" element={<ProtectedRoute element={<AddBus />} />} />
+          <Route path="/add-driver" element={<ProtectedRoute element={<AddDriver />} />} />
           <Route path="/superadmindashbord" element={<ProtectedRoute element={<SuperAdminDashboard />} />} />
         </Routes>
       </AuthProvider>
