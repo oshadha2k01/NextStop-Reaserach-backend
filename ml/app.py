@@ -13,7 +13,7 @@ import json
 from pymongo import MongoClient
 
 # Import configuration
-from config import (
+from ml_service_config import (
     FARE_DATA_PATH,
     MONGO_URI,
     MONGO_COLLECTION_NAME,
@@ -51,10 +51,13 @@ except Exception as e:
 # Initialize MongoDB
 bus_data_collection = None
 try:
-    mongo_client = MongoClient(MONGO_URI)
-    db = mongo_client.get_database()
-    bus_data_collection = db[MONGO_COLLECTION_NAME]
-    print(f"✅ Flask ML Service: Connected to MongoDB")
+    if MONGO_URI:
+        mongo_client = MongoClient(MONGO_URI)
+        db = mongo_client.get_database()
+        bus_data_collection = db[MONGO_COLLECTION_NAME]
+        print(f"✅ Flask ML Service: Connected to MongoDB")
+    else:
+        print("⚠️  MONGO_URI not provided, running in offline mode")
 except Exception as e:
     print(f"❌ Flask ML Service: MongoDB Error: {e}")
     bus_data_collection = None
