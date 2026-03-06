@@ -136,7 +136,7 @@ def health_check():
         "modules": {
             "FareSystem": "✅ Loaded" if fare_data else "❌ Not loaded",
             "JourneyModel": "✅ Loaded" if journey_predictor else "❌ Not loaded",
-            "MongoDB": "✅ Connected" if bus_data_collection else "❌ Not connected"
+            "MongoDB": "✅ Connected" if bus_data_collection is not None else "❌ Not connected"
         }
     }, 200
 
