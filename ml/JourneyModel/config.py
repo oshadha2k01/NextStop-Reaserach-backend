@@ -134,8 +134,9 @@ DEFAULT_CENTER_LAT = 6.9271
 DEFAULT_CENTER_LNG = 79.8612
 
 # Route data
-PROJECT_ROOT = os.path.abspath(os.path.join(BASE_PATH, "..", ".."))
-ROUTE_177_DATA_PATH = os.path.join(PROJECT_ROOT, "data", "main_bus_stops.json")
+# Route data - Point to internal ml/data for deployment
+ROUTE_DATA_ROOT = os.path.dirname(BASE_PATH) # Root of the ml/ folder
+ROUTE_177_DATA_PATH = os.path.join(ROUTE_DATA_ROOT, "data", "main_bus_stops.json")
 
 # Default route for prediction optimization
 DEFAULT_ROUTE_NUMBER = os.getenv('DEFAULT_ROUTE_NUMBER', '177')
