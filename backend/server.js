@@ -1,5 +1,5 @@
 require('dotenv').config();
-console.log('Environment check - API Key exists:', !!process.env.GOOGLE_MAPS_API_KEY);
+console.log('Environment check - API Key exists:', !!process.env.AIzaSyBmgWCSt6zznmFD1XiuzKMW4gaxO5LANUc);
 
 const express = require("express");
 const mongoose = require("mongoose");
@@ -33,10 +33,9 @@ const io = new Server(server, {
     cors: { origin: "*" }
 });
 
-// CRITICAL: Make the 'io' instance globally accessible to our controllers
-// Now you can call `req.app.get('io')` in your iotController to send live updates!
+
 app.set('io', io);
-// -----------------------------------------------------
+
 
 app.use(cors());
 app.use(express.json());
@@ -48,8 +47,7 @@ app.use("/api/superadmin", superAdminAuthRoutes);
 app.post("/api/predict", predictionController.getPredictionAndSave);
 app.use("/api/predictive-time-buses", predictiveTimeBusRoutes);
 
-// Mount New IoT Routes (Matches your ESP32 Config.h: /api/sensor-data)
-// This will route to your iotController
+
 app.use("/api", iotRoutes); 
 
 // MongoDB Connection
