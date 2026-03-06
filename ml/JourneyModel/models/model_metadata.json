@@ -1,0 +1,25 @@
+{
+    "trained_at": "2026-03-06T16:37:25.420119",
+    "features": [
+        "hour",
+        "day_of_week",
+        "is_weekend",
+        "is_rush_hour",
+        "weather_was_raining",
+        "is_hot",
+        "is_cold",
+        "lat",
+        "lng",
+        "distance_from_center",
+        "traffic_intensity",
+        "journey_distance_km"
+    ],
+    "metrics": {
+        "train_mae": 0.0008761882781982422,
+        "test_mae": 32.04908752441406,
+        "train_rmse": 0.001084452037342068,
+        "test_rmse": 44.2452562451085,
+        "train_r2": 1.0,
+        "test_r2": -0.561612606048584
+    }
+}

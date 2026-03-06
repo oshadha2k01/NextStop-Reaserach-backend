@@ -11,11 +11,14 @@ const { Server } = require("socket.io");
 const adminAuthRoutes = require("./routes/Admin/adminAuthRoutes");
 const busRoutes = require("./routes/Bus/busRoutes");
 const superAdminAuthRoutes = require("./routes/SuperAdmin/superAdminAuthRoutes");
-const predictionController = require("./controllers/predictionController");
 const predictiveTimeBusRoutes = require("./routes/predictiveTimeBusRoutes");
+const fareRoutes = require("./routes/fareRoutes");
 
 // Import New IoT Routes
 const iotRoutes = require("./routes/IoTDevice/IoTRoutes");
+
+// Import Passenger Boarding Notification Routes
+const boardingNotificationRoutes = require("./routes/Passenger/boardingNotificationRoutes");
 
 const app = express();
 const { MONGO_URI, PORT = 3000 } = process.env;
@@ -36,6 +39,28 @@ const io = new Server(server, {
 
 app.set('io', io);
 
+// Socket.IO Connection Handler
+// Drivers join a private room keyed to their busId on connection
+io.on('connection', (socket) => {
+    console.log('🔌 Socket connected:', socket.id);
+    
+    // Driver sends their busId when they login and connect
+    socket.on('driver_join', (data) => {
+        const { busId } = data;
+        if (busId) {
+            const roomName = `bus-${busId}`;
+            socket.join(roomName);
+            console.log(`🚌 Driver joined room: ${roomName} (socket: ${socket.id})`);
+            socket.emit('driver_joined', { room: roomName, message: 'Successfully joined driver room' });
+        }
+    });
+    
+    // Clean up on disconnect
+    socket.on('disconnect', () => {
+        console.log('🔌 Socket disconnected:', socket.id);
+    });
+});
+// -----------------------------------------------------
 
 app.use(cors());
 app.use(express.json());
@@ -44,11 +69,15 @@ app.use(express.json());
 app.use("/api/admin", adminAuthRoutes);
 app.use("/api/buses", busRoutes); 
 app.use("/api/superadmin", superAdminAuthRoutes);
-app.post("/api/predict", predictionController.getPredictionAndSave);
-app.use("/api/predictive-time-buses", predictiveTimeBusRoutes);
+app.use("/api", predictiveTimeBusRoutes);
+app.use("/api/fare", fareRoutes);
 
+// Mount New IoT Routes (Matches your ESP32 Config.h: /api/sensor-data)
+// This will route to your iotController
+app.use("/api", iotRoutes);
 
-app.use("/api", iotRoutes); 
+// Mount Passenger Boarding Notification Routes
+app.use("/api/notify", boardingNotificationRoutes); 
 
 // MongoDB Connection
 mongoose

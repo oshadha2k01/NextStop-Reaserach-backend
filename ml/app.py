@@ -1,90 +1,106 @@
-# FILE: /ml/app.py
-from flask import Flask, request, jsonify
-from flask_cors import CORS 
-import joblib
-import os
+"""
+NextStop ML Service - Modular Architecture
+Main Flask application - Routes only, business logic in modules
+
+Structure:
+- FareSystem/ - All fare calculation, distance, and route logic
+- prediction/ - ML prediction logic
+- config.py - Centralized configuration
+"""
+from flask import Flask
+from flask_cors import CORS
+import json
 from pymongo import MongoClient
 
+# Import configuration
+from config import (
+    FARE_DATA_PATH,
+    MONGO_URI,
+    MONGO_COLLECTION_NAME,
+    FLASK_HOST,
+    FLASK_PORT
+)
+
+# Import services
+from FareSystem.services import FareService, RouteService
+from prediction.services import PredictionService
+
+# Import routes
+from FareSystem.routes import fare_bp, route_bp
+from prediction.routes import prediction_bp
+
+# Import route initializers
+from FareSystem.routes.fare_routes import init_fare_routes
+from FareSystem.routes.route_routes import init_route_routes
+from prediction.routes.prediction_routes import init_prediction_routes
+
+# Initialize Flask app
 app = Flask(__name__)
-CORS(app) 
+CORS(app)
 
-# --- Configuration ---
-# Update with your specific database name
-MONGO_URI = 'mongodb+srv://NextBus:RPSLIIT@researchp.pf7k4qq.mongodb.net/NextBusDB?retryWrites=true&w=majority' 
+# Load fare data
+fare_data = None
+try:
+    with open(FARE_DATA_PATH, 'r', encoding='utf-8') as f:
+        fare_data = json.load(f)
+    print(f"✅ Loaded fare data for Route {fare_data['route_number']}")
+except Exception as e:
+    print(f"❌ Error loading fare data: {e}")
+    fare_data = None
 
-# Initialize MongoDB Client
+# Initialize MongoDB
+bus_data_collection = None
 try:
     mongo_client = MongoClient(MONGO_URI)
     db = mongo_client.get_database()
-    # Ensure this matches the collection name in your Atlas
-    # Mongoose typically pluralizes your model "BusRealTimeData" to "busrealtimedatas"
-    bus_data_collection = db.busrealtimedatas 
+    bus_data_collection = db[MONGO_COLLECTION_NAME]
     print(f"✅ Flask ML Service: Connected to MongoDB")
 except Exception as e:
     print(f"❌ Flask ML Service: MongoDB Error: {e}")
     bus_data_collection = None
 
-@app.route('/predict_bus', methods=['POST'])
-def predict_bus():
-    """
-    Calculates a two-stage journey prediction.
-    Stage 1: Bus -> User (Onboarding)
-    Stage 2: User -> Destination (Ride)
-    """
-    data = request.get_json() or {}
-    bus_id = data.get('busId')
+# Initialize services
+if fare_data:
+    fare_service = FareService(fare_data, bus_data_collection)
+    route_service = RouteService(fare_data)
+    prediction_service = PredictionService(bus_data_collection)
     
-    # Distance data from Google
-    seg1_dist = data.get('segment1_meters', 0)
-    seg1_google_time = data.get('segment1_google_seconds', 0)
-    seg2_dist = data.get('segment2_meters', 0)
-    seg2_google_time = data.get('segment2_google_seconds', 0)
+    # Initialize routes with services
+    init_fare_routes(fare_service)
+    init_route_routes(route_service)
+    init_prediction_routes(prediction_service)
     
-    if not bus_id:
-        return jsonify({"error": "busId is required"}), 400
+    # Register blueprints
+    app.register_blueprint(fare_bp)
+    app.register_blueprint(route_bp)
+    app.register_blueprint(prediction_bp)
+    
+    print("✅ All services and routes initialized successfully")
+else:
+    print("❌ Cannot initialize services without fare data")
 
-    try:
-        # 1. Fetch live sensor data from MongoDB
-        latest = bus_data_collection.find_one(
-            {"busId": bus_id},
-            sort=[('timestamp', -1)]
-        )
-        
-        current_speed = latest.get('speed', 35) if latest else 35
-        passenger_count = latest.get('passengerCount', 10) if latest else 10
-        
-        # --- HIGH ACCURACY PREDICTION LOGIC ---
-        
-        # A. Calculate Time to User (Segment 1)
-        # We adjust Google's traffic time based on current bus speed variance
-        speed_factor = max(0.85, 40 / max(current_speed, 10))
-        predicted_time_to_user = seg1_google_time * speed_factor
-        
-        # B. Calculate Boarding Delay (The time the bus sits at the stop)
-        # 5 seconds per existing passenger + 15 seconds base stop time
-        boarding_delay = (passenger_count * 5) + 15
-        
-        # C. Calculate Time on Bus (Segment 2)
-        # Buses travel slower than Google's 'driving' mode due to frequent stops.
-        # We apply a 20% "Transit Overhead" factor.
-        predicted_time_on_bus = seg2_google_time * 1.20
-        
-        # D. Total Calculation
-        total_seconds = predicted_time_to_user + boarding_delay + predicted_time_on_bus
-        
-        return jsonify({
-            "timeToUserSeconds": int(predicted_time_to_user),
-            "timeOnBusSeconds": int(predicted_time_on_bus + boarding_delay),
-            "totalJourneySeconds": int(total_seconds),
-            "debug_speed": current_speed,
-            "debug_passengers": passenger_count,
-            "source": "ML-Hybrid-V3-TwoStage"
-        }), 200
-
-    except Exception as e:
-        print(f"Flask Prediction Error: {e}")
-        return jsonify({"error": str(e)}), 500
+# Health check endpoint
+@app.route('/', methods=['GET'])
+def health_check():
+    """Health check endpoint"""
+    return {
+        "status": "running",
+        "service": "NextStop ML Service",
+        "version": "2.0 - Modular",
+        "modules": {
+            "FareSystem": "✅ Loaded" if fare_data else "❌ Not loaded",
+            "Prediction": "✅ Loaded",
+            "MongoDB": "✅ Connected" if bus_data_collection else "❌ Not connected"
+        }
+    }, 200
 
 if __name__ == '__main__':
-    # Ensure Port matches your Node.js .env
-    app.run(host='0.0.0.0', port=5000)
+    print(f"\n{'='*60}")
+    print(f"🚀 NextStop ML Service - Modular Architecture")
+    print(f"{'='*60}")
+    print(f"📂 FareSystem Module: Fare calculations, distance, geocoding")
+    print(f"🤖 Prediction Module: ML-based arrival predictions")
+    print(f"🌐 Server: http://{FLASK_HOST}:{FLASK_PORT}")
+    print(f"{'='*60}\n")
+    
+    app.run(host=FLASK_HOST, port=FLASK_PORT)
