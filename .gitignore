@@ -106,13 +106,15 @@ dist-py/
 *.onnx
 *.tflite
 *.safetensors
-models/
+# ml/JourneyModel/models/
+ml/JourneyModel/models/
 checkpoints/
 saved_models/
 
 # Datasets (prevent committing large data files)
-data/
-datasets/
+# ml/JourneyModel specific data
+ml/JourneyModel/data/
+ml/JourneyModel/datasets/
 *.csv
 *.tsv
 *.parquet
