@@ -79,8 +79,51 @@ if fare_data:
 else:
     print("❌ Cannot initialize services without fare data")
 
+# ============================================================================
+# HYBRID JOURNEY MODEL INTEGRATION
+# ============================================================================
+import sys
+import os
+
+# Ensure we can import from JourneyModel
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'JourneyModel'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'JourneyModel', 'prediction'))
+
+try:
+    from JourneyModel.prediction.predict import JourneyTimePredictor
+    journey_predictor = JourneyTimePredictor()
+    print("✅ JourneyModel (Hybrid Distance) loaded successfully")
+except Exception as e:
+    print(f"⚠️  Could not load JourneyModel: {e}")
+    journey_predictor = None
+
+@app.route('/predict-simple', methods=['POST'])
+def predict_simple():
+    """Unified endpoint for the Hybrid Distance & Traffic Model"""
+    if not journey_predictor:
+        return {"error": "Prediction model not initialized"}, 500
+    
+    from flask import request
+    data = request.get_json() or {}
+    
+    # Ported logic from prediction_api.py
+    boarding_loc = data.get('boardingLocation')
+    dest_loc = data.get('destinationLocation')
+    user_time = data.get('userExpectedTime')
+
+    if not boarding_loc or not dest_loc:
+        return {"error": "Missing boardingLocation or destinationLocation"}, 400
+
+    try:
+        from JourneyModel.prediction.predict import predict_time
+        result = predict_time(journey_predictor, boarding_loc, dest_loc, user_time)
+        return result, 200
+    except Exception as e:
+        return {"error": str(e)}, 500
+
 # Health check endpoint
 @app.route('/', methods=['GET'])
+@app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
     return {
@@ -89,7 +132,7 @@ def health_check():
         "version": "2.0 - Modular",
         "modules": {
             "FareSystem": "✅ Loaded" if fare_data else "❌ Not loaded",
-            "Prediction": "✅ Loaded",
+            "JourneyModel": "✅ Loaded" if journey_predictor else "❌ Not loaded",
             "MongoDB": "✅ Connected" if bus_data_collection else "❌ Not connected"
         }
     }, 200

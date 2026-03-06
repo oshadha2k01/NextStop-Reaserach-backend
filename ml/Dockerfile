@@ -21,5 +21,5 @@ COPY . .
 # Expose the port the app runs on (matching prediction_api.py)
 EXPOSE 5000
 
-# Run the JourneyModel API as the primary service
-CMD ["python", "JourneyModel/prediction/prediction_api.py"]
+# Run the unified NextStop ML Service (FareSystem + JourneyModel)
+CMD ["python", "app.py"]
