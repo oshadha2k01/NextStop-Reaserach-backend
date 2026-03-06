@@ -7,6 +7,8 @@ const {
 	getBusImage,
 	updateBus,
 	deleteBus,
+	approveBus,
+	rejectBus,
 } = require("../../controllers/Bus/BusController");
 
 const router = express.Router();
@@ -23,5 +25,9 @@ router.get("/:id/image", getBusImage);
 router.put("/:id", upload.single("image"), updateBus);
 
 router.delete("/:id", deleteBus);
+
+router.post("/:id/approve", approveBus);
+
+router.post("/:id/reject", rejectBus);
 
 module.exports = router;
