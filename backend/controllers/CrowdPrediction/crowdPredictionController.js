@@ -1,5 +1,5 @@
-const Prediction = require('../models/Prediction');
-const routes = require('../config/routes');
+const Prediction = require('../../models/CrowdPrediction/Prediction');
+const routes = require('../../config/routes');
 const axios = require('axios');
 
 exports.getPredictionAndSave = async (req, res) => {
