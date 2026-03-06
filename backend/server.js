@@ -12,6 +12,7 @@ const busRoutes = require("./routes/Bus/busRoutes");
 const superAdminAuthRoutes = require("./routes/SuperAdmin/superAdminAuthRoutes");
 const journeyModelRoutes = require("./routes/JourneyModel/journeyModelRoutes");
 const fareSystemRoutes = require("./routes/FareSystem/fareSystemRoutes");
+const predictionRoutes = require("./routes/predictionRoutes");
 
 // Import New IoT Routes
 const iotRoutes = require("./routes/IoTDevice/IoTRoutes");
@@ -69,8 +70,9 @@ app.use(express.json());
 app.use("/api/admin", adminAuthRoutes);
 app.use("/api/buses", busRoutes); 
 app.use("/api/superadmin", superAdminAuthRoutes);
-app.use("/api/journey-model", journeyModelRoutes);
-app.use("/api/fare-system", fareSystemRoutes);
+app.use("/api/destination ", journeyModelRoutes); 
+app.use("/api/fare", fareSystemRoutes);
+app.use("/api/prediction", predictionRoutes);
 
 // Mount New IoT Routes (Matches your ESP32 Config.h: /api/sensor-data)
 // This will route to your iotController
