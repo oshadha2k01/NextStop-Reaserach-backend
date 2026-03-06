@@ -8,6 +8,7 @@ import {
 	MessageSquare,
 	ShieldCheck,
 } from 'lucide-react';
+import LiveBusLocation from '../components/LiveBusLocation';
 
 const navItems = [
 	{ key: 'registeredBuses', label: 'Registered Buses', icon: BusFront },
@@ -129,58 +130,9 @@ export default function AdminDashboard() {
 		}
 
 		if (active === 'busLocation') {
-			return (
-			<div className="space-y-4">
-				{/* Map Container */}
-				<div className="bg-white rounded-2xl shadow-sm border border-[#f2d9cc] overflow-hidden">
-					<div className="px-6 py-4 border-b border-[#f2d9cc] flex items-center justify-between">
-						<h3 className="text-lg font-semibold text-[#2a1a15]">Live Bus Map</h3>
-						<span className="text-sm text-[#6b4b3d]">Real-time tracking</span>
-					</div>
-					<div className="w-full h-96 bg-gray-100 relative">
-						<iframe
-							width="100%"
-							height="100%"
-							frameBorder="0"
-							style={{ border: 0 }}
-							referrerPolicy="no-referrer-when-downgrade"
-						src={`https://www.google.com/maps/embed/v1/view?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&center=40.7489,-73.9680&zoom=12`}
-							allowFullScreen
-						></iframe>
-					</div>
-				</div>
+			return <LiveBusLocation />;
+		}
 
-				{/* Bus Location Table */}
-				<div className="bg-white rounded-2xl shadow-sm border border-[#f2d9cc]">
-					<div className="px-6 py-4 border-b border-[#f2d9cc] flex items-center justify-between">
-						<h3 className="text-lg font-semibold text-[#2a1a15]">Bus Details</h3>
-						<span className="text-sm text-[#6b4b3d]">Sample data</span>
-					</div>
-					<div className="overflow-x-auto">
-						<table className="min-w-full text-left">
-							<thead className="bg-[#fff4ec] text-[#6b4b3d] text-sm">
-								<tr>
-									<th className="px-6 py-3">Bus ID</th>
-									<th className="px-6 py-3">Last Seen</th>
-									<th className="px-6 py-3">Location</th>
-									<th className="px-6 py-3">ETA</th>
-								</tr>
-							</thead>
-							<tbody className="divide-y divide-[#f2d9cc] text-sm text-[#2a1a15]">
-								{data.busLocation.rows.map((row) => (
-									<tr key={row.id} className="hover:bg-[#fff4ec]">
-										<td className="px-6 py-3 font-medium">{row.id}</td>
-										<td className="px-6 py-3">{row.lastSeen}</td>
-										<td className="px-6 py-3">{row.location}</td>
-										<td className="px-6 py-3">{row.eta}</td>
-									</tr>
-								))}
-							</tbody>
-						</table>
-					</div>
-				</div>
-			</div>		);
-	}
 		if (active === 'driverDetails') {
 			return (
 				<div className="bg-white rounded-2xl shadow-sm border border-[#f2d9cc]">
