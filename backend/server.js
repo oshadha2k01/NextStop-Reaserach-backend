@@ -10,8 +10,8 @@ const { Server } = require("socket.io");
 const adminAuthRoutes = require("./routes/Admin/adminAuthRoutes");
 const busRoutes = require("./routes/Bus/busRoutes");
 const superAdminAuthRoutes = require("./routes/SuperAdmin/superAdminAuthRoutes");
-const predictiveTimeBusRoutes = require("./routes/predictiveTimeBusRoutes");
-const fareRoutes = require("./routes/fareRoutes");
+const journeyModelRoutes = require("./routes/JourneyModel/journeyModelRoutes");
+const fareSystemRoutes = require("./routes/FareSystem/fareSystemRoutes");
 
 // Import New IoT Routes
 const iotRoutes = require("./routes/IoTDevice/IoTRoutes");
@@ -69,8 +69,8 @@ app.use(express.json());
 app.use("/api/admin", adminAuthRoutes);
 app.use("/api/buses", busRoutes); 
 app.use("/api/superadmin", superAdminAuthRoutes);
-app.use("/api", predictiveTimeBusRoutes);
-app.use("/api/fare", fareRoutes);
+app.use("/api/journey-model", journeyModelRoutes);
+app.use("/api/fare-system", fareSystemRoutes);
 
 // Mount New IoT Routes (Matches your ESP32 Config.h: /api/sensor-data)
 // This will route to your iotController

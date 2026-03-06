@@ -15,8 +15,8 @@ GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY')
 MONGO_URI = os.getenv('MONGO_URI')
 MONGO_COLLECTION_NAME = 'busrealtimedatas'
 
-# Data Paths
-FARE_DATA_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'route_177.json')
+# Data Paths - Point to internal ml/data for deployment
+FARE_DATA_PATH = os.path.join(os.path.dirname(__file__), 'data', 'route_177.json')
 
 # Server Configuration
 FLASK_HOST = '0.0.0.0'
