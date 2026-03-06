@@ -3,7 +3,7 @@ Geocoding Utilities
 Converts location names to GPS coordinates using Google Geocoding API
 """
 import requests
-from config import GOOGLE_MAPS_API_KEY
+from ml_service_config import GOOGLE_MAPS_API_KEY
 
 
 def get_coordinates_from_location_name(location_name):
