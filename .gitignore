@@ -106,14 +106,15 @@ dist-py/
 *.onnx
 *.tflite
 *.safetensors
-# ml/JourneyModel/models/
-ml/JourneyModel/models/
+# Ensure models are included in deployment
+!ml/JourneyModel/models/journey_time_model.pkl
+!ml/JourneyModel/models/model_metadata.json
 checkpoints/
 saved_models/
 
 # Datasets (prevent committing large data files)
 # ml/JourneyModel specific data
-ml/JourneyModel/data/
+# ml/data/ is NOT ignored so it can be deployed
 ml/JourneyModel/datasets/
 *.csv
 *.tsv
