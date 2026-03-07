@@ -89,7 +89,7 @@ exports.getLiveEta = async (req, res) => {
         let googleTrafficSeconds = 600; // Default 10 minutes if API fails
         if (process.env.GOOGLE_MAPS_API_KEY) {
             try {
-                const googleUrl = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${busLat},${busLng}&destinations=${userLat},${userLng}&departure_time=now&key=${process.env.AIzaSyBmgWCSt6zznmFD1XiuzKMW4gaxO5LANUc}`;
+                const googleUrl = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${busLat},${busLng}&destinations=${userLat},${userLng}&departure_time=now&key=${process.env.GOOGLE_MAPS_API_KEY}`;
                 const googleRes = await axios.get(googleUrl);
                 if (googleRes.data.rows[0].elements[0].status === "OK") {
                     googleTrafficSeconds = googleRes.data.rows[0].elements[0].duration_in_traffic 
@@ -101,11 +101,11 @@ exports.getLiveEta = async (req, res) => {
             }
         }
 
-        // 3. Call your Python AI Server on Port 5002!
+        // 3. Call ML Service ETA endpoint
         let aiDelaySeconds = 0;
-        
+        const mlServiceUrl = process.env.ML_SERVICE_URL || 'http://localhost:5000';
         try {
-            const aiRes = await axios.post('http://localhost:5002/predict', {
+            const aiRes = await axios.post(`${mlServiceUrl}/predict`, {
                 bus_lat: busLat,
                 bus_lng: busLng,
                 user_lat: parseFloat(userLat),
@@ -115,7 +115,7 @@ exports.getLiveEta = async (req, res) => {
             });
             aiDelaySeconds = aiRes.data.prediction.eta_seconds;
         } catch (aiError) {
-            console.error("⚠️ AI Server unreachable on Port 5002.", aiError.message);
+            console.error("⚠️ ML Service ETA endpoint unreachable.", aiError.message);
         }
 
         const finalEtaSeconds = googleTrafficSeconds + aiDelaySeconds;

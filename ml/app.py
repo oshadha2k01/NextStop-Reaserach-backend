@@ -315,7 +315,7 @@ def predict_eta():
     
     if not all([bus_lat, bus_lng, user_lat, user_lng]):
         return {"error": "Missing required parameters: bus_lat, bus_lng, user_lat, user_lng"}, 400
-        
+
     try:
         eta_seconds = eta_predictor.predict_eta(
             bus_lat=bus_lat,
@@ -323,7 +323,8 @@ def predict_eta():
             user_lat=user_lat,
             user_lng=user_lng,
             bus_speed_kmh=bus_speed_kmh,
-            weather_was_raining=weather_was_raining
+            weather_was_raining=weather_was_raining,
+            fetch_external=False  # Backend (IoTController) handles Google Maps independently
         )
         
         result = {
@@ -363,7 +364,7 @@ def health_check():
     modules = {
         "FareSystem": "Loaded" if fare_data else "Not loaded",
         "JourneyModel": "Loaded" if journey_predictor else "Not loaded",
-        "ETAModel": "Loaded" if eta_predictor else "Not loaded",
+        "ETAModel": "Loaded" if (eta_predictor and eta_predictor.model is not None) else ("Loaded (physics fallback)" if eta_predictor else "Not loaded"),
         "CrowdPrediction": "Loaded" if crowd_predictor is not None else "Not loaded",
         "MongoDB": "Connected" if bus_data_collection is not None else "Not connected"
     }
