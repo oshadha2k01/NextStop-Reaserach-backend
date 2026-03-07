@@ -21,9 +21,6 @@ const iotRoutes = require("./routes/IoTDevice/IoTRoutes");
 // Import Passenger Boarding Notification Routes
 const boardingNotificationRoutes = require("./routes/Passenger/boardingNotificationRoutes");
 
-// Import Prediction Service (Two-Stage Bus Arrival) Routes
-const predictionServiceRoutes = require("./routes/PredictionService/predictionServiceRoutes");
-
 // Import Bus-Device Registration Routes
 const busDeviceRoutes = require("./routes/BusDevice/busDeviceRoutes");
 
@@ -114,9 +111,6 @@ app.use("/api", iotRoutes);
 
 // Mount Passenger Boarding Notification Routes
 app.use("/api/notify", boardingNotificationRoutes);
-
-// Mount Prediction Service (Two-Stage Bus Arrival) Routes
-app.use("/api/arrival", predictionServiceRoutes);
 
 // Mount Bus-Device Registration Routes
 app.use("/api/bus-device", busDeviceRoutes);
