@@ -87,6 +87,7 @@ else:
 # ============================================================================
 import sys
 import os
+import pandas as pd
 
 # Ensure we can import from JourneyModel
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'JourneyModel'))
@@ -124,6 +125,45 @@ def predict_simple():
     except Exception as e:
         return {"error": str(e)}, 500
 
+# ============================================================================
+# CROWD PREDICTION MODEL INTEGRATION
+# ============================================================================
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'CrowdPrediction'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'CrowdPrediction', 'prediction'))
+
+try:
+    from CrowdPrediction.prediction.predict import CrowdPredictor
+    crowd_predictor_instance = CrowdPredictor()
+    crowd_predictor = crowd_predictor_instance.model
+    # Note: Emoji removed for prod logs
+    print("Crowd Prediction Model loaded successfully")
+except Exception as e:
+    print(f"Could not load Crowd Prediction Model: {e}")
+    crowd_predictor_instance = None
+    crowd_predictor = None
+
+@app.route('/predict', methods=['POST'])
+def predict_crowd():
+    """Endpoint for Crowd Size Prediction based on historical patterns"""
+    if not crowd_predictor_instance or not crowd_predictor_instance.model:
+        return {"error": "Crowd Prediction model not initialized"}, 500
+    
+    from flask import request
+    data = request.get_json() or {}
+    
+    date_str = data.get('date')
+    time_str = data.get('time')
+    
+    if not date_str or not time_str:
+        return {"error": "Missing date or time"}, 400
+        
+    try:
+        result = crowd_predictor_instance.predict(date_str, time_str)
+        return result, 200
+    except Exception as e:
+        return {"error": str(e)}, 500
+
 # Health check endpoint
 @app.route('/', methods=['GET'])
 @app.route('/health', methods=['GET'])
@@ -136,6 +176,7 @@ def health_check():
         "modules": {
             "FareSystem": "Loaded" if fare_data else "Not loaded",
             "JourneyModel": "Loaded" if journey_predictor else "Not loaded",
+            "CrowdPrediction": "Loaded" if crowd_predictor is not None else "Not loaded",
             "MongoDB": "Connected" if bus_data_collection is not None else "Not connected"
         }
     }, 200
@@ -146,6 +187,7 @@ if __name__ == '__main__':
     print(f"{'='*60}")
     print(f"FareSystem Module: Fare calculations, distance, geocoding")
     print(f"Prediction Module: ML-based arrival predictions")
+    print(f"CrowdModel Module: Bus crowd passenger predictions")
     print(f"Server: http://{FLASK_HOST}:{FLASK_PORT}")
     print(f"{'='*60}\n")
     
