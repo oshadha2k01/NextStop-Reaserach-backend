@@ -45,8 +45,12 @@ exports.notifyBusDriver = async (req, res) => {
         console.log(`🔗 Device ID found: ${deviceId}`);
 
         // STEP 2: Get latest GPS position from sensor_readings
-        // Uses compound index { device_id: 1, received_at: -1 } for instant lookup
-        const latestBusData = await SensorData.findOne({ device_id: deviceId })
+        // Skips documents where the GPS had no fix yet (lat/lng = 0)
+        const latestBusData = await SensorData.findOne({
+            device_id: deviceId,
+            'gps.lat': { $exists: true, $ne: 0 },
+            'gps.lng': { $exists: true, $ne: 0 }
+        })
             .sort({ received_at: -1 })
             .lean();
 

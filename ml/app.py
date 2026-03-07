@@ -101,6 +101,80 @@ except Exception as e:
     print(f"Could not load JourneyModel: {e}")
     journey_predictor = None
 
+def _resolve_location(location_name):
+    """
+    Resolve a location string to GPS coordinates.
+
+    Resolution priority:
+      1. Exact stage name match against loaded route_177 data    (no API call)
+      2. Substring match (stage name inside input or vice versa) (no API call)
+      3. Word-overlap fuzzy match with stopword removal          (no API call)
+      4. Google Geocoding API — only if key works                (API call)
+
+    Returns:
+      (lat, lng, display_name, matched_stage_name | None)  or raises ValueError
+    """
+    stages = fare_data['stages'] if fare_data else []
+    loc_lower = location_name.lower().strip()
+
+    # Stopwords to ignore when comparing tokens
+    _STOP = {'sri', 'lanka', 'road', 'junction', 'bus', 'stop', 'stand',
+             'the', 'a', 'an', 'colombo', 'malabe', 'mw', 'st', 'place'}
+
+    # --- Pass 1: exact match ---
+    for stage in stages:
+        if stage['name'].lower() == loc_lower:
+            c = stage['coordinates']
+            return c['latitude'], c['longitude'], stage['name'], stage['name']
+
+    # --- Pass 2: substring match ---
+    for stage in stages:
+        stage_lower = stage['name'].lower()
+        if loc_lower in stage_lower or stage_lower in loc_lower:
+            c = stage['coordinates']
+            return c['latitude'], c['longitude'], stage['name'], stage['name']
+
+    # --- Pass 3: word-overlap fuzzy match ---
+    import re
+    loc_words = set(re.split(r'[\s,()]+', loc_lower)) - _STOP - {''}
+    best_stage = None
+    best_score = 0.0
+    for stage in stages:
+        stage_words = set(re.split(r'[\s,()]+', stage['name'].lower())) - _STOP - {''}
+        if not stage_words:
+            continue
+        common = loc_words & stage_words
+        if common:
+            score = len(common) / max(len(loc_words), len(stage_words))
+            if score > best_score:
+                best_score = score
+                best_stage = stage
+    if best_stage and best_score >= 0.3:
+        c = best_stage['coordinates']
+        return c['latitude'], c['longitude'], best_stage['name'], best_stage['name']
+
+    # --- Pass 4: Google Geocoding API fallback (requires Geocoding API enabled) ---
+    try:
+        from FareSystem.utils.geocoding import get_coordinates_from_location_name
+        coords = get_coordinates_from_location_name(location_name)
+        if coords:
+            return (
+                coords['latitude'],
+                coords['longitude'],
+                coords.get('formatted_address', location_name),
+                None
+            )
+    except Exception:
+        pass  # Geocoding unavailable — fall through to helpful error
+
+    # Build a helpful error with all valid stage names
+    valid = [s['name'] for s in stages]
+    raise ValueError(
+        f"Cannot resolve '{location_name}' to a Route 177 stop. "
+        f"Valid stage names: {', '.join(valid)}"
+    )
+
+
 @app.route('/predict-simple', methods=['POST'])
 def predict_simple():
     """Unified endpoint for the Hybrid Distance & Traffic Model"""
@@ -109,7 +183,6 @@ def predict_simple():
 
     from flask import request
     from datetime import datetime
-    from FareSystem.utils.geocoding import get_coordinates_from_location_name
     import math
 
     data = request.get_json() or {}
@@ -121,29 +194,19 @@ def predict_simple():
         return {"error": "Missing boardingLocation or destinationLocation"}, 400
 
     try:
-        # Step 1: Geocode both location name strings to GPS coordinates
-        boarding_coords = get_coordinates_from_location_name(boarding_loc)
-        if not boarding_coords:
-            return {"error": f"Could not geocode boarding location: {boarding_loc}"}, 400
-
-        dest_coords = get_coordinates_from_location_name(dest_loc)
-        if not dest_coords:
-            return {"error": f"Could not geocode destination location: {dest_loc}"}, 400
-
-        b_lat = boarding_coords['latitude']
-        b_lng = boarding_coords['longitude']
-        d_lat = dest_coords['latitude']
-        d_lng = dest_coords['longitude']
+        # Step 1: Resolve both locations to GPS coordinates
+        #         Checks route stage names first (no API call), then geocodes
+        b_lat, b_lng, boarding_display, boarding_stage = _resolve_location(boarding_loc)
+        d_lat, d_lng, dest_display, dest_stage = _resolve_location(dest_loc)
 
         # Step 2: Derive time-based features from current datetime
         now = datetime.now()
         hour = now.hour
-        day_of_week = now.weekday()           # 0=Monday, 6=Sunday
+        day_of_week = now.weekday()   # 0=Monday, 6=Sunday
         is_weekend = 1 if day_of_week >= 5 else 0
         is_rush_hour = 1 if hour in range(7, 9) or hour in range(16, 19) else 0
 
         # Step 3: Call predict_time METHOD on the existing predictor instance
-        #         (not the module-level predict_time function)
         prediction_seconds = journey_predictor.predict_time(
             lat=b_lat,
             lng=b_lng,
@@ -175,7 +238,6 @@ def predict_simple():
             "success": True,
             "prediction": {
                 "predicted_time_minutes": predicted_minutes,
-                "predicted_time_seconds": round(prediction_seconds, 2),
                 "journey_distance_km": journey_distance_km,
                 "traffic_analysis": {
                     "condition": traffic_condition
@@ -183,18 +245,20 @@ def predict_simple():
                 "recommendation": recommendation
             },
             "details": {
-                "boarding_location": boarding_coords.get('formatted_address', boarding_loc),
-                "destination_location": dest_coords.get('formatted_address', dest_loc),
+                "boarding_location": boarding_display,
+                "destination_location": dest_display,
                 "route": "177",
                 "nearest_stages": {
-                    "boarding": None,
-                    "destination": None
+                    "boarding": boarding_stage,
+                    "destination": dest_stage
                 }
             }
         }
 
         return result, 200
 
+    except ValueError as ve:
+        return {"error": str(ve)}, 400
     except Exception as e:
         return {"error": str(e)}, 500
 

@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NextStop — Driver Dashboard</title>
+
+  <!-- Leaflet CSS (OpenStreetMap — no API key needed) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e8e8e8;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── TOP BAR ─────────────────────────────────────────────── */
+    .topbar {
+      background: #1a1d27;
+      border-bottom: 1px solid #2a2d3e;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 12px; }
+    .app-logo { font-size: 1.3rem; font-weight: 700; color: #f5c518; letter-spacing: 0.5px; }
+    .app-sub  { font-size: 0.75rem; color: #888; }
+
+    .status-pill {
+      display: flex; align-items: center; gap: 6px;
+      background: #12261a; border: 1px solid #1e4a2a;
+      border-radius: 20px; padding: 5px 14px;
+      font-size: 0.78rem; font-weight: 600; color: #4caf50;
+      transition: all 0.3s;
+    }
+    .status-pill.disconnected { background:#261212; border-color:#4a1e1e; color:#f44336; }
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #4caf50; animation: pulse-green 2s infinite;
+    }
+    .status-pill.disconnected .status-dot { background:#f44336; animation:none; }
+
+    .badge {
+      background: #f5c518; color: #000; border-radius: 12px;
+      padding: 3px 9px; font-size: 0.75rem; font-weight: 700;
+      min-width: 22px; text-align: center;
+      display: none;
+    }
+    .badge.visible { display: inline-block; }
+
+    /* ── SETUP PANEL ─────────────────────────────────────────── */
+    .setup-panel {
+      background: #1a1d27; border: 1px solid #2a2d3e;
+      border-radius: 12px; padding: 20px; margin: 16px;
+    }
+    .setup-panel h3 { color: #f5c518; font-size: 0.9rem; margin-bottom: 12px; }
+    .setup-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .setup-row input {
+      flex: 1; min-width: 200px;
+      background: #0f1117; border: 1px solid #2a2d3e; border-radius: 8px;
+      padding: 10px 14px; color: #e8e8e8; font-size: 0.9rem; outline: none;
+    }
+    .setup-row input:focus { border-color: #f5c518; }
+    .btn {
+      padding: 10px 22px; border: none; border-radius: 8px;
+      font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: 0.2s;
+    }
+    .btn-yellow  { background: #f5c518; color: #000; }
+    .btn-yellow:hover { background: #ffd740; }
+    .btn-red    { background: #c62828; color: #fff; }
+    .btn-red:hover { background: #e53935; }
+    .btn-green  { background: #2e7d32; color: #fff; }
+    .btn-green:hover { background: #43a047; }
+    .btn-outline {
+      background: transparent; border: 1px solid #2a2d3e; color: #aaa;
+    }
+    .btn-outline:hover { border-color:#f5c518; color:#f5c518; }
+
+    .log-line {
+      margin-top: 8px; font-size: 0.78rem; color: #888;
+      min-height: 18px;
+    }
+
+    /* ── MAIN CONTENT ────────────────────────────────────────── */
+    .main { display: flex; flex: 1; gap: 0; overflow: hidden; }
+
+    #map { flex: 1; min-height: 380px; }
+
+    .sidebar {
+      width: 340px; flex-shrink: 0;
+      background: #1a1d27; border-left: 1px solid #2a2d3e;
+      display: flex; flex-direction: column;
+      overflow-y: auto;
+    }
+
+    /* ── NOTIFICATION CARD ───────────────────────────────────── */
+    .notif-card {
+      margin: 12px; background: #0f1117;
+      border: 2px solid #444; border-radius: 14px;
+      overflow: hidden; display: none;
+      animation: slide-in 0.4s ease;
+    }
+    .notif-card.active { display: block; border-color: #f5c518; }
+
+    @keyframes slide-in {
+      from { transform: translateY(-20px); opacity: 0; }
+      to   { transform: translateY(0);     opacity: 1; }
+    }
+
+    .notif-header {
+      background: #1e1a00; padding: 12px 16px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .notif-title {
+      font-size: 0.85rem; font-weight: 700; color: #f5c518;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .new-badge {
+      background: #f5c518; color: #000;
+      font-size: 0.65rem; font-weight: 700; padding: 2px 7px;
+      border-radius: 10px; animation: blink 1s 3;
+    }
+    @keyframes blink {
+      0%,100% { opacity:1; } 50% { opacity:0; }
+    }
+
+    .notif-body { padding: 14px 16px; }
+
+    .info-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 0; border-bottom: 1px solid #2a2d3e;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-icon { font-size: 1.1rem; width: 22px; text-align: center; flex-shrink: 0; }
+    .info-label { font-size: 0.7rem; color: #888; margin-bottom: 2px; }
+    .info-value { font-size: 0.95rem; font-weight: 600; color: #e8e8e8; }
+    .info-value.highlight { color: #f5c518; font-size: 1.1rem; }
+
+    .notif-footer { padding: 10px 16px; display: flex; gap: 8px; }
+
+    .ack-btn {
+      flex: 1; padding: 10px; border: none; border-radius: 8px;
+      font-weight: 700; font-size: 0.9rem; cursor: pointer;
+      background: #f5c518; color: #000; transition: 0.2s;
+    }
+    .ack-btn:hover { background: #ffd740; }
+
+    .dismiss-btn {
+      padding: 10px 14px; border: 1px solid #333; border-radius: 8px;
+      background: transparent; color: #888; font-size: 0.9rem; cursor: pointer;
+    }
+    .dismiss-btn:hover { border-color: #f44336; color: #f44336; }
+
+    /* ── HISTORY LIST ────────────────────────────────────────── */
+    .history-section { padding: 12px; flex: 1; }
+    .history-title {
+      font-size: 0.78rem; font-weight: 600; color: #888;
+      text-transform: uppercase; letter-spacing: 0.8px;
+      margin-bottom: 10px;
+    }
+    .history-item {
+      background: #0f1117; border: 1px solid #2a2d3e;
+      border-radius: 10px; padding: 10px 12px; margin-bottom: 8px;
+      font-size: 0.8rem;
+    }
+    .history-item .h-time { color: #888; font-size: 0.72rem; }
+    .history-item .h-info { color: #ccc; margin-top: 4px; }
+    .history-empty { color: #555; font-size: 0.82rem; text-align: center; padding: 20px 0; }
+
+    /* ── SOUND TOGGLE ────────────────────────────────────────── */
+    .sound-toggle {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 12px; border-top: 1px solid #2a2d3e;
+      font-size: 0.8rem; color: #888; flex-shrink: 0;
+    }
+    .toggle-switch {
+      position: relative; width: 36px; height: 20px; cursor: pointer;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0; background: #333;
+      border-radius: 20px; transition: 0.3s;
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute;
+      width: 14px; height: 14px; left: 3px; top: 3px;
+      background: #fff; border-radius: 50%; transition: 0.3s;
+    }
+    input:checked + .toggle-slider { background: #f5c518; }
+    input:checked + .toggle-slider::before { transform: translateX(16px); }
+
+    /* ── ANIMATIONS ──────────────────────────────────────────── */
+    @keyframes pulse-green {
+      0%,100% { opacity:1; } 50% { opacity:0.4; }
+    }
+
+    /* ── RESPONSIVE ──────────────────────────────────────────── */
+    @media (max-width: 700px) {
+      .main { flex-direction: column; }
+      .sidebar { width: 100%; border-left: none; border-top: 1px solid #2a2d3e; }
+      #map { min-height: 260px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div>
+      <div class="app-logo">NextStop</div>
+      <div class="app-sub">Driver Dashboard</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center;">
+    <span class="badge" id="unread-badge">0</span>
+    <div class="status-pill disconnected" id="conn-pill">
+      <div class="status-dot"></div>
+      <span id="conn-label">Disconnected</span>
+    </div>
+  </div>
+</div>
+
+<!-- SETUP PANEL -->
+<div class="setup-panel" id="setup-panel">
+  <h3>Connect as Driver</h3>
+  <div class="setup-row">
+    <input id="bus-id-input"
+           placeholder="Enter Bus ID (MongoDB ObjectId)"
+           value="695a8562f215d90626cd60d2" />
+    <input id="server-url-input"
+           placeholder="Backend URL"
+           value="http://localhost:3000" />
+    <button class="btn btn-yellow" onclick="connectDriver()">Connect</button>
+    <button class="btn btn-outline" onclick="disconnectDriver()">Disconnect</button>
+  </div>
+  <div class="log-line" id="setup-log">Enter your Bus ID and click Connect.</div>
+</div>
+
+<!-- MAP + SIDEBAR -->
+<div class="main">
+  <div id="map"></div>
+
+  <div class="sidebar">
+    <!-- ACTIVE NOTIFICATION -->
+    <div class="notif-card" id="notif-card">
+      <div class="notif-header">
+        <div class="notif-title">
+          Passenger Boarding Request
+          <span class="new-badge" id="new-badge">NEW</span>
+        </div>
+        <span style="font-size:0.72rem;color:#888;" id="notif-time">Just now</span>
+      </div>
+      <div class="notif-body">
+        <div class="info-row">
+          <div class="info-icon">📏</div>
+          <div>
+            <div class="info-label">Road Distance</div>
+            <div class="info-value highlight" id="notif-distance">—</div>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-icon">⏱</div>
+          <div>
+            <div class="info-label">Estimated Arrival</div>
+            <div class="info-value highlight" id="notif-time-val">—</div>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-icon">🚏</div>
+          <div>
+            <div class="info-label">Stops Away</div>
+            <div class="info-value" id="notif-stops">—</div>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-icon">📍</div>
+          <div>
+            <div class="info-label">Passenger Location</div>
+            <div class="info-value" id="notif-passenger">—</div>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-icon">🚌</div>
+          <div>
+            <div class="info-label">Your Bus Location</div>
+            <div class="info-value" id="notif-bus">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="notif-footer">
+        <button class="ack-btn" onclick="acknowledgeNotification()">Acknowledge</button>
+        <button class="dismiss-btn" onclick="dismissNotification()">Dismiss</button>
+      </div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="history-section">
+      <div class="history-title">Notification History</div>
+      <div id="history-list">
+        <div class="history-empty">No notifications yet.</div>
+      </div>
+    </div>
+
+    <!-- SOUND TOGGLE -->
+    <div class="sound-toggle">
+      <label class="toggle-switch">
+        <input type="checkbox" id="sound-toggle" checked />
+        <span class="toggle-slider"></span>
+      </label>
+      <span>Alert Sound</span>
+      <button class="btn btn-outline" style="padding:4px 10px;font-size:0.75rem;margin-left:auto;"
+              onclick="testSound()">Test</button>
+    </div>
+  </div>
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Socket.IO client -->
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+<script>
+// ─── MAP SETUP ────────────────────────────────────────────────
+const map = L.map('map', { zoomControl: true }).setView([6.927, 79.861], 13);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors',
+  maxZoom: 19
+}).addTo(map);
+
+const BUS_ICON = L.divIcon({
+  html: '<div style="font-size:28px;line-height:1;">🚌</div>',
+  className: '', iconAnchor: [14, 14]
+});
+const PASSENGER_ICON = L.divIcon({
+  html: '<div style="font-size:26px;line-height:1;">📍</div>',
+  className: '', iconAnchor: [13, 26]
+});
+
+let busMarker       = null;
+let passengerMarker = null;
+let routeLine       = null;
+let routeOutline    = null;
+let distanceLabel   = null;
+
+async function updateMap(busLat, busLng, pasLat, pasLng, distanceText, durationText) {
+  // ── Bus marker ──────────────────────────────────────────────
+  if (busMarker) map.removeLayer(busMarker);
+  busMarker = L.marker([busLat, busLng], { icon: BUS_ICON })
+    .addTo(map)
+    .bindPopup(`<b>Your Bus</b><br>${busLat.toFixed(5)}, ${busLng.toFixed(5)}`);
+
+  // ── Passenger marker ────────────────────────────────────────
+  if (passengerMarker) map.removeLayer(passengerMarker);
+  passengerMarker = L.marker([pasLat, pasLng], { icon: PASSENGER_ICON })
+    .addTo(map)
+    .bindPopup(`<b>Passenger</b><br>${pasLat.toFixed(5)}, ${pasLng.toFixed(5)}`);
+
+  // ── Remove old route layers ─────────────────────────────────
+  if (routeOutline) map.removeLayer(routeOutline);
+  if (routeLine)    map.removeLayer(routeLine);
+  if (distanceLabel) map.removeLayer(distanceLabel);
+
+  // ── Fit bounds first with straight-line fallback ────────────
+  map.fitBounds([[busLat, busLng], [pasLat, pasLng]], { padding: [60, 60] });
+
+  // ── Draw straight fallback while road route loads ───────────
+  routeLine = L.polyline([[busLat, busLng], [pasLat, pasLng]], {
+    color: '#29b6f6', weight: 4, dashArray: '8 6', opacity: 0.5
+  }).addTo(map);
+
+  // ── Fetch real road route from OSRM (free, no API key) ──────
+  try {
+    // OSRM expects longitude,latitude order
+    const url = `https://router.project-osrm.org/route/v1/driving/` +
+                `${busLng},${busLat};${pasLng},${pasLat}` +
+                `?geometries=geojson&overview=full&steps=false`;
+
+    const resp = await fetch(url, { signal: AbortSignal.timeout(6000) });
+    if (!resp.ok) throw new Error('OSRM error');
+    const data = await resp.json();
+
+    if (data.code !== 'Ok' || !data.routes.length) throw new Error('No route found');
+
+    const coords = data.routes[0].geometry.coordinates
+      .map(([lng, lat]) => [lat, lng]); // GeoJSON is [lng,lat], Leaflet wants [lat,lng]
+
+    const roadDistKm   = (data.routes[0].distance / 1000).toFixed(1);
+    const roadDurMin   = Math.round(data.routes[0].duration / 60);
+
+    // Remove the straight-line fallback
+    if (routeLine) map.removeLayer(routeLine);
+    if (routeOutline) map.removeLayer(routeOutline);
+
+    // White outline (border) — drawn first, underneath
+    routeOutline = L.polyline(coords, {
+      color: '#ffffff', weight: 10, opacity: 0.35, lineJoin: 'round', lineCap: 'round'
+    }).addTo(map);
+
+    // Main bold road line
+    routeLine = L.polyline(coords, {
+      color: '#29b6f6', weight: 6, opacity: 0.95, lineJoin: 'round', lineCap: 'round'
+    }).addTo(map);
+
+    // Mid-point distance label on the route
+    const mid = coords[Math.floor(coords.length / 2)];
+    distanceLabel = L.marker(mid, {
+      icon: L.divIcon({
+        html: `<div style="
+          background:rgba(0,0,0,0.75);color:#fff;
+          border:2px solid #29b6f6;border-radius:8px;
+          padding:3px 10px;font-size:12px;font-weight:700;
+          white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.5)">
+          ${roadDistKm} km · ${roadDurMin} min
+        </div>`,
+        className: '',
+        iconAnchor: [50, 14]
+      }),
+      interactive: false
+    }).addTo(map);
+
+    map.fitBounds(routeLine.getBounds(), { padding: [60, 60] });
+
+  } catch (e) {
+    // OSRM unavailable — keep the straight-line fallback silently
+    console.warn('Road routing unavailable, using straight line:', e.message);
+  }
+}
+
+
+// ─── SOUND (Web Audio API — loud layered alert) ───────────────
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx    = null;
+let masterGain  = null;
+let compressor  = null;
+
+function ensureAudio() {
+  if (!audioCtx) {
+    audioCtx   = new AudioCtx();
+    compressor = audioCtx.createDynamicsCompressor();
+    compressor.threshold.value = -6;
+    compressor.knee.value      = 3;
+    compressor.ratio.value     = 4;
+    compressor.attack.value    = 0.001;
+    compressor.release.value   = 0.1;
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = 1.8;          // global boost
+    masterGain.connect(compressor);
+    compressor.connect(audioCtx.destination);
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+// Layer two oscillators (sine + square) for punch and brightness
+function playTone(freq, start, duration) {
+  ['sine', 'square'].forEach((type, i) => {
+    const osc  = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(masterGain);
+    osc.type = type;
+    osc.frequency.value = type === 'square' ? freq * 0.5 : freq; // square sub-octave
+    const vol = type === 'sine' ? 0.9 : 0.45;
+    gain.gain.setValueAtTime(0,   start);
+    gain.gain.linearRampToValueAtTime(vol, start + 0.015);
+    gain.gain.linearRampToValueAtTime(0,   start + duration);
+    osc.start(start);
+    osc.stop(start + duration + 0.05);
+  });
+}
+
+function playAlert() {
+  if (!document.getElementById('sound-toggle').checked) return;
+  ensureAudio();
+  const t = audioCtx.currentTime;
+  // Full aggressive alert — 3 rapid bursts + long hold
+  playTone(1400, t,        0.14);
+  playTone(1000, t + 0.17, 0.14);
+  playTone(1400, t + 0.34, 0.14);
+  playTone(1000, t + 0.51, 0.14);
+  playTone(1600, t + 0.70, 0.14);
+  playTone(1000, t + 0.87, 0.14);
+  playTone(1800, t + 1.08, 0.35); // long final note
+}
+
+function testSound() { ensureAudio(); playAlert(); }
+
+
+// ─── SOCKET.IO ───────────────────────────────────────────────
+let socket = null;
+let busId  = '';
+let unreadCount = 0;
+let history = [];
+
+function setLog(msg) {
+  document.getElementById('setup-log').textContent = msg;
+}
+
+function setPill(connected) {
+  const pill  = document.getElementById('conn-pill');
+  const label = document.getElementById('conn-label');
+  if (connected) {
+    pill.classList.remove('disconnected');
+    label.textContent = 'Connected';
+  } else {
+    pill.classList.add('disconnected');
+    label.textContent = 'Disconnected';
+  }
+}
+
+function connectDriver() {
+  busId = document.getElementById('bus-id-input').value.trim();
+  const url = document.getElementById('server-url-input').value.trim() || 'http://localhost:3000';
+
+  if (!busId) { setLog('Please enter a Bus ID.'); return; }
+  if (socket) { socket.disconnect(); }
+
+  setLog('Connecting...');
+
+  socket = io(url, {
+    transports: ['websocket', 'polling'],
+    reconnection: true,
+    reconnectionAttempts: 10,
+    reconnectionDelay: 2000
+  });
+
+  socket.on('connect', () => {
+    setPill(true);
+    setLog(`Connected. Socket ID: ${socket.id}`);
+    socket.emit('driver_join', { busId });
+  });
+
+  socket.on('driver_joined', (data) => {
+    setLog(`Joined room: ${data.room} — waiting for passengers...`);
+  });
+
+  socket.on('passenger_boarding', (payload) => {
+    handleBoardingNotification(payload);
+  });
+
+  socket.on('disconnect', (reason) => {
+    setPill(false);
+    setLog(`Disconnected: ${reason}`);
+  });
+
+  socket.on('connect_error', (err) => {
+    setPill(false);
+    setLog(`Connection error: ${err.message}`);
+  });
+}
+
+function disconnectDriver() {
+  if (socket) { socket.disconnect(); socket = null; }
+  setPill(false);
+  setLog('Disconnected manually.');
+}
+
+
+// ─── BOARDING NOTIFICATION ────────────────────────────────────
+function handleBoardingNotification(p) {
+  // Sound
+  playAlert();
+
+  // Increment badge
+  unreadCount++;
+  const badge = document.getElementById('unread-badge');
+  badge.textContent = unreadCount;
+  badge.classList.add('visible');
+
+  // Update map with real road route
+  updateMap(p.bus.lat, p.bus.lng, p.passenger.lat, p.passenger.lng, p.distance.text, p.duration.text);
+
+  // Fill notification card
+  document.getElementById('notif-distance').textContent = p.distance.text;
+  document.getElementById('notif-time-val').textContent = p.duration.text;
+  document.getElementById('notif-stops').textContent    = `${p.stopsAway} stop${p.stopsAway !== 1 ? 's' : ''} away`;
+  document.getElementById('notif-passenger').textContent =
+    `${p.passenger.lat.toFixed(5)}, ${p.passenger.lng.toFixed(5)}`;
+  document.getElementById('notif-bus').textContent =
+    `${p.bus.lat.toFixed(5)}, ${p.bus.lng.toFixed(5)}`;
+  document.getElementById('notif-time').textContent =
+    new Date(p.timestamp).toLocaleTimeString();
+
+  // Show card (reset animation)
+  const card = document.getElementById('notif-card');
+  card.classList.remove('active');
+  void card.offsetWidth; // force reflow
+  card.classList.add('active');
+  document.getElementById('new-badge').style.display = 'inline-block';
+
+  // Add to history
+  addToHistory(p);
+}
+
+function acknowledgeNotification() {
+  document.getElementById('new-badge').style.display = 'none';
+  unreadCount = 0;
+  const badge = document.getElementById('unread-badge');
+  badge.textContent = '0';
+  badge.classList.remove('visible');
+}
+
+function dismissNotification() {
+  document.getElementById('notif-card').classList.remove('active');
+  acknowledgeNotification();
+}
+
+function addToHistory(p) {
+  history.unshift(p);
+  const list = document.getElementById('history-list');
+  const empty = list.querySelector('.history-empty');
+  if (empty) empty.remove();
+
+  const item = document.createElement('div');
+  item.className = 'history-item';
+  item.innerHTML = `
+    <div class="h-time">${new Date(p.timestamp).toLocaleTimeString()}</div>
+    <div class="h-info">
+      ${p.distance.text} &nbsp;·&nbsp; ${p.duration.text}
+      &nbsp;·&nbsp; ${p.stopsAway} stop${p.stopsAway !== 1 ? 's' : ''}
+    </div>
+    <div class="h-info" style="color:#888;font-size:0.72rem;margin-top:3px;">
+      Passenger: ${p.passenger.lat.toFixed(4)}, ${p.passenger.lng.toFixed(4)}
+    </div>
+  `;
+  list.insertBefore(item, list.firstChild);
+}
+</script>
+</body>
+</html>
