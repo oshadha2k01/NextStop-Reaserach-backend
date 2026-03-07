@@ -1,5 +1,6 @@
 require('dotenv').config();
 console.log('Environment check - API Key exists:', !!process.env.GOOGLE_MAPS_API_KEY);
+
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -25,6 +26,10 @@ const iotRoutes = require("./routes/IoTDevice/IoTRoutes");
 // Import Passenger Boarding Notification Routes
 const boardingNotificationRoutes = require("./routes/Passenger/boardingNotificationRoutes");
 
+// Import ETA Routes
+const etaRoutes = require("./routes/etaRoutes");
+// Import Prediction Service (Two-Stage Bus Arrival) Routes
+const predictionServiceRoutes = require("./routes/PredictionService/predictionServiceRoutes");
 // Import Bus-Device Registration Routes
 const busDeviceRoutes = require("./routes/BusDevice/busDeviceRoutes");
 
@@ -50,8 +55,7 @@ const io = new Server(server, {
     cors: { origin: corsOrigin }
 });
 
-// CRITICAL: Make the 'io' instance globally accessible to our controllers
-// Now you can call `req.app.get('io')` in your iotController to send live updates!
+
 app.set('io', io);
 
 // Socket.IO Connection Handler
@@ -128,6 +132,10 @@ app.use("/api", iotRoutes);
 // Mount Passenger Boarding Notification Routes
 app.use("/api/notify", boardingNotificationRoutes);
 
+// Mount ETA Routes
+app.use("/api/eta", etaRoutes); 
+// Mount Prediction Service (Two-Stage Bus Arrival) Routes
+app.use("/api/arrival", predictionServiceRoutes);
 // Mount Bus-Device Registration Routes
 app.use("/api/bus-device", busDeviceRoutes);
 

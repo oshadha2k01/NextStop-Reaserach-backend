@@ -1,8 +1,8 @@
 const SensorData = require('../../models/IoTDevice/SensorData');
 const BusStop = require('../../models/IoTDevice/BusStops');
+const axios = require('axios');
 
 // SERVER MEMORY STATE 
-// We use a dictionary object so we can track 100+ different buses at the same time
 const busStates = {}; 
 
 exports.receiveSensorData = async (req, res) => {
@@ -18,11 +18,10 @@ exports.receiveSensorData = async (req, res) => {
         await newData.save();
 
         // 2. WEBSOCKET BROADCAST
-        // Grab the Socket.io instance from the main Express app
         const io = req.app.get('io'); 
         if (io) {
             io.emit('bus_location_update', {
-                bus_id: deviceId, // Tell frontend WHICH bus is moving
+                bus_id: deviceId,
                 lat: data.gps.lat,
                 lng: data.gps.lng,
                 speed: data.gps.speed_kmh,
@@ -30,21 +29,17 @@ exports.receiveSensorData = async (req, res) => {
             });
         }
 
-        // 3. STOP DETECTION LOGIC (Multi-Bus Support)
+        // 3. STOP DETECTION LOGIC 
         const speed = data.gps.speed_kmh;
         const SPEED_THRESHOLD = 3.0; 
 
-        // Initialize state memory for this specific bus if it's the first time we see it
         if (!busStates[deviceId]) {
-            busStates[deviceId] = {
-                isStopped: false, stopStartTime: null, lastLat: null, lastLng: null
-            };
+            busStates[deviceId] = { isStopped: false, stopStartTime: null, lastLat: null, lastLng: null };
         }
         
         const state = busStates[deviceId];
 
         if (speed < SPEED_THRESHOLD && !state.isStopped) {
-            // Bus just stopped!
             state.isStopped = true;
             state.stopStartTime = Date.now();
             state.lastLat = data.gps.lat;
@@ -52,7 +47,6 @@ exports.receiveSensorData = async (req, res) => {
             console.log(`🛑 Bus ${deviceId} stopped. Tracking duration...`);
         } 
         else if (speed >= SPEED_THRESHOLD && state.isStopped) {
-            // Bus started moving! Calculate duration.
             const stopDurationMillis = Date.now() - state.stopStartTime;
             const stopDurationSeconds = Math.floor(stopDurationMillis / 1000);
 
@@ -68,7 +62,6 @@ exports.receiveSensorData = async (req, res) => {
                 console.log(`📊 ML DATA SAVED: Bus ${deviceId} stopped for ${stopDurationSeconds}s`);
             }
             
-            // Reset the state for this bus
             state.isStopped = false;
             state.stopStartTime = null;
         }
@@ -82,22 +75,69 @@ exports.receiveSensorData = async (req, res) => {
 
 exports.getLiveEta = async (req, res) => {
     try {
-        const { busId } = req.query;
-        const latestBusData = await SensorData.findOne({ "device_id": busId }).sort({ received_at: -1 });
+        const { busId, userLat, userLng } = req.query;
         
-        if (!latestBusData) {
-            return res.status(404).json({ error: "Bus not found" });
+        // 1. Get exact current bus location
+        const latestBusData = await SensorData.findOne({ "device_id": busId }).sort({ received_at: -1 });
+        if (!latestBusData) return res.status(404).json({ error: "Bus not found" });
+
+        const busLat = latestBusData.gps.lat;
+        const busLng = latestBusData.gps.lng;
+        const isRaining = latestBusData.weather.is_raining;
+
+        // 2. Google Maps API (With Fallback if Key is missing)
+        let googleTrafficSeconds = 600; // Default 10 minutes if API fails
+        if (process.env.GOOGLE_MAPS_API_KEY) {
+            try {
+                const googleUrl = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${busLat},${busLng}&destinations=${userLat},${userLng}&departure_time=now&key=${process.env.AIzaSyBmgWCSt6zznmFD1XiuzKMW4gaxO5LANUc}`;
+                const googleRes = await axios.get(googleUrl);
+                if (googleRes.data.rows[0].elements[0].status === "OK") {
+                    googleTrafficSeconds = googleRes.data.rows[0].elements[0].duration_in_traffic 
+                                           ? googleRes.data.rows[0].elements[0].duration_in_traffic.value 
+                                           : googleRes.data.rows[0].elements[0].duration.value;
+                }
+            } catch (err) {
+                console.log("⚠️ Google Maps API failed, using fallback time.");
+            }
         }
 
+        // 3. Call your Python AI Server on Port 5002!
+        let aiDelaySeconds = 0;
+        
+        try {
+            const aiRes = await axios.post('http://localhost:5002/predict', {
+                bus_lat: busLat,
+                bus_lng: busLng,
+                user_lat: parseFloat(userLat),
+                user_lng: parseFloat(userLng),
+                bus_speed_kmh: latestBusData.gps.speed_kmh,
+                weather_was_raining: isRaining ? 1 : 0
+            });
+            aiDelaySeconds = aiRes.data.prediction.eta_seconds;
+        } catch (aiError) {
+            console.error("⚠️ AI Server unreachable on Port 5002.", aiError.message);
+        }
+
+        const finalEtaSeconds = googleTrafficSeconds + aiDelaySeconds;
+
+        // 4. Return the exact format the test script wants!
         res.json({
-            message: "Success",
-            bus_location: { lat: latestBusData.gps.lat, lng: latestBusData.gps.lng },
-            current_speed: latestBusData.gps.speed_kmh,
-            is_raining: latestBusData.weather.is_raining,
-            imu_status: latestBusData.imu.status
+            status: "Success",
+            bus_location: { lat: busLat, lng: busLng },
+            eta: {
+                total_minutes: Math.ceil(finalEtaSeconds / 60),
+                google_traffic_minutes: Math.ceil(googleTrafficSeconds / 60),
+                ai_predicted_stop_delay_minutes: Math.ceil(aiDelaySeconds / 60)
+            },
+            live_status: {
+                speed_kmh: latestBusData.gps.speed_kmh,
+                is_raining: isRaining,
+                imu_status: latestBusData.imu.status
+            }
         });
 
     } catch (error) {
-        res.status(500).json({ error: "Failed to get ETA data" });
+        console.error("ETA Error:", error);
+        res.status(500).json({ error: "Failed to calculate ETA" });
     }
 };
