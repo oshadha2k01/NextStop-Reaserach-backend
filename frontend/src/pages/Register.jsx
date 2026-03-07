@@ -181,7 +181,7 @@ export default function Register() {
 
       showSuccessAlert('Success!', 'Registration successful');
       setTimeout(() => {
-        navigate('/admindashbord');
+        navigate('/');
       }, 500);
     } catch (error) {
       setIsLoading(false);

@@ -158,6 +158,27 @@ const rejectBus = async (req, res) => {
 	}
 };
 
+// Get bus statistics for dashboard
+const getBusStats = async (req, res) => {
+	try {
+		const totalBuses = await Bus.countDocuments();
+		const approvedBuses = await Bus.countDocuments({ approvalStatus: 'approved' });
+		const pendingBuses = await Bus.countDocuments({ approvalStatus: 'pending' });
+		const rejectedBuses = await Bus.countDocuments({ approvalStatus: 'rejected' });
+
+		return res.json({
+			totalBuses,
+			approvedBuses,
+			pendingBuses,
+			rejectedBuses,
+			activeToday: approvedBuses, // Can be enhanced with real-time data
+			inMaintenance: 0, // Can be enhanced with maintenance tracking
+		});
+	} catch (err) {
+		return res.status(500).json({ message: err.message || "Server error" });
+	}
+};
+
 module.exports = {
 	createBus,
 	getBuses,
@@ -167,4 +188,5 @@ module.exports = {
 	deleteBus,
 	approveBus,
 	rejectBus,
+	getBusStats,
 };

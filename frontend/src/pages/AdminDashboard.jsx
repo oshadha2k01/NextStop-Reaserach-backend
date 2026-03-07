@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
 	BusFront,
@@ -9,6 +9,8 @@ import {
 	ShieldCheck,
 } from 'lucide-react';
 import LiveBusLocation from '../components/LiveBusLocation';
+
+const API_BASE_URL = 'http://localhost:3000/api';
 
 const navItems = [
 	{ key: 'registeredBuses', label: 'Registered Buses', icon: BusFront },
@@ -21,59 +23,89 @@ const navItems = [
 export default function AdminDashboard() {
 	const [active, setActive] = useState('registeredBuses');
 	const navigate = useNavigate();
+	const [loading, setLoading] = useState(true);
+	const [buses, setBuses] = useState([]);
+	const [drivers, setDrivers] = useState([]);
+	const [complaints, setComplaints] = useState([]);
+	const [feedbacks, setFeedbacks] = useState([]);
+	const [stats, setStats] = useState({
+		totalBuses: 0,
+		approvedBuses: 0,
+		activeToday: 0,
+		inMaintenance: 0,
+	});
 
-	const data = useMemo(
-		() => ({
-			registeredBuses: {
-				stats: [
-					{ label: 'Total Buses', value: 128 },
-					{ label: 'Active Today', value: 94 },
-					{ label: 'In Maintenance', value: 6 },
-				],
-				rows: [
-					{ id: 'BUS-102', route: 'Route 5', status: 'Active', capacity: 42 },
-					{ id: 'BUS-221', route: 'Route 12', status: 'Active', capacity: 38 },
-					{ id: 'BUS-087', route: 'Route 2', status: 'Maintenance', capacity: 40 },
-				],
-			},
-			busLocation: {
-				rows: [
-					{ id: 'BUS-102', lastSeen: '2 mins ago', location: 'Main St & 3rd', eta: '08:12', lat: 40.7128, lng: -74.0060 },
-					{ id: 'BUS-221', lastSeen: '5 mins ago', location: 'Airport Rd', eta: '08:25', lat: 40.7580, lng: -73.9855 },
-					{ id: 'BUS-087', lastSeen: 'Offline', location: 'Depot', eta: '—', lat: 40.7489, lng: -73.9680 },
-				],
-			},
-			driverDetails: {
-				rows: [
-					{ name: 'Anita Rao', bus: 'BUS-102', shift: 'Morning', rating: 4.8 },
-					{ name: 'Michael Chen', bus: 'BUS-221', shift: 'Evening', rating: 4.6 },
-					{ name: 'David Singh', bus: 'BUS-087', shift: 'Maintenance', rating: 4.7 },
-				],
-			},
-			complaints: {
-				rows: [
-					{ id: '#C-1042', route: 'Route 5', status: 'Open', summary: 'AC not working' },
-					{ id: '#C-1043', route: 'Route 12', status: 'In Review', summary: 'Delay at stop' },
-					{ id: '#C-1044', route: 'Route 2', status: 'Resolved', summary: 'Overcrowding' },
-				],
-			},
-			feedbacks: {
-				rows: [
-					{ id: '#F-2091', rider: 'Sam P.', sentiment: 'Positive', note: 'Clean bus, on time' },
-					{ id: '#F-2092', rider: 'Leah K.', sentiment: 'Neutral', note: 'More evening buses please' },
-					{ id: '#F-2093', rider: 'Imran S.', sentiment: 'Positive', note: 'Driver was helpful' },
-				],
-			},
-		}),
-		[]
-	);
+	useEffect(() => {
+		fetchData();
+	}, [active]);
+
+	const fetchData = async () => {
+		setLoading(true);
+		try {
+			// Fetch bus stats
+			const statsRes = await fetch(`${API_BASE_URL}/buses/stats`);
+			if (statsRes.ok) {
+				const statsData = await statsRes.json();
+				setStats(statsData);
+			}
+
+			// Fetch buses
+			const busesRes = await fetch(`${API_BASE_URL}/buses`);
+			if (busesRes.ok) {
+				const busesData = await busesRes.json();
+				setBuses(busesData);
+			}
+
+			// Fetch drivers
+			const driversRes = await fetch(`${API_BASE_URL}/drivers`);
+			if (driversRes.ok) {
+				const driversData = await driversRes.json();
+				setDrivers(driversData);
+			}
+
+			// Fetch complaints
+			const complaintsRes = await fetch(`${API_BASE_URL}/complaints`);
+			if (complaintsRes.ok) {
+				const complaintsData = await complaintsRes.json();
+				setComplaints(complaintsData);
+			}
+
+			// Fetch feedbacks
+			const feedbacksRes = await fetch(`${API_BASE_URL}/feedbacks`);
+			if (feedbacksRes.ok) {
+				const feedbacksData = await feedbacksRes.json();
+				setFeedbacks(feedbacksData);
+			}
+		} catch (error) {
+			console.error('Error fetching data:', error);
+		} finally {
+			setLoading(false);
+		}
+	};
 
 	const renderSection = () => {
+		if (loading) {
+			return (
+				<div className="flex items-center justify-center p-12">
+					<div className="text-center">
+						<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#ff6b35] mx-auto mb-4"></div>
+						<p className="text-[#6b4b3d]">Loading data...</p>
+					</div>
+				</div>
+			);
+		}
+
 		if (active === 'registeredBuses') {
+			const statsData = [
+				{ label: 'Total Buses', value: stats.totalBuses || 0 },
+				{ label: 'Active Today', value: stats.activeToday || 0 },
+				{ label: 'In Maintenance', value: stats.inMaintenance || 0 },
+			];
+
 			return (
 				<div className="space-y-6">
 					<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-						{data.registeredBuses.stats.map((item) => (
+						{statsData.map((item) => (
 							<div
 								key={item.label}
 								className="rounded-2xl bg-white shadow-sm border border-[#f2d9cc] p-4 flex items-center justify-between"
@@ -90,37 +122,58 @@ export default function AdminDashboard() {
 					<div className="bg-white rounded-2xl shadow-sm border border-[#f2d9cc]">
 						<div className="px-6 py-4 border-b border-[#f2d9cc] flex items-center justify-between">
 							<h3 className="text-lg font-semibold text-[#2a1a15]">Fleet Overview</h3>
-							<span className="text-sm text-[#6b4b3d]">Sample data</span>
+							<span className="text-sm text-[#6b4b3d]">{buses.length} buses</span>
 						</div>
 						<div className="overflow-x-auto">
 							<table className="min-w-full text-left">
 								<thead className="bg-[#fff4ec] text-[#6b4b3d] text-sm">
 									<tr>
-										<th className="px-6 py-3">Bus ID</th>
+										<th className="px-6 py-3">Image</th>
+										<th className="px-6 py-3">Registration No</th>
 										<th className="px-6 py-3">Route</th>
 										<th className="px-6 py-3">Status</th>
-										<th className="px-6 py-3">Capacity</th>
+										<th className="px-6 py-3">Seats</th>
+										<th className="px-6 py-3">Driver</th>
 									</tr>
 								</thead>
 								<tbody className="divide-y divide-[#f2d9cc] text-sm text-[#2a1a15]">
-									{data.registeredBuses.rows.map((row) => (
-										<tr key={row.id} className="hover:bg-[#fff4ec]">
-											<td className="px-6 py-3 font-medium">{row.id}</td>
-											<td className="px-6 py-3">{row.route}</td>
-											<td className="px-6 py-3">
-												<span
-													className={`px-3 py-1 rounded-full text-xs font-semibold ${
-														row.status === 'Active'
-															? 'bg-[#ff6b35]/10 text-[#ff6b35]'
-															: 'bg-[#f59e0b]/10 text-[#b45309]'
-													}`}
-												>
-													{row.status}
-												</span>
+									{buses.length === 0 ? (
+										<tr>
+											<td colSpan="6" className="px-6 py-8 text-center text-[#6b4b3d]">
+												No buses registered yet
 											</td>
-											<td className="px-6 py-3">{row.capacity}</td>
 										</tr>
-									))}
+									) : (
+										buses.map((bus) => (
+											<tr key={bus._id} className="hover:bg-[#fff4ec]">
+												<td className="px-6 py-3">
+													<img 
+														src={`${API_BASE_URL}/buses/${bus._id}/image`}
+														alt={bus.regNo}
+														className="h-12 w-12 rounded object-cover cursor-pointer hover:opacity-80 border border-[#f2d9cc]"
+														onClick={() => window.open(`${API_BASE_URL}/buses/${bus._id}/image`, '_blank')}
+													/>
+												</td>
+												<td className="px-6 py-3 font-medium">{bus.regNo}</td>
+												<td className="px-6 py-3">{bus.route}</td>
+												<td className="px-6 py-3">
+													<span
+														className={`px-3 py-1 rounded-full text-xs font-semibold ${
+															bus.approvalStatus === 'approved'
+																? 'bg-[#10b981]/10 text-[#0f5132]'
+																: bus.approvalStatus === 'pending'
+																? 'bg-[#f59e0b]/10 text-[#b45309]'
+																: 'bg-[#ef4444]/10 text-[#991b1b]'
+														}`}
+													>
+														{bus.approvalStatus}
+													</span>
+												</td>
+												<td className="px-6 py-3">{bus.seats}</td>
+												<td className="px-6 py-3">{bus.driverName}</td>
+											</tr>
+										))
+									)}
 								</tbody>
 							</table>
 						</div>
@@ -130,16 +183,96 @@ export default function AdminDashboard() {
 		}
 
 		if (active === 'busLocation') {
+			return (
+			<div className="space-y-4">
+				{/* Map Container */}
+				<div className="bg-white rounded-2xl shadow-sm border border-[#f2d9cc] overflow-hidden">
+					<div className="px-6 py-4 border-b border-[#f2d9cc] flex items-center justify-between">
+						<h3 className="text-lg font-semibold text-[#2a1a15]">Live Bus Map</h3>
+						<span className="text-sm text-[#6b4b3d]">Real-time tracking</span>
+					</div>
+					<div className="w-full h-96 bg-gray-100 relative">
+						<iframe
+							width="100%"
+							height="100%"
+							frameBorder="0"
+							style={{ border: 0 }}
+							referrerPolicy="no-referrer-when-downgrade"
+							src={`https://www.google.com/maps/embed/v1/view?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&center=40.7489,-73.9680&zoom=12`}
+							allowFullScreen
+						></iframe>
+					</div>
+				</div>
+
+				{/* Bus Location Table */}
+				<div className="bg-white rounded-2xl shadow-sm border border-[#f2d9cc]">
+					<div className="px-6 py-4 border-b border-[#f2d9cc] flex items-center justify-between">
+						<h3 className="text-lg font-semibold text-[#2a1a15]">Bus Details</h3>
+						<span className="text-sm text-[#6b4b3d]">{buses.length} buses</span>
+					</div>
+					<div className="overflow-x-auto">
+						<table className="min-w-full text-left">
+							<thead className="bg-[#fff4ec] text-[#6b4b3d] text-sm">
+								<tr>
+									<th className="px-6 py-3">Image</th>
+									<th className="px-6 py-3">Registration No</th>
+									<th className="px-6 py-3">Route</th>
+									<th className="px-6 py-3">Driver</th>
+									<th className="px-6 py-3">Status</th>
+								</tr>
+							</thead>
+							<tbody className="divide-y divide-[#f2d9cc] text-sm text-[#2a1a15]">
+								{buses.length === 0 ? (
+									<tr>
+										<td colSpan="5" className="px-6 py-8 text-center text-[#6b4b3d]">
+											No buses available
+										</td>
+									</tr>
+								) : (
+									buses.map((bus) => (
+										<tr key={bus._id} className="hover:bg-[#fff4ec]">
+											<td className="px-6 py-3">
+												<img 
+													src={`${API_BASE_URL}/buses/${bus._id}/image`}
+													alt={bus.regNo}
+													className="h-12 w-12 rounded object-cover cursor-pointer hover:opacity-80 border border-[#f2d9cc]"
+													onClick={() => window.open(`${API_BASE_URL}/buses/${bus._id}/image`, '_blank')}
+												/>
+											</td>
+											<td className="px-6 py-3 font-medium">{bus.regNo}</td>
+											<td className="px-6 py-3">{bus.route}</td>
+											<td className="px-6 py-3">{bus.driverName}</td>
+											<td className="px-6 py-3">
+												<span
+													className={`px-3 py-1 rounded-full text-xs font-semibold ${
+														bus.approvalStatus === 'approved'
+															? 'bg-[#10b981]/10 text-[#0f5132]'
+															: 'bg-[#f59e0b]/10 text-[#b45309]'
+													}`}
+												>
+													{bus.approvalStatus}
+												</span>
+											</td>
+										</tr>
+									))
+								)}
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>		);
+		}
 			return <LiveBusLocation />;
 		}
 
 		if (active === 'driverDetails') {
 			return (
-				<div className="bg-white rounded-2xl shadow-sm border border-[#f2d9cc]">
-					<div className="px-6 py-4 border-b border-[#f2d9cc] flex items-center justify-between">
-						<h3 className="text-lg font-semibold text-[#2a1a15]">Driver Details</h3>
-						<span className="text-sm text-[#6b4b3d]">Sample data</span>
-					</div>
+				<div className="space-y-6">
+					<div className="bg-white rounded-2xl shadow-sm border border-[#f2d9cc]">
+						<div className="px-6 py-4 border-b border-[#f2d9cc] flex items-center justify-between">
+							<h3 className="text-lg font-semibold text-[#2a1a15]">Driver Details</h3>
+							<span className="text-sm text-[#6b4b3d]">{drivers.length} drivers</span>
+						</div>
 					<div className="overflow-x-auto">
 						<table className="min-w-full text-left">
 							<thead className="bg-[#fff4ec] text-[#6b4b3d] text-sm">
@@ -148,22 +281,35 @@ export default function AdminDashboard() {
 									<th className="px-6 py-3">Assigned Bus</th>
 									<th className="px-6 py-3">Shift</th>
 									<th className="px-6 py-3">Rating</th>
+									<th className="px-6 py-3">Phone</th>
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-[#f2d9cc] text-sm text-[#2a1a15]">
-								{data.driverDetails.rows.map((row) => (
-									<tr key={row.name} className="hover:bg-[#fff4ec]">
-										<td className="px-6 py-3 font-medium">{row.name}</td>
-										<td className="px-6 py-3">{row.bus}</td>
-										<td className="px-6 py-3">{row.shift}</td>
-										<td className="px-6 py-3">{row.rating}</td>
+								{drivers.length === 0 ? (
+									<tr>
+										<td colSpan="5" className="px-6 py-8 text-center text-[#6b4b3d]">
+											No drivers registered yet
+										</td>
 									</tr>
-								))}
+								) : (
+									drivers.map((driver) => (
+										<tr key={driver._id} className="hover:bg-[#fff4ec]">
+											<td className="px-6 py-3 font-medium">{driver.name}</td>
+											<td className="px-6 py-3">
+												{driver.busId ? (driver.busId.regNo || 'Bus assigned') : 'Not assigned'}
+											</td>
+											<td className="px-6 py-3">{driver.shift}</td>
+											<td className="px-6 py-3">{driver.rating.toFixed(1)}</td>
+											<td className="px-6 py-3">{driver.phone}</td>
+										</tr>
+									))
+								)}
 							</tbody>
 						</table>
 					</div>
 				</div>
-			);
+			</div>
+		);
 		}
 
 		if (active === 'complaints') {
@@ -171,7 +317,7 @@ export default function AdminDashboard() {
 				<div className="bg-white rounded-2xl shadow-sm border border-[#f2d9cc]">
 					<div className="px-6 py-4 border-b border-[#f2d9cc] flex items-center justify-between">
 						<h3 className="text-lg font-semibold text-[#2a1a15]">Complaints</h3>
-						<span className="text-sm text-[#6b4b3d]">Sample data</span>
+						<span className="text-sm text-[#6b4b3d]">{complaints.length} complaints</span>
 					</div>
 					<div className="overflow-x-auto">
 						<table className="min-w-full text-left">
@@ -184,26 +330,34 @@ export default function AdminDashboard() {
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-[#f2d9cc] text-sm text-[#2a1a15]">
-								{data.complaints.rows.map((row) => (
-									<tr key={row.id} className="hover:bg-[#fff4ec]">
-										<td className="px-6 py-3 font-medium">{row.id}</td>
-										<td className="px-6 py-3">{row.route}</td>
-										<td className="px-6 py-3">
-											<span
-												className={`px-3 py-1 rounded-full text-xs font-semibold ${
-													row.status === 'Resolved'
-														? 'bg-[#10b981]/10 text-[#0f5132]'
-														: row.status === 'Open'
-														? 'bg-[#ef4444]/10 text-[#991b1b]'
-														: 'bg-[#f59e0b]/10 text-[#b45309]'
-												}`}
-											>
-												{row.status}
-											</span>
+								{complaints.length === 0 ? (
+									<tr>
+										<td colSpan="4" className="px-6 py-8 text-center text-[#6b4b3d]">
+											No complaints filed yet
 										</td>
-										<td className="px-6 py-3">{row.summary}</td>
 									</tr>
-								))}
+								) : (
+									complaints.map((complaint) => (
+										<tr key={complaint._id} className="hover:bg-[#fff4ec]">
+											<td className="px-6 py-3 font-medium">{complaint.ticketId}</td>
+											<td className="px-6 py-3">{complaint.route}</td>
+											<td className="px-6 py-3">
+												<span
+													className={`px-3 py-1 rounded-full text-xs font-semibold ${
+														complaint.status === 'Resolved' || complaint.status === 'Closed'
+															? 'bg-[#10b981]/10 text-[#0f5132]'
+															: complaint.status === 'Open'
+															? 'bg-[#ef4444]/10 text-[#991b1b]'
+															: 'bg-[#f59e0b]/10 text-[#b45309]'
+													}`}
+												>
+													{complaint.status}
+												</span>
+											</td>
+											<td className="px-6 py-3">{complaint.summary}</td>
+										</tr>
+									))
+								)}
 							</tbody>
 						</table>
 					</div>
@@ -215,7 +369,7 @@ export default function AdminDashboard() {
 			<div className="bg-white rounded-2xl shadow-sm border border-[#f2d9cc]">
 				<div className="px-6 py-4 border-b border-[#f2d9cc] flex items-center justify-between">
 					<h3 className="text-lg font-semibold text-[#2a1a15]">Feedbacks</h3>
-					<span className="text-sm text-[#6b4b3d]">Sample data</span>
+					<span className="text-sm text-[#6b4b3d]">{feedbacks.length} feedbacks</span>
 				</div>
 				<div className="overflow-x-auto">
 					<table className="min-w-full text-left">
@@ -228,26 +382,34 @@ export default function AdminDashboard() {
 							</tr>
 						</thead>
 						<tbody className="divide-y divide-[#f2d9cc] text-sm text-[#2a1a15]">
-							{data.feedbacks.rows.map((row) => (
-								<tr key={row.id} className="hover:bg-[#fff4ec]">
-									<td className="px-6 py-3 font-medium">{row.id}</td>
-									<td className="px-6 py-3">{row.rider}</td>
-									<td className="px-6 py-3">
-										<span
-											className={`px-3 py-1 rounded-full text-xs font-semibold ${
-												row.sentiment === 'Positive'
-													? 'bg-[#10b981]/10 text-[#0f5132]'
-													: row.sentiment === 'Neutral'
-													? 'bg-[#f59e0b]/10 text-[#b45309]'
-													: 'bg-[#ef4444]/10 text-[#991b1b]'
-											}`}
-										>
-											{row.sentiment}
-										</span>
+							{feedbacks.length === 0 ? (
+								<tr>
+									<td colSpan="4" className="px-6 py-8 text-center text-[#6b4b3d]">
+										No feedbacks submitted yet
 									</td>
-									<td className="px-6 py-3">{row.note}</td>
 								</tr>
-							))}
+							) : (
+								feedbacks.map((feedback) => (
+									<tr key={feedback._id} className="hover:bg-[#fff4ec]">
+										<td className="px-6 py-3 font-medium">{feedback.ticketId}</td>
+										<td className="px-6 py-3">{feedback.rider}</td>
+										<td className="px-6 py-3">
+											<span
+												className={`px-3 py-1 rounded-full text-xs font-semibold ${
+													feedback.sentiment === 'Positive'
+														? 'bg-[#10b981]/10 text-[#0f5132]'
+														: feedback.sentiment === 'Neutral'
+														? 'bg-[#f59e0b]/10 text-[#b45309]'
+														: 'bg-[#ef4444]/10 text-[#991b1b]'
+												}`}
+											>
+												{feedback.sentiment}
+											</span>
+										</td>
+										<td className="px-6 py-3">{feedback.note}</td>
+									</tr>
+								))
+							)}
 						</tbody>
 					</table>
 				</div>
@@ -292,12 +454,21 @@ export default function AdminDashboard() {
 							<h2 className="text-2xl font-semibold capitalize">{active.replace(/([A-Z])/g, ' $1')}</h2>
 						</div>
 						<div className="flex items-center gap-3">
-							<button
-								onClick={() => navigate('/add-bus')}
-								className="px-4 py-2 rounded-lg bg-[#ff6b35] text-white shadow-sm hover:bg-[#cc562a]"
-							>
-								Add New Bus
-							</button>
+							{active === 'driverDetails' ? (
+								<button
+									onClick={() => navigate('/add-driver')}
+									className="px-4 py-2 rounded-lg bg-[#ff6b35] text-white shadow-sm hover:bg-[#cc562a]"
+								>
+									Add New Driver
+								</button>
+							) : (
+								<button
+									onClick={() => navigate('/add-bus')}
+									className="px-4 py-2 rounded-lg bg-[#ff6b35] text-white shadow-sm hover:bg-[#cc562a]"
+								>
+									Add New Bus
+								</button>
+							)}
 						</div>
 					</div>
 
@@ -306,4 +477,4 @@ export default function AdminDashboard() {
 			</div>
 		</div>
 	);
-}
+

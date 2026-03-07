@@ -10,6 +10,10 @@ const { Server } = require("socket.io");
 const adminAuthRoutes = require("./routes/Admin/adminAuthRoutes");
 const busRoutes = require("./routes/Bus/busRoutes");
 const superAdminAuthRoutes = require("./routes/SuperAdmin/superAdminAuthRoutes");
+const driverRoutes = require("./routes/driverRoutes");
+const complaintRoutes = require("./routes/complaintRoutes");
+const feedbackRoutes = require("./routes/feedbackRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
 const journeyModelRoutes = require("./routes/JourneyModel/journeyModelRoutes");
 const fareSystemRoutes = require("./routes/FareSystem/fareSystemRoutes");
 const predictionRoutes = require("./routes/CrowdPrediction/crowdPredictionRoutes");
@@ -23,6 +27,9 @@ const boardingNotificationRoutes = require("./routes/Passenger/boardingNotificat
 
 // Import Bus-Device Registration Routes
 const busDeviceRoutes = require("./routes/BusDevice/busDeviceRoutes");
+
+// Import Data Routes
+const dataRoutes = require("./routes/dataRoutes");
 
 const app = express();
 const { MONGO_URI, PORT = 3000 } = process.env;
@@ -130,6 +137,9 @@ app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
   res.status(err.status || 500).json({ error: err.message || 'Internal server error' });
 });
+
+// Mount Data Routes
+app.use("/api/get", dataRoutes);
 
 // MongoDB Connection
 mongoose

@@ -9,10 +9,13 @@ const {
 	deleteBus,
 	approveBus,
 	rejectBus,
+	getBusStats,
 } = require("../../controllers/Bus/BusController");
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
+
+router.get("/stats", getBusStats);
 
 router.post("/", upload.single("image"), createBus);
 
