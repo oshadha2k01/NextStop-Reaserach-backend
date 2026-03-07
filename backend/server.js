@@ -63,6 +63,14 @@ io.on('connection', (socket) => {
 });
 // -----------------------------------------------------
 
+// Auto-remove '/backend' from the URL if DigitalOcean forwards it that way
+app.use((req, res, next) => {
+    if (req.url.startsWith('/backend/')) {
+        req.url = req.url.replace('/backend', '');
+    }
+    next();
+});
+
 app.use(cors());
 app.use(express.json());
 
