@@ -6,7 +6,7 @@
 const axios = require('axios');
 
 // Internal service URL for production scalability
-const ML_API_URL = process.env.ML_API_URL || 'http://localhost:5000';
+const ML_API_URL = process.env.ML_SERVICE_URL || 'http://localhost:5000';
 
 /**
  * Get simple prediction (locations as names)
