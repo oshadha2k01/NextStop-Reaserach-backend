@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const etaController = require('../controllers/etaController');
+const etaController = require('../../controllers/IoTDevice/etaController');
 
 // POST endpoint for ETA prediction
 router.post('/predict', etaController.predictETA);

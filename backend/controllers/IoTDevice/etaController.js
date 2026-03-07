@@ -1,5 +1,5 @@
 const axios = require('axios');
-const SensorData = require('../models/IoTDevice/SensorData');
+const SensorData = require('../../models/IoTDevice/SensorData');
 
 const ETA_API_URL = process.env.ETA_API_URL || 'http://localhost:5002'; // Updated to 5002 for ETAModel
 const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;

@@ -11,14 +11,9 @@ const { Server } = require("socket.io");
 const adminAuthRoutes = require("./routes/Admin/adminAuthRoutes");
 const busRoutes = require("./routes/Bus/busRoutes");
 const superAdminAuthRoutes = require("./routes/SuperAdmin/superAdminAuthRoutes");
-const driverRoutes = require("./routes/driverRoutes");
-const complaintRoutes = require("./routes/complaintRoutes");
-const feedbackRoutes = require("./routes/feedbackRoutes");
-const dashboardRoutes = require("./routes/dashboardRoutes");
 const journeyModelRoutes = require("./routes/JourneyModel/journeyModelRoutes");
 const fareSystemRoutes = require("./routes/FareSystem/fareSystemRoutes");
 const predictionRoutes = require("./routes/CrowdPrediction/crowdPredictionRoutes");
-const routeRoutes = require("./routes/routeRoutes");
 
 // Import New IoT Routes
 const iotRoutes = require("./routes/IoTDevice/IoTRoutes");
@@ -27,14 +22,9 @@ const iotRoutes = require("./routes/IoTDevice/IoTRoutes");
 const boardingNotificationRoutes = require("./routes/Passenger/boardingNotificationRoutes");
 
 // Import ETA Routes
-const etaRoutes = require("./routes/etaRoutes");
-// Import Prediction Service (Two-Stage Bus Arrival) Routes
-const predictionServiceRoutes = require("./routes/PredictionService/predictionServiceRoutes");
+const etaRoutes = require("./routes/IoTDevice/etaRoutes");
 // Import Bus-Device Registration Routes
 const busDeviceRoutes = require("./routes/BusDevice/busDeviceRoutes");
-
-// Import Data Routes
-const dataRoutes = require("./routes/dataRoutes");
 
 const app = express();
 const { MONGO_URI, PORT = 3000 } = process.env;
@@ -123,7 +113,6 @@ app.use("/api/superadmin", superAdminAuthRoutes);
 app.use("/api/destination", journeyModelRoutes);
 app.use("/api/fare", fareSystemRoutes);
 app.use("/api/prediction", predictionRoutes);
-app.use("/api", routeRoutes);
 
 // Mount New IoT Routes (Matches your ESP32 Config.h: /api/sensor-data)
 // This will route to your iotController
@@ -134,8 +123,6 @@ app.use("/api/notify", boardingNotificationRoutes);
 
 // Mount ETA Routes
 app.use("/api/eta", etaRoutes); 
-// Mount Prediction Service (Two-Stage Bus Arrival) Routes
-app.use("/api/arrival", predictionServiceRoutes);
 // Mount Bus-Device Registration Routes
 app.use("/api/bus-device", busDeviceRoutes);
 
@@ -146,8 +133,6 @@ app.use((err, req, res, next) => {
   res.status(err.status || 500).json({ error: err.message || 'Internal server error' });
 });
 
-// Mount Data Routes
-app.use("/api/get", dataRoutes);
 
 // MongoDB Connection
 mongoose
