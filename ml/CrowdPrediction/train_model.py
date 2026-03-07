@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from sklearn.ensemble import RandomForestRegressor
+import xgboost as xgb
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import joblib
@@ -42,13 +42,14 @@ y = df['Passenger_Count']
 # Train-test split
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-print(f"🤖 Training model on {len(X_train):,} samples...")
-# Improved model with better hyperparameters
-model = RandomForestRegressor(
-    n_estimators=200,
-    max_depth=20,
-    min_samples_split=5,
-    min_samples_leaf=2,
+print(f"Training XGBoost model on {len(X_train):,} samples...")
+# Upgrade to XGBoost for superior accuracy with a tiny file size
+model = xgb.XGBRegressor(
+    n_estimators=150,
+    max_depth=8,
+    learning_rate=0.1,
+    subsample=0.8,
+    colsample_bytree=0.8,
     random_state=42,
     n_jobs=-1
 )
@@ -60,6 +61,11 @@ r2 = r2_score(y_test, y_pred)
 mae = mean_absolute_error(y_test, y_pred)
 rmse = np.sqrt(mean_squared_error(y_test, y_pred))
 
+print("\n--- Model Evaluation ---")
+print(f"R2 Score: {r2:.4f}")
+print(f"MAE: {mae:.2f}")
+print(f"RMSE: {rmse:.2f}")
+
 # Save model
 joblib.dump(model, MODEL_FILE)
-print(f"\n Model saved to {MODEL_FILE}")
+print(f"\nModel saved to {MODEL_FILE}")
