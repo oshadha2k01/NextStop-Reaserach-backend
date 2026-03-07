@@ -1,11 +1,11 @@
 const express = require("express");
 const {
-  getComplaints,
-  getComplaintById,
-  createComplaint,
-  updateComplaint,
-  deleteComplaint,
-} = require("../controllers/superadmincontroller.js/complaintController");
+	getComplaints,
+	getComplaintById,
+	createComplaint,
+	updateComplaint,
+	deleteComplaint,
+} = require("../../controllers/SuperAdmin/complaintController");
 
 const router = express.Router();
 

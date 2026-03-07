@@ -1,5 +1,6 @@
 require('dotenv').config();
 console.log('Environment check - API Key exists:', !!process.env.GOOGLE_MAPS_API_KEY);
+
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -10,14 +11,15 @@ const { Server } = require("socket.io");
 const adminAuthRoutes = require("./routes/Admin/adminAuthRoutes");
 const busRoutes = require("./routes/Bus/busRoutes");
 const superAdminAuthRoutes = require("./routes/SuperAdmin/superAdminAuthRoutes");
-const driverRoutes = require("./routes/driverRoutes");
-const complaintRoutes = require("./routes/complaintRoutes");
-const feedbackRoutes = require("./routes/feedbackRoutes");
-const dashboardRoutes = require("./routes/dashboardRoutes");
-const journeyModelRoutes = require("./routes/JourneyModel/journeyModelRoutes");
 const fareSystemRoutes = require("./routes/FareSystem/fareSystemRoutes");
 const predictionRoutes = require("./routes/CrowdPrediction/crowdPredictionRoutes");
-const routeRoutes = require("./routes/routeRoutes");
+const driverRoutes = require("./routes/SuperAdmin/driverRoutes");
+const complaintRoutes = require("./routes/SuperAdmin/complaintRoutes");
+const feedbackRoutes = require("./routes/SuperAdmin/feedbackRoutes");
+const dashboardRoutes = require("./routes/SuperAdmin/dashboardRoutes");
+const journeyModelRoutes = require("./routes/JourneyModel/journeyModelRoutes");
+const routeRoutes = require("./routes/SuperAdmin/routeRoutes");
+const peopleConutRoutes = require("./routes/DL/peopleConutRoutes");
 
 // Import New IoT Routes
 const iotRoutes = require("./routes/IoTDevice/IoTRoutes");
@@ -25,11 +27,13 @@ const iotRoutes = require("./routes/IoTDevice/IoTRoutes");
 // Import Passenger Boarding Notification Routes
 const boardingNotificationRoutes = require("./routes/Passenger/boardingNotificationRoutes");
 
+// Import ETA Routes
+const etaRoutes = require("./routes/IoTDevice/etaRoutes");
 // Import Bus-Device Registration Routes
 const busDeviceRoutes = require("./routes/BusDevice/busDeviceRoutes");
 
 // Import Data Routes
-const dataRoutes = require("./routes/dataRoutes");
+const dataRoutes = require("./routes/SuperAdmin/dataRoutes");
 
 const app = express();
 const { MONGO_URI, PORT = 3000 } = process.env;
@@ -50,8 +54,7 @@ const io = new Server(server, {
     cors: { origin: corsOrigin }
 });
 
-// CRITICAL: Make the 'io' instance globally accessible to our controllers
-// Now you can call `req.app.get('io')` in your iotController to send live updates!
+
 app.set('io', io);
 
 // Socket.IO Connection Handler
@@ -116,9 +119,14 @@ if (process.env.NODE_ENV !== 'production') {
 app.use("/api/admin", adminAuthRoutes);
 app.use("/api/buses", busRoutes);
 app.use("/api/superadmin", superAdminAuthRoutes);
+app.use("/api/drivers", driverRoutes);
+app.use("/api/complaints", complaintRoutes);
+app.use("/api/feedback", feedbackRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/destination", journeyModelRoutes);
 app.use("/api/fare", fareSystemRoutes);
 app.use("/api/prediction", predictionRoutes);
+app.use("/api/dl", peopleConutRoutes);
 app.use("/api", routeRoutes);
 
 // Mount New IoT Routes (Matches your ESP32 Config.h: /api/sensor-data)
@@ -128,6 +136,8 @@ app.use("/api", iotRoutes);
 // Mount Passenger Boarding Notification Routes
 app.use("/api/notify", boardingNotificationRoutes);
 
+// Mount ETA Routes
+app.use("/api/eta", etaRoutes); 
 // Mount Bus-Device Registration Routes
 app.use("/api/bus-device", busDeviceRoutes);
 
@@ -138,8 +148,6 @@ app.use((err, req, res, next) => {
   res.status(err.status || 500).json({ error: err.message || 'Internal server error' });
 });
 
-// Mount Data Routes
-app.use("/api/get", dataRoutes);
 
 // MongoDB Connection
 mongoose

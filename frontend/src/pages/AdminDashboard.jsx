@@ -262,8 +262,6 @@ export default function AdminDashboard() {
 				</div>
 			</div>		);
 		}
-			return <LiveBusLocation />;
-		}
 
 		if (active === 'driverDetails') {
 			return (
@@ -477,4 +475,4 @@ export default function AdminDashboard() {
 			</div>
 		</div>
 	);
-
+}

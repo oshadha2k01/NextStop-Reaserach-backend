@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const dataController = require('../controllers/superadmincontroller.js/dataController');
+const dataController = require('../../controllers/SuperAdmin/dataController');
 
 // Get latest people count data
 router.get('/people-count', dataController.getPeopleCountData);

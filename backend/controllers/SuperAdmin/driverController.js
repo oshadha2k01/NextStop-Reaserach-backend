@@ -1,5 +1,5 @@
-const Driver = require("../models/Driver");
-const Bus = require("../models/Bus/BusModel");
+const Driver = require("../../models/SuperAdmin/Driver");
+const Bus = require("../../models/Bus/BusModel");
 
 // Get all drivers
 const getDrivers = async (req, res) => {
@@ -8,7 +8,7 @@ const getDrivers = async (req, res) => {
       .populate('busId', 'regNo route')
       .sort({ createdAt: -1 })
       .lean();
-    
+
     return res.json(drivers);
   } catch (err) {
     return res.status(500).json({ message: err.message || "Server error" });
@@ -21,7 +21,7 @@ const getDriverById = async (req, res) => {
     const driver = await Driver.findById(req.params.id)
       .populate('busId', 'regNo route')
       .lean();
-    
+
     if (!driver) return res.status(404).json({ message: "Driver not found" });
     return res.json(driver);
   } catch (err) {
@@ -33,7 +33,7 @@ const getDriverById = async (req, res) => {
 const createDriver = async (req, res) => {
   try {
     const { name, busId, shift, rating, phone, licenseNumber, status } = req.body;
-    
+
     if (!name || !shift || !phone || !licenseNumber) {
       return res.status(400).json({ message: "Missing required fields" });
     }
@@ -63,7 +63,7 @@ const updateDriver = async (req, res) => {
   try {
     const { name, busId, shift, rating, phone, licenseNumber, status } = req.body;
     const update = {};
-    
+
     if (name) update.name = name;
     if (busId !== undefined) update.busId = busId;
     if (shift) update.shift = shift;
@@ -77,7 +77,7 @@ const updateDriver = async (req, res) => {
       update,
       { new: true, runValidators: true }
     ).lean();
-    
+
     if (!updated) return res.status(404).json({ message: "Driver not found" });
     return res.json(updated);
   } catch (err) {

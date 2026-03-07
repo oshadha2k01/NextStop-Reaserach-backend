@@ -1,11 +1,11 @@
 const express = require("express");
 const {
-  getDrivers,
-  getDriverById,
-  createDriver,
-  updateDriver,
-  deleteDriver,
-} = require("../controllers/superadmincontroller.js/driverController");
+	getDrivers,
+	getDriverById,
+	createDriver,
+	updateDriver,
+	deleteDriver,
+} = require("../../controllers/SuperAdmin/driverController");
 
 const router = express.Router();
 

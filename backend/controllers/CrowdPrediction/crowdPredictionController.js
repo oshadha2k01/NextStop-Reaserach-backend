@@ -8,7 +8,7 @@ exports.getPredictionAndSave = async (req, res) => {
     try {
         // Calling Flask on ML_SERVICE_URL
         const mlServiceUrl = process.env.ML_SERVICE_URL || 'http://localhost:5000';
-        const response = await axios.post(`${mlServiceUrl}/predict`, { date, time });
+        const response = await axios.post(`${mlServiceUrl}/predict-crowd`, { date, time });
         const data = response.data;
 
         const newRecord = new Prediction({
@@ -78,7 +78,7 @@ exports.getRoutePrediction = async (req, res) => {
         
         // Call Flask ML service for prediction
         const mlServiceUrl = process.env.ML_SERVICE_URL || 'http://localhost:5000';
-        const response = await axios.post(`${mlServiceUrl}/predict`, { date, time });
+        const response = await axios.post(`${mlServiceUrl}/predict-crowd`, { date, time });
         const predictionData = response.data;
 
         // Save to database

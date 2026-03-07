@@ -267,12 +267,23 @@ def predict_simple():
         return {"error": str(e)}, 500
 
 # ============================================================================
-# CROWD PREDICTION MODEL INTEGRATION
+# ETA MODEL INTEGRATION
 # ============================================================================
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'CrowdPrediction'))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'CrowdPrediction', 'prediction'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'ETAModel'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'ETAModel', 'prediction'))
 
+# load ETA model first
+try:
+    from ETAModel.prediction.predict import ETAPredictor
+    eta_predictor = ETAPredictor()
+    print("ETAModel loaded successfully")
+except Exception as e:
+    print(f"Could not load ETAModel: {e}")
+    traceback.print_exc()
+    eta_predictor = None
+
+# now load crowd prediction separately
 try:
     from CrowdPrediction.prediction.predict import CrowdPredictor
     crowd_predictor_instance = CrowdPredictor()
@@ -287,6 +298,46 @@ except Exception as e:
     crowd_model_error = str(e)
 
 @app.route('/predict', methods=['POST'])
+def predict_eta():
+    """Endpoint for ETA Prediction using ETAModel"""
+    if not eta_predictor:
+        return {"error": "ETA Prediction model not initialized"}, 500
+    
+    from flask import request
+    data = request.get_json() or {}
+    
+    bus_lat = data.get('bus_lat')
+    bus_lng = data.get('bus_lng')
+    user_lat = data.get('user_lat')
+    user_lng = data.get('user_lng')
+    bus_speed_kmh = data.get('bus_speed_kmh', 25.0)
+    weather_was_raining = data.get('weather_was_raining', 0)
+    
+    if not all([bus_lat, bus_lng, user_lat, user_lng]):
+        return {"error": "Missing required parameters: bus_lat, bus_lng, user_lat, user_lng"}, 400
+
+    try:
+        eta_seconds = eta_predictor.predict_eta(
+            bus_lat=bus_lat,
+            bus_lng=bus_lng,
+            user_lat=user_lat,
+            user_lng=user_lng,
+            bus_speed_kmh=bus_speed_kmh,
+            weather_was_raining=weather_was_raining,
+            fetch_external=False  # Backend (IoTController) handles Google Maps independently
+        )
+        
+        result = {
+            "prediction": {
+                "eta_seconds": eta_seconds,
+                "eta_minutes": round(eta_seconds / 60, 2)
+            }
+        }
+        return result, 200
+    except Exception as e:
+        return {"error": str(e)}, 500
+
+@app.route('/predict-crowd', methods=['POST'])
 def predict_crowd():
     """Endpoint for Crowd Size Prediction based on historical patterns"""
     if not crowd_predictor_instance or not crowd_predictor_instance.model:
@@ -306,8 +357,6 @@ def predict_crowd():
         return result, 200
     except Exception as e:
         return {"error": str(e)}, 500
-
-# Health check endpoint
 @app.route('/', methods=['GET'])
 @app.route('/health', methods=['GET'])
 def health_check():
@@ -315,6 +364,7 @@ def health_check():
     modules = {
         "FareSystem": "Loaded" if fare_data else "Not loaded",
         "JourneyModel": "Loaded" if journey_predictor else "Not loaded",
+        "ETAModel": "Loaded" if (eta_predictor and eta_predictor.model is not None) else ("Loaded (physics fallback)" if eta_predictor else "Not loaded"),
         "CrowdPrediction": "Loaded" if crowd_predictor is not None else "Not loaded",
         "MongoDB": "Connected" if bus_data_collection is not None else "Not connected"
     }
@@ -340,6 +390,7 @@ if __name__ == '__main__':
     print(f"{'='*60}")
     print(f"FareSystem Module: Fare calculations, distance, geocoding")
     print(f"Prediction Module: ML-based arrival predictions")
+    print(f"ETAModel Module: Bus ETA predictions")
     print(f"CrowdModel Module: Bus crowd passenger predictions")
     print(f"Server: http://{FLASK_HOST}:{FLASK_PORT}")
     print(f"{'='*60}\n")

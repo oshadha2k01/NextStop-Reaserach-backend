@@ -1,5 +1,5 @@
 const express = require("express");
-const { getDashboardData } = require("../controllers/superadmincontroller.js/dashboardController");
+const { getDashboardData } = require("../../controllers/SuperAdmin/dashboardController");
 
 const router = express.Router();
 

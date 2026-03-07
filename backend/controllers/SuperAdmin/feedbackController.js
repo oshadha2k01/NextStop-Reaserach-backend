@@ -1,4 +1,4 @@
-const Feedback = require("../../models/Feedback");
+const Feedback = require("../../models/SuperAdmin/Feedback");
 
 // Get all feedbacks
 const getFeedbacks = async (req, res) => {
@@ -7,7 +7,7 @@ const getFeedbacks = async (req, res) => {
       .populate('busId', 'regNo route')
       .sort({ createdAt: -1 })
       .lean();
-    
+
     return res.json(feedbacks);
   } catch (err) {
     return res.status(500).json({ message: err.message || "Server error" });
@@ -20,7 +20,7 @@ const getFeedbackById = async (req, res) => {
     const feedback = await Feedback.findById(req.params.id)
       .populate('busId', 'regNo route')
       .lean();
-    
+
     if (!feedback) return res.status(404).json({ message: "Feedback not found" });
     return res.json(feedback);
   } catch (err) {
@@ -32,7 +32,7 @@ const getFeedbackById = async (req, res) => {
 const createFeedback = async (req, res) => {
   try {
     const { rider, busId, route, sentiment, note, rating } = req.body;
-    
+
     if (!rider || !note) {
       return res.status(400).json({ message: "Rider and note are required" });
     }
@@ -63,7 +63,7 @@ const updateFeedback = async (req, res) => {
   try {
     const { sentiment, note, rating } = req.body;
     const update = {};
-    
+
     if (sentiment) update.sentiment = sentiment;
     if (note) update.note = note;
     if (rating !== undefined) update.rating = rating;
@@ -73,7 +73,7 @@ const updateFeedback = async (req, res) => {
       update,
       { new: true, runValidators: true }
     ).lean();
-    
+
     if (!updated) return res.status(404).json({ message: "Feedback not found" });
     return res.json(updated);
   } catch (err) {
