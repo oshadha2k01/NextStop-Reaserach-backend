@@ -28,6 +28,9 @@ const boardingNotificationRoutes = require("./routes/Passenger/boardingNotificat
 // Import Prediction Service (Two-Stage Bus Arrival) Routes
 const predictionServiceRoutes = require("./routes/PredictionService/predictionServiceRoutes");
 
+// Import Data Routes
+const dataRoutes = require("./routes/dataRoutes");
+
 const app = express();
 const { MONGO_URI, PORT = 3000 } = process.env;
 
@@ -100,6 +103,9 @@ app.use("/api/notify", boardingNotificationRoutes);
 
 // Mount Prediction Service (Two-Stage Bus Arrival) Routes
 app.use("/api/arrival", predictionServiceRoutes);
+
+// Mount Data Routes
+app.use("/api/get", dataRoutes);
 
 // MongoDB Connection
 mongoose
