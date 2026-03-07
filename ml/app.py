@@ -10,6 +10,7 @@ Structure:
 from flask import Flask
 from flask_cors import CORS
 import json
+import traceback
 from pymongo import MongoClient
 
 # Import configuration
@@ -96,10 +97,13 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'JourneyModel', 'pred
 try:
     from JourneyModel.prediction.predict import JourneyTimePredictor
     journey_predictor = JourneyTimePredictor()
+    journey_model_error = None
     print("JourneyModel (Hybrid Distance) loaded successfully")
 except Exception as e:
     print(f"Could not load JourneyModel: {e}")
+    traceback.print_exc()
     journey_predictor = None
+    journey_model_error = str(e)
 
 def _resolve_location(location_name):
     """
@@ -273,12 +277,14 @@ try:
     from CrowdPrediction.prediction.predict import CrowdPredictor
     crowd_predictor_instance = CrowdPredictor()
     crowd_predictor = crowd_predictor_instance.model
-    # Note: Emoji removed for prod logs
+    crowd_model_error = None
     print("Crowd Prediction Model loaded successfully")
 except Exception as e:
     print(f"Could not load Crowd Prediction Model: {e}")
+    traceback.print_exc()
     crowd_predictor_instance = None
     crowd_predictor = None
+    crowd_model_error = str(e)
 
 @app.route('/predict', methods=['POST'])
 def predict_crowd():
@@ -306,17 +312,27 @@ def predict_crowd():
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
-    return {
+    modules = {
+        "FareSystem": "Loaded" if fare_data else "Not loaded",
+        "JourneyModel": "Loaded" if journey_predictor else "Not loaded",
+        "CrowdPrediction": "Loaded" if crowd_predictor is not None else "Not loaded",
+        "MongoDB": "Connected" if bus_data_collection is not None else "Not connected"
+    }
+    errors = {}
+    if journey_predictor is None and journey_model_error:
+        errors["JourneyModel"] = journey_model_error
+    if crowd_predictor is None and crowd_model_error:
+        errors["CrowdPrediction"] = crowd_model_error
+
+    response = {
         "status": "running",
         "service": "NextStop ML Service",
         "version": "2.0 - Modular",
-        "modules": {
-            "FareSystem": "Loaded" if fare_data else "Not loaded",
-            "JourneyModel": "Loaded" if journey_predictor else "Not loaded",
-            "CrowdPrediction": "Loaded" if crowd_predictor is not None else "Not loaded",
-            "MongoDB": "Connected" if bus_data_collection is not None else "Not connected"
-        }
-    }, 200
+        "modules": modules
+    }
+    if errors:
+        response["load_errors"] = errors
+    return response, 200
 
 if __name__ == '__main__':
     print(f"\n{'='*60}")

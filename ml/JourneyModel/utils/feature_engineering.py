@@ -78,7 +78,7 @@ def create_features(data):
     
     # Location-based features
     if 'lat' in df.columns and 'lng' in df.columns:
-        from config import DEFAULT_CENTER_LAT, DEFAULT_CENTER_LNG
+        from ..config import DEFAULT_CENTER_LAT, DEFAULT_CENTER_LNG
         
         # Calculate distance from city center (Colombo)
         df['distance_from_center'] = np.sqrt(
