@@ -5,7 +5,7 @@ const {
   createFeedback,
   updateFeedback,
   deleteFeedback,
-} = require("../controllers/feedbackController");
+} = require("../controllers/superadmincontroller.js/feedbackController");
 
 const router = express.Router();
 

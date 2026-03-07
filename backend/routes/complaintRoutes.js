@@ -5,7 +5,7 @@ const {
   createComplaint,
   updateComplaint,
   deleteComplaint,
-} = require("../controllers/complaintController");
+} = require("../controllers/superadmincontroller.js/complaintController");
 
 const router = express.Router();
 
