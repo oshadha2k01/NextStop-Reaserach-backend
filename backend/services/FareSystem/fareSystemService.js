@@ -5,7 +5,7 @@
 
 const axios = require('axios');
 
-const ML_API_URL = process.env.ML_API_URL || 'http://localhost:5000';
+const ML_API_URL = process.env.ML_SERVICE_URL || 'http://localhost:5000';
 
 /**
  * Calculate fare between stages
