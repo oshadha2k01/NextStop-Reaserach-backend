@@ -11,7 +11,6 @@ const { Server } = require("socket.io");
 const adminAuthRoutes = require("./routes/Admin/adminAuthRoutes");
 const busRoutes = require("./routes/Bus/busRoutes");
 const superAdminAuthRoutes = require("./routes/SuperAdmin/superAdminAuthRoutes");
-const journeyModelRoutes = require("./routes/JourneyModel/journeyModelRoutes");
 const fareSystemRoutes = require("./routes/FareSystem/fareSystemRoutes");
 const predictionRoutes = require("./routes/CrowdPrediction/crowdPredictionRoutes");
 const driverRoutes = require("./routes/SuperAdmin/driverRoutes");
@@ -19,8 +18,6 @@ const complaintRoutes = require("./routes/SuperAdmin/complaintRoutes");
 const feedbackRoutes = require("./routes/SuperAdmin/feedbackRoutes");
 const dashboardRoutes = require("./routes/SuperAdmin/dashboardRoutes");
 const journeyModelRoutes = require("./routes/JourneyModel/journeyModelRoutes");
-const fareSystemRoutes = require("./routes/FareSystem/fareSystemRoutes");
-const predictionRoutes = require("./routes/CrowdPrediction/crowdPredictionRoutes");
 const routeRoutes = require("./routes/SuperAdmin/routeRoutes");
 const peopleConutRoutes = require("./routes/DL/peopleConutRoutes");
 
