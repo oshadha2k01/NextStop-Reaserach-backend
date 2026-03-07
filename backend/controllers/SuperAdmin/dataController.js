@@ -1,4 +1,4 @@
-const BusData = require('../../models/BusRealTimeData');
+const BusData = require('../../models/DL/BusRealTimeData');
 const mongoose = require('mongoose');
 
 exports.saveBusData = async (req, res) => {

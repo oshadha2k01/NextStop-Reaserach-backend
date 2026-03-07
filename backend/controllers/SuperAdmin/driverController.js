@@ -1,4 +1,4 @@
-const Driver = require("../../models/Driver");
+const Driver = require("../../models/DL/Driver");
 const Bus = require("../../models/Bus/BusModel");
 
 // Get all drivers
