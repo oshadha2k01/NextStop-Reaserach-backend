@@ -21,8 +21,8 @@ const iotRoutes = require("./routes/IoTDevice/IoTRoutes");
 // Import Passenger Boarding Notification Routes
 const boardingNotificationRoutes = require("./routes/Passenger/boardingNotificationRoutes");
 
-// Import Prediction Service (Two-Stage Bus Arrival) Routes
-const predictionServiceRoutes = require("./routes/PredictionService/predictionServiceRoutes");
+// Import Bus-Device Registration Routes
+const busDeviceRoutes = require("./routes/BusDevice/busDeviceRoutes");
 
 const app = express();
 const { MONGO_URI, PORT = 3000 } = process.env;
@@ -36,8 +36,11 @@ if (!MONGO_URI) {
 // WEBSOCKET SETUP
 // Wrap the Express app in a standard HTTP server
 const server = http.createServer(app);
+const corsOrigin = process.env.NODE_ENV === 'production'
+    ? (process.env.CORS_ORIGIN || false)
+    : "*";
 const io = new Server(server, {
-    cors: { origin: "*" }
+    cors: { origin: corsOrigin }
 });
 
 // CRITICAL: Make the 'io' instance globally accessible to our controllers
@@ -75,8 +78,23 @@ app.use((req, res, next) => {
     next();
 });
 
-app.use(cors());
+app.use(cors({ origin: corsOrigin }));
 app.use(express.json());
+
+// Health check (used by DigitalOcean App Platform)
+app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
+
+// Serve Driver Dashboard test page (development only)
+if (process.env.NODE_ENV !== 'production') {
+  app.get('/driver', (req, res) => {
+    res.sendFile(require('path').join(__dirname, 'driver-dashboard.html'));
+  });
+
+  // Serve Passenger App test page (development only)
+  app.get('/passenger', (req, res) => {
+    res.sendFile(require('path').join(__dirname, 'passenger-app.html'));
+  });
+}
 
 // Mount Existing Routes
 app.use("/api/admin", adminAuthRoutes);
@@ -94,8 +112,15 @@ app.use("/api", iotRoutes);
 // Mount Passenger Boarding Notification Routes
 app.use("/api/notify", boardingNotificationRoutes);
 
-// Mount Prediction Service (Two-Stage Bus Arrival) Routes
-app.use("/api/arrival", predictionServiceRoutes);
+// Mount Bus-Device Registration Routes
+app.use("/api/bus-device", busDeviceRoutes);
+
+// Global error handler
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  res.status(err.status || 500).json({ error: err.message || 'Internal server error' });
+});
 
 // MongoDB Connection
 mongoose
