@@ -7,12 +7,8 @@ class CrowdPredictor:
     def __init__(self):
         # The model is now expected to be in ml/CrowdPrediction/models
         self.model_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'models', 'crowd_model.pkl')
-        try:
-            self.model = joblib.load(self.model_path)
-            print("✅ Crowd Prediction Model loaded successfully")
-        except Exception as e:
-            print(f"⚠️ Could not load Crowd Prediction Model from {self.model_path}: {e}")
-            self.model = None
+        self.model = joblib.load(self.model_path)
+        print(f"Crowd Prediction Model loaded from {self.model_path}")
 
     def get_crowd_status(self, passenger_count):
         if passenger_count <= 40:

@@ -70,10 +70,12 @@ io.on('connection', (socket) => {
 });
 // -----------------------------------------------------
 
-// Auto-remove '/backend' from the URL if DigitalOcean forwards it that way
+// Auto-remove '/backend' prefix if DigitalOcean forwards it that way
 app.use((req, res, next) => {
-    if (req.url.startsWith('/backend/')) {
-        req.url = req.url.replace('/backend', '');
+    if (req.url === '/backend' || req.url === '/backend/') {
+        req.url = '/';
+    } else if (req.url.startsWith('/backend/')) {
+        req.url = req.url.slice('/backend'.length);
     }
     next();
 });
@@ -83,6 +85,13 @@ app.use(express.json());
 
 // Health check (used by DigitalOcean App Platform)
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
+
+// Root route — required so DigitalOcean health checks and /backend access return 200
+app.get('/', (req, res) => res.json({
+    status: 'ok',
+    message: 'NextStop Backend API is running',
+    version: '1.0.0'
+}));
 
 // Serve Driver Dashboard test page (development only)
 if (process.env.NODE_ENV !== 'production') {
