@@ -4,7 +4,7 @@ Handles Haversine distance and Google Distance Matrix API
 """
 import math
 import requests
-from config import GOOGLE_MAPS_API_KEY, EARTH_RADIUS_KM
+from ml_service_config import GOOGLE_MAPS_API_KEY, EARTH_RADIUS_KM
 
 
 def haversine_distance(lat1, lon1, lat2, lon2):

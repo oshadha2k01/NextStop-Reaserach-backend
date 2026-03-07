@@ -11,8 +11,10 @@ const { Server } = require("socket.io");
 const adminAuthRoutes = require("./routes/Admin/adminAuthRoutes");
 const busRoutes = require("./routes/Bus/busRoutes");
 const superAdminAuthRoutes = require("./routes/SuperAdmin/superAdminAuthRoutes");
-const predictiveTimeBusRoutes = require("./routes/predictiveTimeBusRoutes");
-const fareRoutes = require("./routes/fareRoutes");
+const journeyModelRoutes = require("./routes/JourneyModel/journeyModelRoutes");
+const fareSystemRoutes = require("./routes/FareSystem/fareSystemRoutes");
+const predictionRoutes = require("./routes/CrowdPrediction/crowdPredictionRoutes");
+const routeRoutes = require("./routes/routeRoutes");
 
 // Import New IoT Routes
 const iotRoutes = require("./routes/IoTDevice/IoTRoutes");
@@ -22,6 +24,8 @@ const boardingNotificationRoutes = require("./routes/Passenger/boardingNotificat
 
 // Import ETA Routes
 const etaRoutes = require("./routes/etaRoutes");
+// Import Prediction Service (Two-Stage Bus Arrival) Routes
+const predictionServiceRoutes = require("./routes/PredictionService/predictionServiceRoutes");
 
 const app = express();
 const { MONGO_URI, PORT = 3000 } = process.env;
@@ -65,15 +69,25 @@ io.on('connection', (socket) => {
 });
 // -----------------------------------------------------
 
+// Auto-remove '/backend' from the URL if DigitalOcean forwards it that way
+app.use((req, res, next) => {
+    if (req.url.startsWith('/backend/')) {
+        req.url = req.url.replace('/backend', '');
+    }
+    next();
+});
+
 app.use(cors());
 app.use(express.json());
 
 // Mount Existing Routes
 app.use("/api/admin", adminAuthRoutes);
-app.use("/api/buses", busRoutes); 
+app.use("/api/buses", busRoutes);
 app.use("/api/superadmin", superAdminAuthRoutes);
-app.use("/api", predictiveTimeBusRoutes);
-app.use("/api/fare", fareRoutes);
+app.use("/api/destination", journeyModelRoutes);
+app.use("/api/fare", fareSystemRoutes);
+app.use("/api/prediction", predictionRoutes);
+app.use("/api", routeRoutes);
 
 // Mount New IoT Routes (Matches your ESP32 Config.h: /api/sensor-data)
 // This will route to your iotController
@@ -84,6 +98,8 @@ app.use("/api/notify", boardingNotificationRoutes);
 
 // Mount ETA Routes
 app.use("/api/eta", etaRoutes); 
+// Mount Prediction Service (Two-Stage Bus Arrival) Routes
+app.use("/api/arrival", predictionServiceRoutes);
 
 // MongoDB Connection
 mongoose

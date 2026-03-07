@@ -21,5 +21,4 @@ COPY . .
 # Expose the port the app runs on (matching prediction_api.py)
 EXPOSE 5000
 
-# Run the JourneyModel API as the primary service
-CMD ["python", "JourneyModel/prediction/prediction_api.py"]
+CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:5000", "--workers", "2", "--timeout", "120"]
