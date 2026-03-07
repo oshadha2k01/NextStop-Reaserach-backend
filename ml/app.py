@@ -273,13 +273,18 @@ def predict_simple():
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'ETAModel'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'ETAModel', 'prediction'))
 
+# load ETA model first
 try:
     from ETAModel.prediction.predict import ETAPredictor
     eta_predictor = ETAPredictor()
     print("ETAModel loaded successfully")
 except Exception as e:
     print(f"Could not load ETAModel: {e}")
+    traceback.print_exc()
     eta_predictor = None
+
+# now load crowd prediction separately
+try:
     from CrowdPrediction.prediction.predict import CrowdPredictor
     crowd_predictor_instance = CrowdPredictor()
     crowd_predictor = crowd_predictor_instance.model
@@ -358,6 +363,7 @@ def health_check():
     modules = {
         "FareSystem": "Loaded" if fare_data else "Not loaded",
         "JourneyModel": "Loaded" if journey_predictor else "Not loaded",
+        "ETAModel": "Loaded" if eta_predictor else "Not loaded",
         "CrowdPrediction": "Loaded" if crowd_predictor is not None else "Not loaded",
         "MongoDB": "Connected" if bus_data_collection is not None else "Not connected"
     }
@@ -371,14 +377,6 @@ def health_check():
         "status": "running",
         "service": "NextStop ML Service",
         "version": "2.0 - Modular",
-        "modules": {
-            "FareSystem": "Loaded" if fare_data else "Not loaded",
-            "JourneyModel": "Loaded" if journey_predictor else "Not loaded",
-            "ETAModel": "Loaded" if eta_predictor else "Not loaded",
-            "CrowdPrediction": "Loaded" if crowd_predictor is not None else "Not loaded",
-            "MongoDB": "Connected" if bus_data_collection is not None else "Not connected"
-        }
-    }, 200
         "modules": modules
     }
     if errors:
