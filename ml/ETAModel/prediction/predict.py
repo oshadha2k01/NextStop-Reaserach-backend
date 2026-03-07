@@ -13,6 +13,7 @@ from ETAModel.config import (
     MIN_LONGITUDE, MAX_LONGITUDE
 )
 from ETAModel.utils.feature_engineering import create_features, get_feature_list
+from ETAModel.utils.external_data import get_traffic_duration, get_weather_data
 
 class ETAPredictor:
     def __init__(self):
@@ -32,10 +33,11 @@ class ETAPredictor:
         except Exception as e:
             print(f"❌ Error loading model: {e}")
 
-    def predict_eta(self, bus_lat, bus_lng, user_lat, user_lng, bus_speed_kmh=25.0, weather_was_raining=0):
+    def predict_eta(self, bus_lat, bus_lng, user_lat, user_lng, bus_speed_kmh=25.0, weather_was_raining=0, fetch_external=True):
         """
         Predicts ETA in seconds.
         Falls back to basic physics math if the ML model is missing or fails.
+        If fetch_external=True, fetches traffic and weather data.
         """
         # 1. Check for missing/None values
         if None in [bus_lat, bus_lng, user_lat, user_lng]:
@@ -45,7 +47,20 @@ class ETAPredictor:
         b_lat, b_lng = float(bus_lat), float(bus_lng)
         u_lat, u_lng = float(user_lat), float(user_lng)
         
-        # 3. Validate coordinate bounds (This is what the test was checking!)
+        # 3. Fetch external data if enabled
+        if fetch_external:
+            # Get traffic duration
+            traffic_duration = get_traffic_duration(b_lat, b_lng, u_lat, u_lng)
+            if traffic_duration:
+                # Use traffic duration instead of distance/speed calculation
+                return max(60.0, float(traffic_duration))
+            
+            # Get weather data
+            weather_data = get_weather_data(u_lat, u_lng)  # Use user location for weather
+            if weather_data:
+                weather_was_raining = int(weather_data['is_raining'])
+        
+        # 4. Validate coordinate bounds (This is what the test was checking!)
         if not (MIN_LATITUDE <= b_lat <= MAX_LATITUDE) or not (MIN_LATITUDE <= u_lat <= MAX_LATITUDE):
             raise ValueError(f"Latitude must be between {MIN_LATITUDE} and {MAX_LATITUDE}")
             
@@ -88,9 +103,9 @@ class ETAPredictor:
         hours = distance_km / speed
         return hours * 3600.0 # Convert to seconds
 
-    def predict_with_explanation(self, **kwargs):
+    def predict_with_explanation(self, fetch_external=True, **kwargs):
         """Returns the ETA along with all the context used to calculate it"""
-        eta_seconds = self.predict_eta(**kwargs)
+        eta_seconds = self.predict_eta(fetch_external=fetch_external, **kwargs)
         
         return {
             "eta_seconds": round(eta_seconds),

@@ -101,18 +101,21 @@ exports.getLiveEta = async (req, res) => {
             }
         }
 
-        // 3. Call your Python AI Server on Port 5001!
-        const upcomingStops = [ { lat: 6.9140, lng: 79.9740 } ]; // Mock upcoming stop
+        // 3. Call your Python AI Server on Port 5002!
         let aiDelaySeconds = 0;
         
         try {
-            const aiRes = await axios.post('http://localhost:5001/predict_delays', {
-                upcoming_stops: upcomingStops,
-                is_raining: isRaining
+            const aiRes = await axios.post('http://localhost:5002/predict', {
+                bus_lat: busLat,
+                bus_lng: busLng,
+                user_lat: parseFloat(userLat),
+                user_lng: parseFloat(userLng),
+                bus_speed_kmh: latestBusData.gps.speed_kmh,
+                weather_was_raining: isRaining ? 1 : 0
             });
-            aiDelaySeconds = aiRes.data.ai_predicted_delay_seconds;
+            aiDelaySeconds = aiRes.data.prediction.eta_seconds;
         } catch (aiError) {
-            console.error("⚠️ AI Server unreachable on Port 5001.");
+            console.error("⚠️ AI Server unreachable on Port 5002.", aiError.message);
         }
 
         const finalEtaSeconds = googleTrafficSeconds + aiDelaySeconds;
