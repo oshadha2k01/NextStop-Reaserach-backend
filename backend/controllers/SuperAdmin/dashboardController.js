@@ -1,7 +1,7 @@
-const Bus = require("../models/Bus/BusModel");
-const Driver = require("../models/Driver");
-const Complaint = require("../models/Complaint");
-const Feedback = require("../models/Feedback");
+const Bus = require("../../models/Bus/BusModel");
+const Driver = require("../../models/Driver");
+const Complaint = require("../../models/Complaint");
+const Feedback = require("../../models/Feedback");
 
 // Get all dashboard data in one call
 const getDashboardData = async (req, res) => {

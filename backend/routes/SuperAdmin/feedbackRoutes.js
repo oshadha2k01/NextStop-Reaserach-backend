@@ -1,11 +1,11 @@
 const express = require("express");
 const {
-  getFeedbacks,
-  getFeedbackById,
-  createFeedback,
-  updateFeedback,
-  deleteFeedback,
-} = require("../controllers/feedbackController");
+	getFeedbacks,
+	getFeedbackById,
+	createFeedback,
+	updateFeedback,
+	deleteFeedback,
+} = require("../../controllers/SuperAdmin/feedbackController");
 
 const router = express.Router();
 

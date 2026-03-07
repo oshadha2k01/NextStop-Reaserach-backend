@@ -1,4 +1,4 @@
-const Complaint = require("../models/Complaint");
+const Complaint = require("../../models/Complaint");
 
 // Get all complaints
 const getComplaints = async (req, res) => {
@@ -7,7 +7,7 @@ const getComplaints = async (req, res) => {
       .populate('busId', 'regNo route')
       .sort({ createdAt: -1 })
       .lean();
-    
+
     return res.json(complaints);
   } catch (err) {
     return res.status(500).json({ message: err.message || "Server error" });
@@ -20,7 +20,7 @@ const getComplaintById = async (req, res) => {
     const complaint = await Complaint.findById(req.params.id)
       .populate('busId', 'regNo route')
       .lean();
-    
+
     if (!complaint) return res.status(404).json({ message: "Complaint not found" });
     return res.json(complaint);
   } catch (err) {
@@ -32,7 +32,7 @@ const getComplaintById = async (req, res) => {
 const createComplaint = async (req, res) => {
   try {
     const { route, busId, summary, description, submittedBy, priority } = req.body;
-    
+
     if (!route || !summary) {
       return res.status(400).json({ message: "Route and summary are required" });
     }
@@ -63,7 +63,7 @@ const updateComplaint = async (req, res) => {
   try {
     const { status, summary, description, priority } = req.body;
     const update = {};
-    
+
     if (status) update.status = status;
     if (summary) update.summary = summary;
     if (description !== undefined) update.description = description;
@@ -74,7 +74,7 @@ const updateComplaint = async (req, res) => {
       update,
       { new: true, runValidators: true }
     ).lean();
-    
+
     if (!updated) return res.status(404).json({ message: "Complaint not found" });
     return res.json(updated);
   } catch (err) {

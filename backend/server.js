@@ -10,14 +10,15 @@ const { Server } = require("socket.io");
 const adminAuthRoutes = require("./routes/Admin/adminAuthRoutes");
 const busRoutes = require("./routes/Bus/busRoutes");
 const superAdminAuthRoutes = require("./routes/SuperAdmin/superAdminAuthRoutes");
-const driverRoutes = require("./routes/driverRoutes");
-const complaintRoutes = require("./routes/complaintRoutes");
-const feedbackRoutes = require("./routes/feedbackRoutes");
-const dashboardRoutes = require("./routes/dashboardRoutes");
+const driverRoutes = require("./routes/SuperAdmin/driverRoutes");
+const complaintRoutes = require("./routes/SuperAdmin/complaintRoutes");
+const feedbackRoutes = require("./routes/SuperAdmin/feedbackRoutes");
+const dashboardRoutes = require("./routes/SuperAdmin/dashboardRoutes");
 const journeyModelRoutes = require("./routes/JourneyModel/journeyModelRoutes");
 const fareSystemRoutes = require("./routes/FareSystem/fareSystemRoutes");
 const predictionRoutes = require("./routes/CrowdPrediction/crowdPredictionRoutes");
-const routeRoutes = require("./routes/routeRoutes");
+const routeRoutes = require("./routes/SuperAdmin/routeRoutes");
+const peopleConutRoutes = require("./routes/DL/peopleConutRoutes");
 
 // Import New IoT Routes
 const iotRoutes = require("./routes/IoTDevice/IoTRoutes");
@@ -29,7 +30,7 @@ const boardingNotificationRoutes = require("./routes/Passenger/boardingNotificat
 const busDeviceRoutes = require("./routes/BusDevice/busDeviceRoutes");
 
 // Import Data Routes
-const dataRoutes = require("./routes/dataRoutes");
+const dataRoutes = require("./routes/SuperAdmin/dataRoutes");
 
 const app = express();
 const { MONGO_URI, PORT = 3000 } = process.env;
@@ -116,9 +117,14 @@ if (process.env.NODE_ENV !== 'production') {
 app.use("/api/admin", adminAuthRoutes);
 app.use("/api/buses", busRoutes);
 app.use("/api/superadmin", superAdminAuthRoutes);
+app.use("/api/drivers", driverRoutes);
+app.use("/api/complaints", complaintRoutes);
+app.use("/api/feedback", feedbackRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/destination", journeyModelRoutes);
 app.use("/api/fare", fareSystemRoutes);
 app.use("/api/prediction", predictionRoutes);
+app.use("/api/dl", peopleConutRoutes);
 app.use("/api", routeRoutes);
 
 // Mount New IoT Routes (Matches your ESP32 Config.h: /api/sensor-data)

@@ -1,4 +1,4 @@
-const BusData = require('../models/BusRealTimeData');
+const BusData = require('../../models/BusRealTimeData');
 const mongoose = require('mongoose');
 
 exports.saveBusData = async (req, res) => {
@@ -10,7 +10,7 @@ exports.saveBusData = async (req, res) => {
 
         const newData = new BusData(req.body);
         await newData.save();
-        
+
         res.status(201).json({ message: 'Bus data saved' });
     } catch (error) {
         console.error('Error saving bus data:', error);
@@ -40,16 +40,16 @@ exports.getPeopleCountData = async (req, res) => {
     try {
         const db = mongoose.connection.db;
         const collection = db.collection('people_count');
-        
+
         const data = await collection.find({})
             .sort({ timestamp: -1 })
             .limit(1)
             .toArray();
-        
+
         if (!data || data.length === 0) {
             return res.status(404).json({ message: 'No data found' });
         }
-        
+
         res.json(data[0]);
     } catch (error) {
         console.error('Error fetching people count data:', error);
@@ -62,9 +62,9 @@ exports.getPeopleCountFiltered = async (req, res) => {
     try {
         const db = mongoose.connection.db;
         const collection = db.collection('people_count');
-        
+
         const { startDate, endDate, limit = 50, skip = 0 } = req.query;
-        
+
         // Build filter query
         let filter = {};
         if (startDate || endDate) {
@@ -76,16 +76,16 @@ exports.getPeopleCountFiltered = async (req, res) => {
                 filter.timestamp.$lte = new Date(endDate);
             }
         }
-        
+
         const data = await collection
             .find(filter)
             .sort({ timestamp: -1 })
             .skip(parseInt(skip))
             .limit(parseInt(limit))
             .toArray();
-        
+
         const total = await collection.countDocuments(filter);
-        
+
         res.json({
             total,
             count: data.length,
@@ -104,12 +104,12 @@ exports.getPeopleCountStats = async (req, res) => {
     try {
         const db = mongoose.connection.db;
         const collection = db.collection('people_count');
-        
+
         const { timeRange = 'all' } = req.query; // 'hour', 'day', 'week', 'month', 'all'
-        
+
         let matchStage = {};
         const now = new Date();
-        
+
         if (timeRange === 'hour') {
             matchStage.timestamp = { $gte: new Date(now.getTime() - 60 * 60 * 1000) };
         } else if (timeRange === 'day') {
@@ -119,7 +119,7 @@ exports.getPeopleCountStats = async (req, res) => {
         } else if (timeRange === 'month') {
             matchStage.timestamp = { $gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) };
         }
-        
+
         const stats = await collection.aggregate([
             { $match: matchStage },
             {
@@ -134,7 +134,7 @@ exports.getPeopleCountStats = async (req, res) => {
                 }
             }
         ]).toArray();
-        
+
         res.json({
             timeRange,
             stats: stats.length > 0 ? stats[0] : {
@@ -157,18 +157,18 @@ exports.getPeopleCountHistory = async (req, res) => {
     try {
         const db = mongoose.connection.db;
         const collection = db.collection('people_count');
-        
+
         const { limit = 100 } = req.query;
-        
+
         const data = await collection
             .find({})
             .sort({ timestamp: -1 })
             .limit(parseInt(limit))
             .toArray();
-        
+
         // Reverse to get chronological order
         const history = data.reverse();
-        
+
         res.json({
             count: history.length,
             data: history.map(item => ({
