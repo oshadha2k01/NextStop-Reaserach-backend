@@ -8,8 +8,12 @@ const PendingAdminRegistrationSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true },
     phoneNo: { type: String, required: true },
     password: { type: String, required: true },
-    otp: { type: String, required: true },
+    // Keep legacy plain OTP field optional for old records during migration.
+    otp: { type: String },
+    otpHash: { type: String, required: true },
     otpExpiresAt: { type: Date, required: true },
+    otpAttempts: { type: Number, default: 0 },
+    lastOtpSentAt: { type: Date, default: Date.now },
   },
   { timestamps: true }
 );

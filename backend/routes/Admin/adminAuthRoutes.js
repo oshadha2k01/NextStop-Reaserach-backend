@@ -5,6 +5,7 @@ const { protect } = require('../../middleware/Admin/adminAuthMiddleware');
 
 router.post('/register', authController.register);
 router.post('/verify-otp', authController.verifyOtp);
+router.post('/resend-otp', authController.resendOtp);
 router.post('/login', authController.login);
 router.get('/profile', protect, authController.getProfile);
 router.put('/profile', protect, authController.updateProfile);
