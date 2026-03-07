@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+  <title>NextStop — Passenger</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0f1117;
+      --card:    #1a1d27;
+      --border:  #2a2d3e;
+      --yellow:  #f5c518;
+      --green:   #4caf50;
+      --red:     #f44336;
+      --text:    #e8e8e8;
+      --muted:   #888;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    /* ── TOPBAR ──────────────────────────────────────────────── */
+    .topbar {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .logo { font-size: 1.2rem; font-weight: 700; color: var(--yellow); }
+    .logo-sub { font-size: 0.72rem; color: var(--muted); }
+
+    .server-row {
+      display: flex; align-items: center; gap: 6px;
+    }
+    .server-input {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: 5px 10px;
+      color: var(--text); font-size: 0.75rem; width: 170px; outline: none;
+    }
+    .server-input:focus { border-color: var(--yellow); }
+
+    /* ── MAP ─────────────────────────────────────────────────── */
+    #map {
+      height: 220px;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .map-overlay {
+      position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+      z-index: 1000;
+      background: rgba(0,0,0,0.7); color: #fff;
+      border-radius: 20px; padding: 5px 14px;
+      font-size: 0.75rem; display: none;
+    }
+    .map-overlay.visible { display: block; }
+
+    /* ── LOCATION BAR ────────────────────────────────────────── */
+    .loc-bar {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 16px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .loc-icon { font-size: 1.2rem; flex-shrink: 0; }
+    .loc-info { flex: 1; }
+    .loc-label { font-size: 0.68rem; color: var(--muted); }
+    .loc-coords { font-size: 0.82rem; font-weight: 600; color: var(--text); }
+    .loc-coords.pending { color: var(--muted); font-style: italic; }
+
+    .refresh-btn {
+      background: transparent; border: 1px solid var(--border);
+      border-radius: 8px; padding: 6px 10px;
+      color: var(--muted); font-size: 0.8rem; cursor: pointer;
+      flex-shrink: 0; transition: 0.2s;
+    }
+    .refresh-btn:hover { border-color: var(--yellow); color: var(--yellow); }
+
+    /* ── SECTION HEADER ──────────────────────────────────────── */
+    .section-hdr {
+      padding: 14px 16px 8px;
+      font-size: 0.75rem; font-weight: 700;
+      color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .reload-btn {
+      background: transparent; border: none; color: var(--muted);
+      font-size: 0.75rem; cursor: pointer; padding: 2px 8px;
+      border: 1px solid var(--border); border-radius: 6px;
+    }
+    .reload-btn:hover { color: var(--yellow); border-color: var(--yellow); }
+
+    /* ── BUS LIST ────────────────────────────────────────────── */
+    .bus-list { flex: 1; overflow-y: auto; padding: 0 12px 12px; }
+
+    .bus-card {
+      background: var(--card);
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .bus-card:hover   { border-color: #444; }
+    .bus-card.selected {
+      border-color: var(--yellow);
+      background: #1e1a00;
+    }
+
+    .bus-icon-box {
+      width: 44px; height: 44px; border-radius: 10px;
+      background: #12151f; display: flex; align-items: center;
+      justify-content: center; font-size: 1.6rem; flex-shrink: 0;
+    }
+    .bus-card.selected .bus-icon-box { background: #2a2200; }
+
+    .bus-info { flex: 1; }
+    .bus-reg   { font-size: 0.95rem; font-weight: 700; color: var(--text); }
+    .bus-route { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+    .bus-owner { font-size: 0.72rem; color: #666; margin-top: 1px; }
+
+    .bus-status {
+      font-size: 0.68rem; font-weight: 600; padding: 3px 9px;
+      border-radius: 10px; flex-shrink: 0;
+    }
+    .bus-status.approved { background: #12261a; color: var(--green); }
+    .bus-status.pending  { background: #26221a; color: #f5a623; }
+
+    /* IoT live badge */
+    .iot-badge {
+      font-size: 0.65rem; font-weight: 700; padding: 2px 8px;
+      border-radius: 10px; flex-shrink: 0;
+      background: #0a2a3a; color: #29b6f6;
+      border: 1px solid #1565c0;
+    }
+
+    /* Buses with no IoT device — shown but un-selectable */
+    .bus-card.no-device {
+      opacity: 0.38;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+    .no-iot-label {
+      font-size: 0.65rem; color: #555; flex-shrink: 0;
+    }
+
+    .check-icon {
+      color: var(--yellow); font-size: 1.3rem;
+      display: none; flex-shrink: 0;
+    }
+    .bus-card.selected .check-icon { display: block; }
+
+    .loading-msg { text-align:center; color:var(--muted); padding:30px; font-size:0.85rem; }
+    .error-msg   { text-align:center; color:var(--red);   padding:20px; font-size:0.82rem; }
+
+    /* ── BOTTOM ACTION ───────────────────────────────────────── */
+    .bottom-bar {
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      padding: 14px 16px;
+      flex-shrink: 0;
+    }
+
+    .board-btn {
+      width: 100%; padding: 15px;
+      border: none; border-radius: 12px;
+      font-size: 1rem; font-weight: 700;
+      cursor: pointer; transition: 0.2s;
+      background: #333; color: #666;
+    }
+    .board-btn.ready {
+      background: var(--yellow); color: #000;
+    }
+    .board-btn.ready:hover { background: #ffd740; }
+    .board-btn.loading {
+      background: #2a2d3e; color: var(--muted);
+      cursor: not-allowed;
+    }
+    .board-btn.success-state {
+      background: var(--green); color: #fff;
+    }
+
+    /* ── SUCCESS OVERLAY ─────────────────────────────────────── */
+    .success-overlay {
+      display: none;
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(0,0,0,0.85);
+      flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .success-overlay.show { display: flex; }
+
+    .success-card {
+      background: var(--card);
+      border: 2px solid var(--green);
+      border-radius: 20px;
+      padding: 28px 24px;
+      width: 100%; max-width: 380px;
+      animation: pop-in 0.35s ease;
+    }
+    @keyframes pop-in {
+      from { transform: scale(0.85); opacity: 0; }
+      to   { transform: scale(1);    opacity: 1; }
+    }
+
+    .success-icon { font-size: 3rem; text-align: center; margin-bottom: 10px; }
+    .success-title {
+      text-align: center; font-size: 1.1rem; font-weight: 700;
+      color: var(--green); margin-bottom: 18px;
+    }
+
+    .success-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+    }
+    .success-row:last-of-type { border-bottom: none; }
+    .s-icon  { font-size: 1.1rem; width: 22px; text-align: center; }
+    .s-label { font-size: 0.7rem; color: var(--muted); }
+    .s-val   { font-size: 0.98rem; font-weight: 600; color: var(--text); }
+    .s-val.big { font-size: 1.2rem; color: var(--yellow); }
+
+    .close-btn {
+      margin-top: 18px; width: 100%; padding: 13px;
+      border: none; border-radius: 10px;
+      background: var(--yellow); color: #000;
+      font-size: 0.95rem; font-weight: 700; cursor: pointer;
+    }
+    .close-btn:hover { background: #ffd740; }
+
+    /* ── SCROLLBAR ───────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div>
+    <div class="logo">NextStop</div>
+    <div class="logo-sub">Passenger</div>
+  </div>
+  <div class="server-row">
+    <input class="server-input" id="server-url"
+           value="http://localhost:3000" placeholder="Backend URL"/>
+  </div>
+</div>
+
+<!-- MAP -->
+<div id="map">
+  <div class="map-overlay" id="map-overlay">Getting location...</div>
+</div>
+
+<!-- LOCATION BAR -->
+<div class="loc-bar">
+  <div class="loc-icon">📍</div>
+  <div class="loc-info">
+    <div class="loc-label">Your Current Location</div>
+    <div class="loc-coords pending" id="loc-display">Fetching GPS...</div>
+  </div>
+  <button class="refresh-btn" onclick="getLocation()">Refresh</button>
+</div>
+
+<!-- BUS LIST HEADER -->
+<div class="section-hdr">
+  Available Buses (Route 177)
+  <button class="reload-btn" onclick="loadBuses()">Reload</button>
+</div>
+
+<!-- BUS LIST -->
+<div class="bus-list" id="bus-list">
+  <div class="loading-msg">Loading buses...</div>
+</div>
+
+<!-- BOTTOM ACTION BAR -->
+<div class="bottom-bar">
+  <button class="board-btn" id="board-btn" onclick="sendBoardingRequest()" disabled>
+    Select a bus to board
+  </button>
+</div>
+
+<!-- SUCCESS OVERLAY -->
+<div class="success-overlay" id="success-overlay">
+  <div class="success-card">
+    <div class="success-icon">✅</div>
+    <div class="success-title">Driver Notified!</div>
+
+    <div class="success-row">
+      <div class="s-icon">📏</div>
+      <div>
+        <div class="s-label">Distance to You</div>
+        <div class="s-val big" id="s-distance">—</div>
+      </div>
+    </div>
+    <div class="success-row">
+      <div class="s-icon">⏱</div>
+      <div>
+        <div class="s-label">Estimated Arrival</div>
+        <div class="s-val big" id="s-time">—</div>
+      </div>
+    </div>
+    <div class="success-row">
+      <div class="s-icon">🚏</div>
+      <div>
+        <div class="s-label">Stops Away</div>
+        <div class="s-val" id="s-stops">—</div>
+      </div>
+    </div>
+    <div class="success-row">
+      <div class="s-icon">🚌</div>
+      <div>
+        <div class="s-label">Bus</div>
+        <div class="s-val" id="s-bus">—</div>
+      </div>
+    </div>
+    <div class="success-row">
+      <div class="s-icon">📍</div>
+      <div>
+        <div class="s-label">Your Location Sent</div>
+        <div class="s-val" id="s-loc">—</div>
+      </div>
+    </div>
+
+    <button class="close-btn" onclick="closeSuccess()">Done</button>
+  </div>
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+// ─── STATE ────────────────────────────────────────────────────
+let myLat = null;
+let myLng = null;
+let selectedBusId   = null;
+let selectedBusText = '';
+let map, myMarker;
+
+// ─── MAP INIT ─────────────────────────────────────────────────
+map = L.map('map', { zoomControl: false, attributionControl: false })
+       .setView([6.927, 79.861], 13);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19
+}).addTo(map);
+
+const MY_ICON = L.divIcon({
+  html: '<div style="font-size:26px;">📍</div>',
+  className: '', iconAnchor: [13, 26]
+});
+
+// ─── GEOLOCATION ─────────────────────────────────────────────
+function getLocation() {
+  const overlay = document.getElementById('map-overlay');
+  const display = document.getElementById('loc-display');
+  overlay.textContent = 'Getting location...';
+  overlay.classList.add('visible');
+  display.textContent = 'Fetching GPS...';
+  display.className   = 'loc-coords pending';
+
+  if (!navigator.geolocation) {
+    overlay.classList.remove('visible');
+    display.textContent = 'Geolocation not supported — enter manually';
+    display.className   = 'loc-coords';
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      myLat = pos.coords.latitude;
+      myLng = pos.coords.longitude;
+
+      display.textContent = `${myLat.toFixed(6)},  ${myLng.toFixed(6)}`;
+      display.className   = 'loc-coords';
+      overlay.classList.remove('visible');
+
+      // Update map marker
+      if (myMarker) map.removeLayer(myMarker);
+      myMarker = L.marker([myLat, myLng], { icon: MY_ICON })
+        .addTo(map)
+        .bindPopup('Your Location')
+        .openPopup();
+      map.setView([myLat, myLng], 15);
+
+      updateBoardBtn();
+    },
+    (err) => {
+      overlay.classList.remove('visible');
+      display.textContent = `Location error: ${err.message}`;
+      display.className   = 'loc-coords pending';
+
+      // Use fallback location (SLIIT Malabe) for testing
+      myLat = 6.9147;
+      myLng = 79.9729;
+      display.textContent = `${myLat} , ${myLng}  (test fallback)`;
+      display.className   = 'loc-coords';
+
+      if (myMarker) map.removeLayer(myMarker);
+      myMarker = L.marker([myLat, myLng], { icon: MY_ICON })
+        .addTo(map);
+      map.setView([myLat, myLng], 14);
+      updateBoardBtn();
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+}
+
+// ─── LOAD BUSES ───────────────────────────────────────────────
+async function loadBuses() {
+  const list   = document.getElementById('bus-list');
+  const server = document.getElementById('server-url').value.trim();
+  list.innerHTML = '<div class="loading-msg">Loading buses...</div>';
+  selectedBusId = null;
+  updateBoardBtn();
+
+  try {
+    // Fetch buses AND device registrations in parallel
+    const [busResp, devResp] = await Promise.all([
+      fetch(`${server}/api/buses`),
+      fetch(`${server}/api/bus-device`)
+    ]);
+
+    if (!busResp.ok) throw new Error(`Buses HTTP ${busResp.status}`);
+    const busData = await busResp.json();
+    const buses   = Array.isArray(busData) ? busData : (busData.buses || []);
+
+    // Build a Set of busIds that have an active IoT device
+    let activeDeviceBusIds = new Set();
+    if (devResp.ok) {
+      const devData = await devResp.json();
+      const regs    = devData.registrations || [];
+      regs.forEach(r => {
+        if (r.isActive) activeDeviceBusIds.add(String(r.busId));
+      });
+    }
+
+    if (!buses.length) {
+      list.innerHTML = '<div class="error-msg">No buses found.</div>';
+      return;
+    }
+
+    // Sort: IoT-active buses first
+    buses.sort((a, b) => {
+      const aActive = activeDeviceBusIds.has(String(a._id)) ? 0 : 1;
+      const bActive = activeDeviceBusIds.has(String(b._id)) ? 0 : 1;
+      return aActive - bActive;
+    });
+
+    list.innerHTML = '';
+    buses.forEach(bus => {
+      const hasDevice = activeDeviceBusIds.has(String(bus._id));
+      const card = document.createElement('div');
+      card.className = 'bus-card' + (hasDevice ? '' : ' no-device');
+      card.dataset.id  = bus._id;
+      card.dataset.reg = bus.regNo;
+
+      card.innerHTML = `
+        <div class="bus-icon-box">🚌</div>
+        <div class="bus-info">
+          <div class="bus-reg">${bus.regNo}</div>
+          <div class="bus-route">Route ${bus.route || '177'}</div>
+          <div class="bus-owner">${bus.ownerName || ''}</div>
+        </div>
+        ${hasDevice
+          ? '<span class="iot-badge">📡 IoT Live</span>'
+          : '<span class="no-iot-label">No device</span>'
+        }
+        <span class="check-icon">✓</span>
+      `;
+
+      if (hasDevice) {
+        card.addEventListener('click', () => selectBus(bus._id, bus.regNo, card));
+      }
+      list.appendChild(card);
+    });
+
+    const liveCount = activeDeviceBusIds.size;
+    document.querySelector('.section-hdr').childNodes[0].textContent =
+      `Available Buses — ${liveCount} IoT Active `;
+
+  } catch (err) {
+    list.innerHTML = `<div class="error-msg">Failed to load buses: ${err.message}</div>`;
+  }
+}
+
+function selectBus(busId, regNo, cardEl) {
+  document.querySelectorAll('.bus-card').forEach(c => c.classList.remove('selected'));
+  cardEl.classList.add('selected');
+  selectedBusId   = busId;
+  selectedBusText = regNo;
+  updateBoardBtn();
+}
+
+// ─── BOARD BUTTON STATE ───────────────────────────────────────
+function updateBoardBtn() {
+  const btn = document.getElementById('board-btn');
+  const ready = selectedBusId && myLat && myLng;
+  btn.disabled = !ready;
+  btn.className = 'board-btn' + (ready ? ' ready' : '');
+  if (!selectedBusId && !myLat)     btn.textContent = 'Select a bus to board';
+  else if (!myLat)                  btn.textContent = 'Waiting for GPS...';
+  else if (!selectedBusId)          btn.textContent = 'Select a bus to board';
+  else btn.textContent = `Board Bus ${selectedBusText}`;
+}
+
+// ─── SEND BOARDING REQUEST ────────────────────────────────────
+async function sendBoardingRequest() {
+  if (!selectedBusId || !myLat || !myLng) return;
+
+  const btn    = document.getElementById('board-btn');
+  const server = document.getElementById('server-url').value.trim();
+
+  btn.className   = 'board-btn loading';
+  btn.textContent = 'Notifying driver...';
+  btn.disabled    = true;
+
+  try {
+    const resp = await fetch(`${server}/api/notify/board`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        busId:        selectedBusId,
+        passengerLat: myLat,
+        passengerLng: myLng
+      })
+    });
+
+    const result = await resp.json();
+
+    if (!resp.ok) {
+      throw new Error(result.error || `HTTP ${resp.status}`);
+    }
+
+    // Show success overlay
+    document.getElementById('s-distance').textContent = result.data?.distance    || '—';
+    document.getElementById('s-time').textContent     = result.data?.estimatedTime || '—';
+    document.getElementById('s-stops').textContent    =
+      result.data?.stopsAway != null
+        ? `${result.data.stopsAway} stop${result.data.stopsAway !== 1 ? 's' : ''} away`
+        : '—';
+    document.getElementById('s-bus').textContent      = selectedBusText;
+    document.getElementById('s-loc').textContent      = `${myLat.toFixed(5)}, ${myLng.toFixed(5)}`;
+
+    document.getElementById('success-overlay').classList.add('show');
+
+    btn.className   = 'board-btn success-state';
+    btn.textContent = 'Driver Notified!';
+
+  } catch (err) {
+    btn.className   = 'board-btn ready';
+    btn.textContent = `Error: ${err.message}`;
+    btn.disabled    = false;
+    setTimeout(() => {
+      btn.textContent = `Board Bus ${selectedBusText}`;
+    }, 3000);
+  }
+}
+
+function closeSuccess() {
+  document.getElementById('success-overlay').classList.remove('show');
+  const btn = document.getElementById('board-btn');
+  btn.className   = 'board-btn ready';
+  btn.textContent = `Board Bus ${selectedBusText}`;
+  btn.disabled    = false;
+}
+
+// ─── INIT ─────────────────────────────────────────────────────
+getLocation();
+loadBuses();
+</script>
+</body>
+</html>

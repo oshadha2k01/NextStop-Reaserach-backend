@@ -26,6 +26,8 @@ const boardingNotificationRoutes = require("./routes/Passenger/boardingNotificat
 const etaRoutes = require("./routes/etaRoutes");
 // Import Prediction Service (Two-Stage Bus Arrival) Routes
 const predictionServiceRoutes = require("./routes/PredictionService/predictionServiceRoutes");
+// Import Bus-Device Registration Routes
+const busDeviceRoutes = require("./routes/BusDevice/busDeviceRoutes");
 
 const app = express();
 const { MONGO_URI, PORT = 3000 } = process.env;
@@ -39,8 +41,11 @@ if (!MONGO_URI) {
 // WEBSOCKET SETUP
 // Wrap the Express app in a standard HTTP server
 const server = http.createServer(app);
+const corsOrigin = process.env.NODE_ENV === 'production'
+    ? (process.env.CORS_ORIGIN || false)
+    : "*";
 const io = new Server(server, {
-    cors: { origin: "*" }
+    cors: { origin: corsOrigin }
 });
 
 
@@ -69,16 +74,40 @@ io.on('connection', (socket) => {
 });
 // -----------------------------------------------------
 
-// Auto-remove '/backend' from the URL if DigitalOcean forwards it that way
+// Auto-remove '/backend' prefix if DigitalOcean forwards it that way
 app.use((req, res, next) => {
-    if (req.url.startsWith('/backend/')) {
-        req.url = req.url.replace('/backend', '');
+    if (req.url === '/backend' || req.url === '/backend/') {
+        req.url = '/';
+    } else if (req.url.startsWith('/backend/')) {
+        req.url = req.url.slice('/backend'.length);
     }
     next();
 });
 
-app.use(cors());
+app.use(cors({ origin: corsOrigin }));
 app.use(express.json());
+
+// Health check (used by DigitalOcean App Platform)
+app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
+
+// Root route — required so DigitalOcean health checks and /backend access return 200
+app.get('/', (req, res) => res.json({
+    status: 'ok',
+    message: 'NextStop Backend API is running',
+    version: '1.0.0'
+}));
+
+// Serve Driver Dashboard test page (development only)
+if (process.env.NODE_ENV !== 'production') {
+  app.get('/driver', (req, res) => {
+    res.sendFile(require('path').join(__dirname, 'driver-dashboard.html'));
+  });
+
+  // Serve Passenger App test page (development only)
+  app.get('/passenger', (req, res) => {
+    res.sendFile(require('path').join(__dirname, 'passenger-app.html'));
+  });
+}
 
 // Mount Existing Routes
 app.use("/api/admin", adminAuthRoutes);
@@ -100,6 +129,15 @@ app.use("/api/notify", boardingNotificationRoutes);
 app.use("/api/eta", etaRoutes); 
 // Mount Prediction Service (Two-Stage Bus Arrival) Routes
 app.use("/api/arrival", predictionServiceRoutes);
+// Mount Bus-Device Registration Routes
+app.use("/api/bus-device", busDeviceRoutes);
+
+// Global error handler
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  res.status(err.status || 500).json({ error: err.message || 'Internal server error' });
+});
 
 // MongoDB Connection
 mongoose

@@ -7,13 +7,10 @@ import joblib
 import pandas as pd
 import numpy as np
 import os
-import sys
 from datetime import datetime
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from config import MODELS_PATH
-from utils.feature_engineering import create_features, get_feature_list
+from ..config import MODELS_PATH
+from ..utils.feature_engineering import create_features, get_feature_list
 
 
 class JourneyTimePredictor:

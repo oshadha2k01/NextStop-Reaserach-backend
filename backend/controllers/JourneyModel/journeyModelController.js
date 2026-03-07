@@ -29,14 +29,20 @@ exports.getJourneyPrediction = async (req, res) => {
 
         const data = result.data;
 
+        const predictedMinutes = data.prediction.predicted_time_minutes;
+        const expectedMinutes  = userExpectedTime != null ? Number(userExpectedTime) : null;
+        const differenceMinutes = expectedMinutes != null
+            ? Math.round((predictedMinutes - expectedMinutes) * 100) / 100
+            : null;
+
         // 2. Persist to History Database (The 'M' in MVC)
         const newPrediction = new JourneyPrediction({
             boardingLocation: data.details.boarding_location,
             destinationLocation: data.details.destination_location,
-            predictedTimeMinutes: data.prediction.predicted_time_minutes,
+            predictedTimeMinutes: predictedMinutes,
             journeyDistanceKm: data.prediction.journey_distance_km,
             trafficCondition: data.prediction.traffic_analysis.condition,
-            userExpectedTime: userExpectedTime,
+            userExpectedTime: expectedMinutes,
             recommendation: data.prediction.recommendation,
             route: data.details.route,
             nearestStages: {
@@ -47,10 +53,28 @@ exports.getJourneyPrediction = async (req, res) => {
 
         await newPrediction.save();
 
-        // 3. Send clean JSON back (The 'V' technically, via Express response)
+        // 3. Build time comparison block (only when userExpectedTime was provided)
+        const timeComparison = expectedMinutes != null ? {
+            predicted_minutes:      predictedMinutes,
+            user_expected_minutes:  expectedMinutes,
+            difference_minutes:     differenceMinutes,
+            status: differenceMinutes > 0
+                ? `${differenceMinutes} min longer than expected`
+                : differenceMinutes < 0
+                    ? `${Math.abs(differenceMinutes)} min shorter than expected`
+                    : "Matches your expected time exactly"
+        } : null;
+
+        // 4. Send clean JSON back (The 'V' technically, via Express response)
         return res.status(200).json({
             success: true,
-            prediction: data.prediction,
+            prediction: {
+                predicted_time_minutes: predictedMinutes,
+                journey_distance_km:    data.prediction.journey_distance_km,
+                traffic_analysis:       data.prediction.traffic_analysis,
+                recommendation:         data.prediction.recommendation
+            },
+            ...(timeComparison && { time_comparison: timeComparison }),
             details: data.details,
             historyId: newPrediction._id
         });
