@@ -106,22 +106,95 @@ def predict_simple():
     """Unified endpoint for the Hybrid Distance & Traffic Model"""
     if not journey_predictor:
         return {"error": "Prediction model not initialized"}, 500
-    
+
     from flask import request
+    from datetime import datetime
+    from FareSystem.utils.geocoding import get_coordinates_from_location_name
+    import math
+
     data = request.get_json() or {}
-    
-    # Ported logic from prediction_api.py
+
     boarding_loc = data.get('boardingLocation')
     dest_loc = data.get('destinationLocation')
-    user_time = data.get('userExpectedTime')
 
     if not boarding_loc or not dest_loc:
         return {"error": "Missing boardingLocation or destinationLocation"}, 400
 
     try:
-        from JourneyModel.prediction.predict import predict_time
-        result = predict_time(journey_predictor, boarding_loc, dest_loc, user_time)
+        # Step 1: Geocode both location name strings to GPS coordinates
+        boarding_coords = get_coordinates_from_location_name(boarding_loc)
+        if not boarding_coords:
+            return {"error": f"Could not geocode boarding location: {boarding_loc}"}, 400
+
+        dest_coords = get_coordinates_from_location_name(dest_loc)
+        if not dest_coords:
+            return {"error": f"Could not geocode destination location: {dest_loc}"}, 400
+
+        b_lat = boarding_coords['latitude']
+        b_lng = boarding_coords['longitude']
+        d_lat = dest_coords['latitude']
+        d_lng = dest_coords['longitude']
+
+        # Step 2: Derive time-based features from current datetime
+        now = datetime.now()
+        hour = now.hour
+        day_of_week = now.weekday()           # 0=Monday, 6=Sunday
+        is_weekend = 1 if day_of_week >= 5 else 0
+        is_rush_hour = 1 if hour in range(7, 9) or hour in range(16, 19) else 0
+
+        # Step 3: Call predict_time METHOD on the existing predictor instance
+        #         (not the module-level predict_time function)
+        prediction_seconds = journey_predictor.predict_time(
+            lat=b_lat,
+            lng=b_lng,
+            stop_duration_seconds=120,   # default average stop duration
+            rain=0,                      # default clear weather
+            hour=hour,
+            day_of_week=day_of_week,
+            is_weekend=is_weekend,
+            boarding_lat=b_lat,
+            boarding_lng=b_lng,
+            destination_lat=d_lat,
+            destination_lng=d_lng
+        )
+
+        predicted_minutes = round(prediction_seconds / 60, 2)
+
+        # Straight-line distance between boarding and destination (km)
+        journey_distance_km = round(
+            math.sqrt((b_lat - d_lat) ** 2 + (b_lng - d_lng) ** 2) * 111.32, 2
+        )
+
+        traffic_condition = "heavy" if is_rush_hour else "normal"
+        recommendation = (
+            f"Expected journey time is {predicted_minutes} minutes."
+            + (" Rush hour detected — consider leaving early." if is_rush_hour else "")
+        )
+
+        result = {
+            "success": True,
+            "prediction": {
+                "predicted_time_minutes": predicted_minutes,
+                "predicted_time_seconds": round(prediction_seconds, 2),
+                "journey_distance_km": journey_distance_km,
+                "traffic_analysis": {
+                    "condition": traffic_condition
+                },
+                "recommendation": recommendation
+            },
+            "details": {
+                "boarding_location": boarding_coords.get('formatted_address', boarding_loc),
+                "destination_location": dest_coords.get('formatted_address', dest_loc),
+                "route": "177",
+                "nearest_stages": {
+                    "boarding": None,
+                    "destination": None
+                }
+            }
+        }
+
         return result, 200
+
     except Exception as e:
         return {"error": str(e)}, 500
 
