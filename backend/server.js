@@ -70,7 +70,7 @@ app.use(express.json());
 app.use("/api/admin", adminAuthRoutes);
 app.use("/api/buses", busRoutes); 
 app.use("/api/superadmin", superAdminAuthRoutes);
-app.use("/api/destination ", journeyModelRoutes); 
+app.use("/api/destination", journeyModelRoutes); 
 app.use("/api/fare", fareSystemRoutes);
 app.use("/api/prediction", predictionRoutes);
 
