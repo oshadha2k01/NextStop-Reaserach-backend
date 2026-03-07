@@ -1,0 +1,55 @@
+name: nextstop
+region: sgp
+
+services:
+  - name: backend
+    source_dir: backend
+    dockerfile_path: backend/Dockerfile
+    http_port: 3000
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    routes:
+      - path: /
+    health_check:
+      http_path: /api/health
+    envs:
+      - key: NODE_ENV
+        scope: RUN_TIME
+        value: production
+      - key: PORT
+        scope: RUN_TIME
+        value: "3000"
+      - key: MONGO_URI
+        scope: RUN_TIME
+        type: SECRET
+      - key: JWT_SECRET
+        scope: RUN_TIME
+        type: SECRET
+      - key: GOOGLE_MAPS_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: SUPERADMIN_CREDENTIALS
+        scope: RUN_TIME
+        type: SECRET
+      - key: ML_SERVICE_URL
+        scope: RUN_TIME
+        value: ${ml.PRIVATE_URL}
+      - key: CORS_ORIGIN
+        scope: RUN_TIME
+        type: SECRET
+
+  - name: ml
+    source_dir: ml
+    dockerfile_path: ml/Dockerfile
+    http_port: 5000
+    instance_count: 1
+    instance_size_slug: basic-xs
+    health_check:
+      http_path: /health
+    envs:
+      - key: GOOGLE_MAPS_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: MONGO_URI
+        scope: RUN_TIME
+        type: SECRET
