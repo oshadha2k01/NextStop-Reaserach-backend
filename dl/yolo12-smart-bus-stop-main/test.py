@@ -5,7 +5,7 @@ import cv2
 from ultralytics import YOLO
 import cvzone
 from pymongo import MongoClient
-from datetime import datetime
+from datetime import datetime, timedelta
 import urllib.request
 import numpy as np
 
@@ -32,6 +32,19 @@ try:
 except Exception as e:
     print(f"Failed to connect to MongoDB: {e}")
     mongo_client = None
+
+def delete_old_data(minutes=5):
+    """Delete data older than specified minutes from MongoDB"""
+    if mongo_client is None:
+        return
+    try:
+        cutoff_time = datetime.now() - timedelta(minutes=minutes)
+        result = collection.delete_many({'timestamp': {'$lt': cutoff_time}})
+        if result.deleted_count > 0:
+            print(f"Deleted {result.deleted_count} records older than {minutes} minutes")
+    except Exception as e:
+        print(f"Error deleting old data: {e}")
+
 
 # Resolve paths relative to this script
 ROOT = os.path.dirname(__file__)
@@ -283,6 +296,10 @@ while True:
             }
             collection.insert_one(data)
             print(f"Data sent to MongoDB: IN={in_count}, OUT={out_count}, Total={in_count - out_count}")
+            
+            # Delete data older than 5 minutes
+            delete_old_data(minutes=5)
+            
             last_db_update = current_time
         except Exception as e:
             print(f"Error sending data to MongoDB: {e}")
