@@ -1,9 +1,6 @@
 const jwt = require('jsonwebtoken');
 
-const superAdmins = [
-  { email: 'superadminn1@gmail.com', password: 'password@123' },
-  { email: 'superadmin2@gmail.com', password: 'superadmin@123' },
-];
+const superAdmins = JSON.parse(process.env.SUPERADMIN_CREDENTIALS || '[]');
 
 const generateToken = (payload) => {
   const secret = process.env.JWT_SECRET || 'your_secret_key';

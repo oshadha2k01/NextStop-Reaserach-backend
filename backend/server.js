@@ -13,12 +13,16 @@ const superAdminAuthRoutes = require("./routes/SuperAdmin/superAdminAuthRoutes")
 const journeyModelRoutes = require("./routes/JourneyModel/journeyModelRoutes");
 const fareSystemRoutes = require("./routes/FareSystem/fareSystemRoutes");
 const predictionRoutes = require("./routes/CrowdPrediction/crowdPredictionRoutes");
+const routeRoutes = require("./routes/routeRoutes");
 
 // Import New IoT Routes
 const iotRoutes = require("./routes/IoTDevice/IoTRoutes");
 
 // Import Passenger Boarding Notification Routes
 const boardingNotificationRoutes = require("./routes/Passenger/boardingNotificationRoutes");
+
+// Import Prediction Service (Two-Stage Bus Arrival) Routes
+const predictionServiceRoutes = require("./routes/PredictionService/predictionServiceRoutes");
 
 const app = express();
 const { MONGO_URI, PORT = 3000 } = process.env;
@@ -63,23 +67,35 @@ io.on('connection', (socket) => {
 });
 // -----------------------------------------------------
 
+// Auto-remove '/backend' from the URL if DigitalOcean forwards it that way
+app.use((req, res, next) => {
+    if (req.url.startsWith('/backend/')) {
+        req.url = req.url.replace('/backend', '');
+    }
+    next();
+});
+
 app.use(cors());
 app.use(express.json());
 
 // Mount Existing Routes
 app.use("/api/admin", adminAuthRoutes);
-app.use("/api/buses", busRoutes); 
+app.use("/api/buses", busRoutes);
 app.use("/api/superadmin", superAdminAuthRoutes);
-app.use("/api/destination", journeyModelRoutes); 
+app.use("/api/destination", journeyModelRoutes);
 app.use("/api/fare", fareSystemRoutes);
 app.use("/api/prediction", predictionRoutes);
+app.use("/api", routeRoutes);
 
 // Mount New IoT Routes (Matches your ESP32 Config.h: /api/sensor-data)
 // This will route to your iotController
 app.use("/api", iotRoutes);
 
 // Mount Passenger Boarding Notification Routes
-app.use("/api/notify", boardingNotificationRoutes); 
+app.use("/api/notify", boardingNotificationRoutes);
+
+// Mount Prediction Service (Two-Stage Bus Arrival) Routes
+app.use("/api/arrival", predictionServiceRoutes);
 
 // MongoDB Connection
 mongoose
