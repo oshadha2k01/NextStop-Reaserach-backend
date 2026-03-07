@@ -1,0 +1,436 @@
+{
+  "info": {
+    "name": "NextStop Route 177 - Auto Retrain System",
+    "description": "Complete testing collection for Route 177 prediction with automatic model retraining",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "nextstop-route177"
+  },
+  "item": [
+    {
+      "name": "ML Prediction API Tests",
+      "item": [
+        {
+          "name": "1. Health Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is healthy', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.status).to.eql('healthy');",
+                  "    pm.expect(response.model_loaded).to.be.true;",
+                  "});",
+                  "",
+                  "// Save model timestamp for comparison",
+                  "const response = pm.response.json();",
+                  "pm.environment.set('model_timestamp', response.model_created_at);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["health"]
+            },
+            "description": "Check if ML API is running and model is loaded"
+          },
+          "response": []
+        },
+        {
+          "name": "2. Model Information",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Model info returned', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.model_type).to.exist;",
+                  "    pm.expect(response.features_count).to.be.above(0);",
+                  "    pm.expect(response.test_r2).to.be.above(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/model-info",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["model-info"]
+            },
+            "description": "Get detailed model information including features and metrics"
+          },
+          "response": []
+        },
+        {
+          "name": "3. Predict - Stage Names (Medium Traffic)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Prediction successful', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.predicted_time_minutes).to.be.above(0);",
+                  "    pm.expect(response.route_number).to.eql('177');",
+                  "    pm.expect(response.confidence).to.be.above(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"route_number\": \"177\",\n  \"boarding_stage\": \"Kaduwela\",\n  \"destination_stage\": \"Kollupitiya\",\n  \"current_traffic\": \"medium\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/predict",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["predict"]
+            },
+            "description": "Route 177 prediction using stage names with medium traffic"
+          },
+          "response": []
+        },
+        {
+          "name": "4. Predict - Coordinates (High Traffic)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Prediction with coordinates works', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.predicted_time_minutes).to.be.above(0);",
+                  "    pm.expect(response.traffic_condition).to.eql('high');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"route_number\": \"177\",\n  \"boarding_lat\": 6.9334,\n  \"boarding_lng\": 79.9800,\n  \"destination_lat\": 6.9271,\n  \"destination_lng\": 79.8612,\n  \"current_traffic\": \"high\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/predict",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["predict"]
+            },
+            "description": "Route 177 prediction using GPS coordinates with high traffic"
+          },
+          "response": []
+        },
+        {
+          "name": "5. Multiple Predictions (Traffic Comparison)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Multiple predictions returned', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.predictions).to.have.lengthOf(3);",
+                  "    ",
+                  "    // Verify traffic affects prediction time",
+                  "    const low = response.predictions[0].predicted_time_minutes;",
+                  "    const medium = response.predictions[1].predicted_time_minutes;",
+                  "    const high = response.predictions[2].predicted_time_minutes;",
+                  "    ",
+                  "    pm.expect(low).to.be.below(medium);",
+                  "    pm.expect(medium).to.be.below(high);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"predictions\": [\n    {\n      \"route_number\": \"177\",\n      \"boarding_stage\": \"Kaduwela\",\n      \"destination_stage\": \"Kollupitiya\",\n      \"current_traffic\": \"low\"\n    },\n    {\n      \"route_number\": \"177\",\n      \"boarding_stage\": \"Kaduwela\",\n      \"destination_stage\": \"Kollupitiya\",\n      \"current_traffic\": \"medium\"\n    },\n    {\n      \"route_number\": \"177\",\n      \"boarding_stage\": \"Kaduwela\",\n      \"destination_stage\": \"Kollupitiya\",\n      \"current_traffic\": \"high\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/predict-multiple",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["predict-multiple"]
+            },
+            "description": "Batch predictions comparing low, medium, high traffic conditions"
+          },
+          "response": []
+        }
+      ],
+      "description": "Test Flask ML API endpoints directly"
+    },
+    {
+      "name": "Backend Integration Tests",
+      "item": [
+        {
+          "name": "1. Compare Prediction (On Time)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Backend integration works', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.success).to.be.true;",
+                  "    pm.expect(response.data.predictedTime).to.exist;",
+                  "    pm.expect(response.data.timeDifference).to.exist;",
+                  "    pm.expect(response.data.recommendation).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"routeNumber\": \"177\",\n  \"boardingLocation\": \"Kaduwela\",\n  \"destinationLocation\": \"Kollupitiya\",\n  \"userExpectedTime\": 45,\n  \"currentTraffic\": \"medium\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/predictive-time-bus/compare",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "predictive-time-bus", "compare"]
+            },
+            "description": "Test backend to ML API integration with realistic expected time"
+          },
+          "response": []
+        },
+        {
+          "name": "2. Compare Prediction (Late Warning)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"routeNumber\": \"177\",\n  \"boardingLocation\": \"Kaduwela\",\n  \"destinationLocation\": \"Kollupitiya\",\n  \"userExpectedTime\": 30,\n  \"currentTraffic\": \"high\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/predictive-time-bus/compare",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "predictive-time-bus", "compare"]
+            },
+            "description": "Test prediction with low expected time in high traffic (should warn user)"
+          },
+          "response": []
+        },
+        {
+          "name": "3. Compare Prediction (Early)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"routeNumber\": \"177\",\n  \"boardingLocation\": \"Kaduwela\",\n  \"destinationLocation\": \"Kollupitiya\",\n  \"userExpectedTime\": 60,\n  \"currentTraffic\": \"low\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/predictive-time-bus/compare",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "predictive-time-bus", "compare"]
+            },
+            "description": "Test prediction with high expected time in low traffic (should indicate faster)"
+          },
+          "response": []
+        }
+      ],
+      "description": "Test Node.js backend integration with ML service"
+    },
+    {
+      "name": "Auto-Retrain Verification",
+      "item": [
+        {
+          "name": "1. Get Current Model Timestamp (Before)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.environment.set('model_timestamp_before', response.created_at);",
+                  "console.log('Model timestamp BEFORE retrain:', response.created_at);",
+                  "console.log('Test MAE:', response.test_mae);",
+                  "console.log('Test R²:', response.test_r2);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/model-info",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["model-info"]
+            },
+            "description": "Get model timestamp before inserting new data"
+          },
+          "response": []
+        },
+        {
+          "name": "2. Insert Test IoT Data (Manual Trigger)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// NOTE: This is a placeholder - actual insertion should be done via Python script:",
+                  "// .venv\\Scripts\\python.exe test_insert_iot_data.py --count 350"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["health"]
+            },
+            "description": "Run: python test_insert_iot_data.py to insert 350 records and trigger retrain"
+          },
+          "response": []
+        },
+        {
+          "name": "3. Get Model Timestamp (After)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "const before = pm.environment.get('model_timestamp_before');",
+                  "const after = response.created_at;",
+                  "",
+                  "console.log('Model timestamp BEFORE:', before);",
+                  "console.log('Model timestamp AFTER:', after);",
+                  "",
+                  "if (before !== after) {",
+                  "    console.log('✅ MODEL WAS RETRAINED!');",
+                  "    console.log('New Test MAE:', response.test_mae);",
+                  "    console.log('New Test R²:', response.test_r2);",
+                  "} else {",
+                  "    console.log('⚠️  Model timestamp unchanged - retrain may not have triggered yet');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/model-info",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["model-info"]
+            },
+            "description": "Check if model timestamp changed after retrain (restart API first)"
+          },
+          "response": []
+        }
+      ],
+      "description": "Verify automatic model retraining works correctly"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [""]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [""]
+      }
+    }
+  ]
+}

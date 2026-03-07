@@ -1,0 +1,208 @@
+{
+    "route_number": "177",
+    "route_name": "Kaduwela - Kollupitiya",
+    "service_type": "Normal",
+    "last_updated": "2026-03-06",
+    "stages": [
+        {
+            "id": 1,
+            "name": "Kaduwela Bus Stand",
+            "sinhala_name": "කඩුවෙල",
+            "coordinates": {
+                "latitude": 6.9351,
+                "longitude": 79.9841
+            },
+            "is_formal": true
+        },
+        {
+            "id": 2,
+            "name": "Kothalawala",
+            "sinhala_name": "කොතලාවල",
+            "coordinates": {
+                "latitude": 6.9195,
+                "longitude": 79.9705
+            },
+            "is_formal": true
+        },
+        {
+            "id": 3,
+            "name": "SLIIT Campus",
+            "sinhala_name": "ස්ලිට්",
+            "coordinates": {
+                "latitude": 6.9147,
+                "longitude": 79.9729
+            },
+            "is_formal": true
+        },
+        {
+            "id": 4,
+            "name": "Pittugala",
+            "sinhala_name": "පිට්ටුගල",
+            "coordinates": {
+                "latitude": 6.9201,
+                "longitude": 79.9662
+            },
+            "is_formal": true
+        },
+        {
+            "id": 5,
+            "name": "Chandrika Kumaratunga Mw",
+            "sinhala_name": null,
+            "coordinates": {
+                "latitude": 6.9146,
+                "longitude": 79.9733
+            },
+            "is_formal": true
+        },
+        {
+            "id": 6,
+            "name": "Malabe Junction",
+            "sinhala_name": "මාලඹේ",
+            "coordinates": {
+                "latitude": 6.9036,
+                "longitude": 79.9547
+            },
+            "is_formal": true
+        },
+        {
+            "id": 7,
+            "name": "Thalahena",
+            "sinhala_name": null,
+            "coordinates": {
+                "latitude": 6.9015,
+                "longitude": 79.9402
+            },
+            "is_formal": false
+        },
+        {
+            "id": 8,
+            "name": "Koswatta",
+            "sinhala_name": "කොස්වත්ත",
+            "coordinates": {
+                "latitude": 6.9042,
+                "longitude": 79.9323
+            },
+            "is_formal": true
+        },
+        {
+            "id": 9,
+            "name": "Battaramulla Junction",
+            "sinhala_name": "බත්තරමුල්ල",
+            "coordinates": {
+                "latitude": 6.8995,
+                "longitude": 79.9229
+            },
+            "is_formal": true
+        },
+        {
+            "id": 10,
+            "name": "Ethul Kotte",
+            "sinhala_name": "ඇතුල් කෝට්ටේ",
+            "coordinates": {
+                "latitude": 6.9014,
+                "longitude": 79.9081
+            },
+            "is_formal": true
+        },
+        {
+            "id": 11,
+            "name": "Diyatha Uyana / Waters Edge",
+            "sinhala_name": null,
+            "coordinates": {
+                "latitude": 6.9008,
+                "longitude": 79.9105
+            },
+            "is_formal": false
+        },
+        {
+            "id": 12,
+            "name": "Rajagiriya (Welikada)",
+            "sinhala_name": "රාජගිරිය",
+            "coordinates": {
+                "latitude": 6.9091,
+                "longitude": 79.8961
+            },
+            "is_formal": true
+        },
+        {
+            "id": 13,
+            "name": "Ayurveda Junction",
+            "sinhala_name": null,
+            "coordinates": {
+                "latitude": 6.9118,
+                "longitude": 79.8885
+            },
+            "is_formal": true
+        },
+        {
+            "id": 14,
+            "name": "Castle Street (Hospital)",
+            "sinhala_name": null,
+            "coordinates": {
+                "latitude": 6.9135,
+                "longitude": 79.8821
+            },
+            "is_formal": true
+        },
+        {
+            "id": 15,
+            "name": "Devi Balika Junction",
+            "sinhala_name": null,
+            "coordinates": {
+                "latitude": 6.9142,
+                "longitude": 79.8800
+            },
+            "is_formal": true
+        },
+        {
+            "id": 16,
+            "name": "Borella (Senanayake Junction)",
+            "sinhala_name": "බොරැල්ල",
+            "coordinates": {
+                "latitude": 6.9158,
+                "longitude": 79.8766
+            },
+            "is_formal": true
+        },
+        {
+            "id": 17,
+            "name": "St. Bridgets",
+            "sinhala_name": "බ්‍රිජට් විදුහල",
+            "coordinates": {
+                "latitude": 6.9196,
+                "longitude": 79.8641
+            },
+            "is_formal": true
+        },
+        {
+            "id": 18,
+            "name": "Horton Place (Wijerama Mw)",
+            "sinhala_name": null,
+            "coordinates": {
+                "latitude": 6.9125,
+                "longitude": 79.8685
+            },
+            "is_formal": true
+        },
+        {
+            "id": 19,
+            "name": "Liberty Junction",
+            "sinhala_name": null,
+            "coordinates": {
+                "latitude": 6.9094,
+                "longitude": 79.8530
+            },
+            "is_formal": true
+        },
+        {
+            "id": 20,
+            "name": "Kollupitiya (Station Road)",
+            "sinhala_name": "කොල්ලුපිටිය",
+            "coordinates": {
+                "latitude": 6.9082,
+                "longitude": 79.8504
+            },
+            "is_formal": true
+        }
+    ]
+}

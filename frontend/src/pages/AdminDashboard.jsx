@@ -8,6 +8,7 @@ import {
 	MessageSquare,
 	ShieldCheck,
 } from 'lucide-react';
+import LiveBusLocation from '../components/LiveBusLocation';
 
 const API_BASE_URL = 'http://localhost:3000/api';
 
@@ -261,6 +262,9 @@ export default function AdminDashboard() {
 				</div>
 			</div>		);
 		}
+			return <LiveBusLocation />;
+		}
+
 		if (active === 'driverDetails') {
 			return (
 				<div className="space-y-6">
@@ -473,4 +477,4 @@ export default function AdminDashboard() {
 			</div>
 		</div>
 	);
-}
+

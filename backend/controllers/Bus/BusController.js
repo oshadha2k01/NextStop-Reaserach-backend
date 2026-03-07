@@ -15,8 +15,8 @@ function parseBase64Image(dataString) {
 
 const createBus = async (req, res) => {
 	try {
-		const { route, regNo, seats, driverName } = req.body;
-		if (!route || !regNo || !seats || !driverName) {
+		const { route, regNo, seats, ownerName, phoneNo, email } = req.body;
+		if (!route || !regNo || !seats || !ownerName || !phoneNo || !email) {
 			return res.status(400).json({ message: "Missing required fields" });
 		}
 
@@ -34,7 +34,9 @@ const createBus = async (req, res) => {
 			route,
 			regNo,
 			seats: Number(seats),
-			driverName,
+			ownerName,
+			phoneNo,
+			email,
 			image: { data: imageObj.data, contentType: imageObj.contentType },
 		});
 
@@ -84,12 +86,14 @@ const getBusImage = async (req, res) => {
 
 const updateBus = async (req, res) => {
 	try {
-		const { route, regNo, seats, driverName } = req.body;
+		const { route, regNo, seats, ownerName, phoneNo, email } = req.body;
 		const update = {};
 		if (route) update.route = route;
 		if (regNo) update.regNo = regNo;
 		if (typeof seats !== "undefined") update.seats = Number(seats);
-		if (driverName) update.driverName = driverName;
+		if (ownerName) update.ownerName = ownerName;
+		if (phoneNo) update.phoneNo = phoneNo;
+		if (email) update.email = email;
 
 		if (req.file && req.file.buffer) {
 			update.image = { data: req.file.buffer, contentType: req.file.mimetype };
