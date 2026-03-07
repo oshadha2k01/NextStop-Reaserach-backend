@@ -1,5 +1,6 @@
 require('dotenv').config();
 console.log('Environment check - API Key exists:', !!process.env.GOOGLE_MAPS_API_KEY);
+
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -10,6 +11,9 @@ const { Server } = require("socket.io");
 const adminAuthRoutes = require("./routes/Admin/adminAuthRoutes");
 const busRoutes = require("./routes/Bus/busRoutes");
 const superAdminAuthRoutes = require("./routes/SuperAdmin/superAdminAuthRoutes");
+const journeyModelRoutes = require("./routes/JourneyModel/journeyModelRoutes");
+const fareSystemRoutes = require("./routes/FareSystem/fareSystemRoutes");
+const predictionRoutes = require("./routes/CrowdPrediction/crowdPredictionRoutes");
 const driverRoutes = require("./routes/SuperAdmin/driverRoutes");
 const complaintRoutes = require("./routes/SuperAdmin/complaintRoutes");
 const feedbackRoutes = require("./routes/SuperAdmin/feedbackRoutes");
@@ -26,6 +30,8 @@ const iotRoutes = require("./routes/IoTDevice/IoTRoutes");
 // Import Passenger Boarding Notification Routes
 const boardingNotificationRoutes = require("./routes/Passenger/boardingNotificationRoutes");
 
+// Import ETA Routes
+const etaRoutes = require("./routes/IoTDevice/etaRoutes");
 // Import Bus-Device Registration Routes
 const busDeviceRoutes = require("./routes/BusDevice/busDeviceRoutes");
 
@@ -51,8 +57,7 @@ const io = new Server(server, {
     cors: { origin: corsOrigin }
 });
 
-// CRITICAL: Make the 'io' instance globally accessible to our controllers
-// Now you can call `req.app.get('io')` in your iotController to send live updates!
+
 app.set('io', io);
 
 // Socket.IO Connection Handler
@@ -134,6 +139,8 @@ app.use("/api", iotRoutes);
 // Mount Passenger Boarding Notification Routes
 app.use("/api/notify", boardingNotificationRoutes);
 
+// Mount ETA Routes
+app.use("/api/eta", etaRoutes); 
 // Mount Bus-Device Registration Routes
 app.use("/api/bus-device", busDeviceRoutes);
 
@@ -144,8 +151,6 @@ app.use((err, req, res, next) => {
   res.status(err.status || 500).json({ error: err.message || 'Internal server error' });
 });
 
-// Mount Data Routes
-app.use("/api/get", dataRoutes);
 
 // MongoDB Connection
 mongoose

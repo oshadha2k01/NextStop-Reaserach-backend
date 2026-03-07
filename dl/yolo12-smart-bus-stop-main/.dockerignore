@@ -1,0 +1,24 @@
+# Exclude large video test files — not needed in the Docker image
+*.mp4
+*.avi
+*.mov
+
+# Exclude YOLO model weights — not used by the API service
+*.pt
+*.onnx
+*.weights
+
+# Python cache
+__pycache__
+*.py[cod]
+*.egg-info
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs and misc
+*.log
+.DS_Store
+.pytest_cache
