@@ -7,8 +7,9 @@ const journeyController = require('../../controllers/JourneyModel/journeyModelCo
  * Matches the production-grade Hybrid ML API
  */
 
-// POST /api/journey-model/predict
-// Calculates journey time using road distance and real-time 177 traffic
+// POST /api/destination          (used by Flutter app)
+// POST /api/destination/predict  (canonical endpoint)
+router.post('/', journeyController.getJourneyPrediction);
 router.post('/predict', journeyController.getJourneyPrediction);
 
 // GET /api/journey-model/health
