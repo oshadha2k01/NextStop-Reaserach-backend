@@ -141,7 +141,7 @@ app.use("/api/feedback", feedbackRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/destination", journeyModelRoutes);
 app.use("/api/fare", fareSystemRoutes);
-app.use("/api/prediction", predictionRoutes);
+app.use("/api/predict", predictionRoutes);
 app.use("/api/dl", peopleConutRoutes);
 app.use("/api", routeRoutes);
 
