@@ -47,9 +47,25 @@ if (!MONGO_URI) {
 // WEBSOCKET SETUP
 // Wrap the Express app in a standard HTTP server
 const server = http.createServer(app);
-const corsOrigin = process.env.NODE_ENV === 'production'
-    ? (process.env.CORS_ORIGIN || false)
-    : "*";
+const buildCorsOrigin = () => {
+    if (process.env.NODE_ENV !== 'production') return '*';
+    const raw = process.env.CORS_ORIGIN || '';
+    if (!raw) return false;
+    const origins = raw.split(',').map(o => o.trim()).filter(Boolean);
+    if (origins.length === 0) return false;
+    if (origins.length === 1) return origins[0];
+    return (origin, callback) => {
+        if (!origin) return callback(null, true); // allow non-browser clients
+        const isAllowed = origins.some(allowed => {
+            if (allowed === 'http://localhost' || allowed === 'localhost') {
+                return /^http:\/\/localhost(:\d+)?$/.test(origin);
+            }
+            return allowed === origin;
+        });
+        callback(isAllowed ? null : new Error('Not allowed by CORS'), isAllowed);
+    };
+};
+const corsOrigin = buildCorsOrigin();
 const io = new Server(server, {
     cors: { origin: corsOrigin }
 });
