@@ -11,13 +11,13 @@ const { Server } = require("socket.io");
 const adminAuthRoutes = require("./routes/Admin/adminAuthRoutes");
 const busRoutes = require("./routes/Bus/busRoutes");
 const superAdminAuthRoutes = require("./routes/SuperAdmin/superAdminAuthRoutes");
+const fareSystemRoutes = require("./routes/FareSystem/fareSystemRoutes");
+const predictionRoutes = require("./routes/CrowdPrediction/crowdPredictionRoutes");
 const driverRoutes = require("./routes/SuperAdmin/driverRoutes");
 const complaintRoutes = require("./routes/SuperAdmin/complaintRoutes");
 const feedbackRoutes = require("./routes/SuperAdmin/feedbackRoutes");
 const dashboardRoutes = require("./routes/SuperAdmin/dashboardRoutes");
 const journeyModelRoutes = require("./routes/JourneyModel/journeyModelRoutes");
-const fareSystemRoutes = require("./routes/FareSystem/fareSystemRoutes");
-const predictionRoutes = require("./routes/CrowdPrediction/crowdPredictionRoutes");
 const routeRoutes = require("./routes/SuperAdmin/routeRoutes");
 const peopleConutRoutes = require("./routes/DL/peopleConutRoutes");
 
@@ -50,9 +50,25 @@ if (!MONGO_URI) {
 // WEBSOCKET SETUP
 // Wrap the Express app in a standard HTTP server
 const server = http.createServer(app);
-const corsOrigin = process.env.NODE_ENV === 'production'
-    ? (process.env.CORS_ORIGIN || false)
-    : "*";
+const buildCorsOrigin = () => {
+    if (process.env.NODE_ENV !== 'production') return '*';
+    const raw = process.env.CORS_ORIGIN || '';
+    if (!raw) return false;
+    const origins = raw.split(',').map(o => o.trim()).filter(Boolean);
+    if (origins.length === 0) return false;
+    if (origins.length === 1) return origins[0];
+    return (origin, callback) => {
+        if (!origin) return callback(null, true); // allow non-browser clients
+        const isAllowed = origins.some(allowed => {
+            if (allowed === 'http://localhost' || allowed === 'localhost') {
+                return /^http:\/\/localhost(:\d+)?$/.test(origin);
+            }
+            return allowed === origin;
+        });
+        callback(isAllowed ? null : new Error('Not allowed by CORS'), isAllowed);
+    };
+};
+const corsOrigin = buildCorsOrigin();
 const io = new Server(server, {
     cors: { origin: corsOrigin }
 });
@@ -129,7 +145,7 @@ app.use("/api/feedback", feedbackRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/destination", journeyModelRoutes);
 app.use("/api/fare", fareSystemRoutes);
-app.use("/api/prediction", predictionRoutes);
+app.use("/api/predict", predictionRoutes);
 app.use("/api/dl", peopleConutRoutes);
 app.use("/api", routeRoutes);
 
