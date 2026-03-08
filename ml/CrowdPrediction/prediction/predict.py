@@ -29,8 +29,6 @@ class CrowdPredictor:
         minute = dt.minute
         day_of_week = dt.dayofweek
         month = dt.month
-        year = dt.year
-        day_of_month = dt.day
         quarter = dt.quarter
         is_weekend = int(day_of_week >= 5)
         is_peak_morning = int(7 <= hour <= 9)
@@ -43,7 +41,7 @@ class CrowdPredictor:
         
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            features = [[hour, minute, day_of_week, month, year, day_of_month, quarter,
+            features = [[hour, minute, day_of_week, month, quarter,
                         is_weekend, is_peak_morning, is_peak_evening, is_lunch_time,
                         is_early_morning, is_late_night, is_winter, is_summer]]
             predicted_crowd = int(self.model.predict(features)[0])
