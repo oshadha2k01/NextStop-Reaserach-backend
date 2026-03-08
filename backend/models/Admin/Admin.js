@@ -7,7 +7,7 @@ const AdminSchema = new mongoose.Schema({
   lastName: { type: String, required: true },
   username: { type: String, required: true, unique: true },
   email: { type: String, required: true},
-  phoneNo: { type: String, required: true, match: [/^[0-9]{10}$/, "Invalid phone number"] },
+  phoneNo: { type: String, validate: [/^[0-9]{10}$/, "Invalid phone number"] },
   password: { type: String, required: true },
 }, { timestamps: true });
 
@@ -17,7 +17,6 @@ AdminSchema.pre('save', async function (next) {
   this.password = await bcrypt.hash(this.password, 10);
   next();
 });
-
 
 AdminSchema.methods.comparePassword = function (enteredPassword) {
   return bcrypt.compare(enteredPassword, this.password);

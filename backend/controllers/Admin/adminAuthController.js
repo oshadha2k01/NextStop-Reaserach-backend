@@ -103,11 +103,11 @@ const sendOtpEmail = async (email, otp) => {
 
 exports.register = async (req, res) => {
   try {
-    const { firstName, lastName, username, email, phoneNo, password } = req.body;
+    const { fullName, email, phoneNo } = req.body;
     const normalizedEmail = String(email || '').trim().toLowerCase();
 
-    if (!firstName || !lastName || !username || !normalizedEmail || !phoneNo || !password) {
-      return res.status(400).json({ message: 'Missing required fields' });
+    if (!fullName || !normalizedEmail || !phoneNo) {
+      return res.status(400).json({ message: 'Missing required fields: fullName, email, phoneNo' });
     }
 
     if (!EMAIL_REGEX.test(normalizedEmail)) {
@@ -115,13 +115,10 @@ exports.register = async (req, res) => {
     }
 
     const existingAdmin = await Admin.findOne({
-      $or: [{ username }, { email: normalizedEmail }, { phoneNo }],
+      $or: [{ email: normalizedEmail }, { phoneNo }],
     });
 
     if (existingAdmin) {
-      if (existingAdmin.username === username) {
-        return res.status(400).json({ message: 'Username already exists' });
-      }
       if (existingAdmin.email === normalizedEmail) {
         return res.status(400).json({ message: 'Email already exists' });
       }
@@ -149,12 +146,9 @@ exports.register = async (req, res) => {
     const pending = await PendingAdminRegistration.findOneAndUpdate(
       { email: normalizedEmail },
       {
-        firstName,
-        lastName,
-        username,
+        fullName,
         email: normalizedEmail,
         phoneNo,
-        password,
         otpHash,
         otpAttempts: 0,
         lastOtpSentAt: now,
@@ -192,11 +186,11 @@ exports.register = async (req, res) => {
 
 exports.verifyOtp = async (req, res) => {
   try {
-    const { email, otp } = req.body;
+    const { email, otp, username, password } = req.body;
     const normalizedEmail = String(email || '').trim().toLowerCase();
 
-    if (!normalizedEmail || !otp) {
-      return res.status(400).json({ message: 'Email and OTP are required' });
+    if (!normalizedEmail || !otp || !username || !password) {
+      return res.status(400).json({ message: 'Email, OTP, username, and password are required' });
     }
 
     const pending = await PendingAdminRegistration.findOne({ email: normalizedEmail });
@@ -229,24 +223,32 @@ exports.verifyOtp = async (req, res) => {
       });
     }
 
-    // Check if admin already exists (in case created between register and verify)
+    // Check if username is already taken
     const existingAdmin = await Admin.findOne({
-      $or: [{ username: pending.username }, { email: pending.email }, { phoneNo: pending.phoneNo }],
+      $or: [{ username }, { email: pending.email }, { phoneNo: pending.phoneNo }],
     });
 
     if (existingAdmin) {
       await PendingAdminRegistration.deleteOne({ _id: pending._id });
+      if (existingAdmin.username === username) {
+        return res.status(400).json({ message: 'Username already exists' });
+      }
       return res.status(400).json({ message: 'Admin account already exists' });
     }
 
+    // Split fullName into firstName and lastName
+    const nameParts = pending.fullName.trim().split(/\s+/);
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || nameParts[0];
+
     // Create admin account
     const admin = await Admin.create({
-      firstName: pending.firstName,
-      lastName: pending.lastName,
-      username: pending.username,
+      firstName,
+      lastName,
+      username,
       email: pending.email,
       phoneNo: pending.phoneNo,
-      password: pending.password,
+      password,
     });
 
     // Delete pending registration
