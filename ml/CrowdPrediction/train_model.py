@@ -3,7 +3,6 @@ import numpy as np
 import xgboost as xgb
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-import joblib
 import os
 
 DATA_FILE = 'data/historical_crowd_data.csv'
@@ -44,8 +43,8 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 print(f"Training XGBoost model on {len(X_train):,} samples...")
 # Upgrade to XGBoost for superior accuracy with a tiny file size
 model = xgb.XGBRegressor(
-    n_estimators=150,
-    max_depth=8,
+    n_estimators=100,
+    max_depth=4,
     learning_rate=0.1,
     subsample=0.8,
     colsample_bytree=0.8,
@@ -65,6 +64,6 @@ print(f"R2 Score: {r2:.4f}")
 print(f"MAE: {mae:.2f}")
 print(f"RMSE: {rmse:.2f}")
 
-# Save model
-joblib.dump(model, MODEL_FILE)
+# Save model using XGBoost native format (produces ~1-2MB vs 700MB+ with joblib)
+model.save_model(MODEL_FILE)
 print(f"\nModel saved to {MODEL_FILE}")
