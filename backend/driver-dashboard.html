@@ -261,6 +261,13 @@
       </div>
       <div class="notif-body">
         <div class="info-row">
+          <div class="info-icon">💬</div>
+          <div>
+            <div class="info-label">Passenger Message</div>
+            <div class="info-value highlight" id="notif-message" style="color: #29b6f6;">—</div>
+          </div>
+        </div>
+        <div class="info-row">
           <div class="info-icon">📏</div>
           <div>
             <div class="info-label">Road Distance</div>
@@ -580,6 +587,7 @@ function handleBoardingNotification(p) {
   updateMap(p.bus.lat, p.bus.lng, p.passenger.lat, p.passenger.lng, p.distance.text, p.duration.text);
 
   // Fill notification card
+  document.getElementById('notif-message').textContent  = p.message || "I'm waiting at the stop";
   document.getElementById('notif-distance').textContent = p.distance.text;
   document.getElementById('notif-time-val').textContent = p.duration.text;
   document.getElementById('notif-stops').textContent    = `${p.stopsAway} stop${p.stopsAway !== 1 ? 's' : ''} away`;
@@ -624,6 +632,7 @@ function addToHistory(p) {
   item.className = 'history-item';
   item.innerHTML = `
     <div class="h-time">${new Date(p.timestamp).toLocaleTimeString()}</div>
+    <div class="h-info" style="color:#29b6f6;margin-bottom:3px;">"${p.message || "I'm waiting at the stop"}"</div>
     <div class="h-info">
       ${p.distance.text} &nbsp;·&nbsp; ${p.duration.text}
       &nbsp;·&nbsp; ${p.stopsAway} stop${p.stopsAway !== 1 ? 's' : ''}

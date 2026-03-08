@@ -7,44 +7,31 @@ const axios = require('axios');
 
 /**
  * POST /api/notify/board
- * Body: { busId: "MongoDB ObjectId", passengerLat: 6.9271, passengerLng: 79.8612 }
- * 
+ * Body: { deviceId: "ESP32 device ID", passengerLat: 6.9271, passengerLng: 79.8612 }
+ *
  * Flow:
- * 1. Look up device_id from BusDevice collection using busId
- * 2. Get latest sensor data for that device_id
+ * 1. Get latest sensor data directly using deviceId
+ * 2. Reverse-lookup BusDevice to get busId for Socket.IO room
  * 3. Call Google Maps Distance Matrix API for real road distance/time
  * 4. Call Google Maps Directions API to count stops between bus and passenger
  * 5. Emit Socket.IO event to driver's room with all calculated data
  */
 exports.notifyBusDriver = async (req, res) => {
     try {
-        const { busId, passengerLat, passengerLng } = req.body;
+        const { deviceId, passengerLat, passengerLng, message } = req.body;
 
         // Validation
-        if (!busId || !passengerLat || !passengerLng) {
-            return res.status(400).json({ 
-                error: "Missing required fields: busId, passengerLat, passengerLng" 
+        if (!deviceId || !passengerLat || !passengerLng) {
+            return res.status(400).json({
+                error: "Missing required fields: deviceId, passengerLat, passengerLng"
             });
         }
 
         console.log("\n🚌 PASSENGER BOARDING NOTIFICATION");
         console.log(`📍 Passenger at: ${passengerLat}, ${passengerLng}`);
-        console.log(`🆔 Bus ID: ${busId}`);
+        console.log(`🆔 Device ID: ${deviceId}`);
 
-        // STEP 1: Look up device_id from BusDevice bridge collection
-        const busDevice = await BusDevice.findOne({ bus_id: busId, is_active: true });
-        
-        if (!busDevice) {
-            console.error(`❌ No active IoT device found for bus ${busId}`);
-            return res.status(404).json({ 
-                error: "No IoT device registered for this bus" 
-            });
-        }
-
-        const deviceId = busDevice.device_id;
-        console.log(`🔗 Device ID found: ${deviceId}`);
-
-        // STEP 2: Get latest GPS position from sensor_readings
+        // STEP 1: Get latest GPS position directly using deviceId
         // Skips documents where the GPS had no fix yet (lat/lng = 0)
         const latestBusData = await SensorData.findOne({
             device_id: deviceId,
@@ -56,14 +43,27 @@ exports.notifyBusDriver = async (req, res) => {
 
         if (!latestBusData || !latestBusData.gps) {
             console.error(`❌ No GPS data found for device ${deviceId}`);
-            return res.status(404).json({ 
-                error: "Bus location unavailable" 
+            return res.status(404).json({
+                error: "Bus location unavailable — device has no GPS fix yet"
             });
         }
 
         const busLat = latestBusData.gps.lat;
         const busLng = latestBusData.gps.lng;
         console.log(`📡 Bus current position: ${busLat}, ${busLng}`);
+
+        // STEP 2: Reverse-lookup busId from BusDevice for Socket.IO room name
+        const busDevice = await BusDevice.findOne({ device_id: deviceId, is_active: true });
+
+        if (!busDevice) {
+            console.error(`❌ No active BusDevice registration found for device ${deviceId}`);
+            return res.status(404).json({
+                error: "Device is not registered to any active bus"
+            });
+        }
+
+        const busId = busDevice.bus_id.toString();
+        console.log(`🔗 Resolved Bus ID: ${busId}`);
 
         // STEP 3: Call Google Maps Distance Matrix API
         // Returns real road distance and estimated travel time with traffic
@@ -171,6 +171,7 @@ exports.notifyBusDriver = async (req, res) => {
                 text: travelDurationText
             },
             stopsAway: stopCount,
+            message: message || "I'm waiting at the stop",
             status: 'unacknowledged'
         };
 
