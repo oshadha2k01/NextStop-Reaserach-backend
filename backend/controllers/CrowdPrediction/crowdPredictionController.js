@@ -36,46 +36,70 @@ exports.getPredictionAndSave = async (req, res) => {
     }
 };
 
-// Helper function to find route by locations
+// Helper: find route by locations using case-insensitive partial matching.
+// Accepts partial input like "Kaduwela" → matches "Kaduwela Bus Stand".
 const findRouteByLocations = (fromLocation, toLocation) => {
+    const fromLower = fromLocation.trim().toLowerCase();
+    const toLower   = toLocation.trim().toLowerCase();
+
     for (const [routeNum, routeData] of Object.entries(routes)) {
-        const fromStop = routeData.stops.find(stop => stop.name === fromLocation);
-        const toStop = routeData.stops.find(stop => stop.name === toLocation);
-        
+        const fromStop = routeData.stops.find(stop => {
+            const s = stop.name.toLowerCase();
+            return s.includes(fromLower) || fromLower.includes(s);
+        });
+        const toStop = routeData.stops.find(stop => {
+            const s = stop.name.toLowerCase();
+            return s.includes(toLower) || toLower.includes(s);
+        });
+
         if (fromStop && toStop && fromStop.order < toStop.order) {
-            return {
-                routeNumber: routeNum,
-                route: routeData,
-                fromStop,
-                toStop
-            };
+            return { routeNumber: routeNum, route: routeData, fromStop, toStop };
         }
     }
     return null;
 };
 
-// New: Route-based prediction with from/to locations (auto-detect route)
+// Route-based prediction with from/to locations (auto-detect route).
+// Accepts fromStop/toStop (Flutter) and from/to (legacy) field names.
 exports.getRoutePrediction = async (req, res) => {
-    const { from, to, date, time } = req.body;
-    
-    try {
-        // Auto-detect route based on locations
-        const routeInfo = findRouteByLocations(from, to);
+    const { fromStop, toStop, from, to, date, time } = req.body;
+
+    // Support both field name conventions
+    const fromLocation = (fromStop || from || '').trim();
+    const toLocation   = (toStop   || to   || '').trim();
+
+    if (!fromLocation || !toLocation) {
+        return res.status(400).json({
+            success: false,
+            message: 'Missing required fields: fromStop and toStop (or from and to).'
+        });
+    }
+
+    if (!date || !time) {
+        return res.status(400).json({
+            success: false,
+            message: 'Missing required fields: date and time.'
+        });
+    }
         
+    try {
+        // Auto-detect route based on partial location names
+        const routeInfo = findRouteByLocations(fromLocation, toLocation);
+
         if (!routeInfo) {
             return res.status(404).json({
                 success: false,
-                message: 'No route found for the specified locations. Please check the location names.'
+                message: `No route found between "${fromLocation}" and "${toLocation}". Check the stop names.`
             });
         }
-        
-        const { routeNumber, route, fromStop, toStop } = routeInfo;
-        
+
+        const { routeNumber, route, fromStop: resolvedFrom, toStop: resolvedTo } = routeInfo;
+
         // Get stops in between
         const stopsInBetween = route.stops.filter(
-            stop => stop.order >= fromStop.order && stop.order <= toStop.order
+            stop => stop.order >= resolvedFrom.order && stop.order <= resolvedTo.order
         );
-        
+
         // Call Flask ML service for prediction
         const mlServiceUrl = process.env.ML_SERVICE_URL || 'http://localhost:5000';
         const response = await axios.post(`${mlServiceUrl}/predict-crowd`, { date, time });
@@ -84,8 +108,8 @@ exports.getRoutePrediction = async (req, res) => {
         // Save to database
         const newRecord = new Prediction({
             routeNumber,
-            fromLocation: from,
-            toLocation: to,
+            fromLocation: resolvedFrom.name,
+            toLocation: resolvedTo.name,
             stopsIncluded: stopsInBetween.map(s => s.name),
             date: new Date(predictionData.date),
             time: predictionData.time,
@@ -97,23 +121,23 @@ exports.getRoutePrediction = async (req, res) => {
         });
 
         await newRecord.save();
-        
-        // Return complete prediction with route info (without stops array)
+
+        // Return complete prediction with resolved (full) stop names
         res.status(200).json({
             success: true,
             route: {
                 routeNumber,
                 routeName: route.name,
-                from: from,
-                to: to,
+                from: resolvedFrom.name,
+                to: resolvedTo.name,
                 totalStops: stopsInBetween.length
             },
             prediction: predictionData
         });
     } catch (err) {
-        res.status(500).json({ 
+        res.status(500).json({
             success: false,
-            error: err.message 
+            error: err.message
         });
     }
 };

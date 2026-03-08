@@ -85,12 +85,17 @@ def create_features(data):
             (df['lat'] - DEFAULT_CENTER_LAT)**2 + (df['lng'] - DEFAULT_CENTER_LNG)**2
         )
         
-        # Calculate Journey Distance if both boarding and destination coords are present
-        if 'boarding_lat' in df.columns and 'destination_lat' in df.columns:
+        # Calculate Journey Distance
+        # Prefer real road_distance_km injected from Google Maps; fall back to Euclidean
+        if 'road_distance_km' in df.columns:
+            df['journey_distance_km'] = pd.to_numeric(df['road_distance_km'], errors='coerce').fillna(0.0)
+            print("--- journey_distance_km: using Google road distance")
+        elif 'boarding_lat' in df.columns and 'destination_lat' in df.columns:
             df['journey_distance_km'] = np.sqrt(
-                (df['boarding_lat'] - df['destination_lat'])**2 + 
+                (df['boarding_lat'] - df['destination_lat'])**2 +
                 (df['boarding_lng'] - df['destination_lng'])**2
-            ) * 111.32 # Rough conversion to KM
+            ) * 111.32  # Euclidean fallback
+            print("--- journey_distance_km: using Euclidean fallback")
         else:
             df['journey_distance_km'] = 0.0
     
