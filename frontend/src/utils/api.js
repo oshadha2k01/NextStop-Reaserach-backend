@@ -66,6 +66,8 @@ export const apiCallFormData = async (method, endpoint, formData) => {
 export const authAPI = {
   // Admin Auth
   adminRegister: (data) => apiCall('POST', '/admin/register', data),
+  adminVerifyOtp: (data) => apiCall('POST', '/admin/verify-otp', data),
+  adminResendOtp: (data) => apiCall('POST', '/admin/resend-otp', data),
   adminLogin: (data) => apiCall('POST', '/admin/login', data),
   adminGetProfile: () => apiCall('GET', '/admin/profile'),
   adminUpdateProfile: (data) => apiCall('PUT', '/admin/profile', data),
