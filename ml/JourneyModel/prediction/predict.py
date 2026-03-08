@@ -50,8 +50,9 @@ class JourneyTimePredictor:
     
     def predict_time(self, lat, lng, stop_duration_seconds, rain, hour,
                      day_of_week=2, is_weekend=0, traffic_api_data=None,
-                     boarding_lat=None, boarding_lng=None, 
-                     destination_lat=None, destination_lng=None):
+                     boarding_lat=None, boarding_lng=None,
+                     destination_lat=None, destination_lng=None,
+                     road_distance_km=None):
         """
         Predict journey time
         """
@@ -74,6 +75,10 @@ class JourneyTimePredictor:
                 input_dict['boarding_lng'] = boarding_lng
                 input_dict['destination_lat'] = destination_lat
                 input_dict['destination_lng'] = destination_lng
+
+            # Inject real road distance so feature_engineering skips Euclidean
+            if road_distance_km is not None:
+                input_dict['road_distance_km'] = float(road_distance_km)
             
             input_data = pd.DataFrame([input_dict])
             

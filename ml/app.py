@@ -193,6 +193,8 @@ def predict_simple():
 
     boarding_loc = data.get('boardingLocation')
     dest_loc = data.get('destinationLocation')
+    road_distance_km = data.get('road_distance_km')       # from Node.js Google API call
+    road_duration_seconds = data.get('road_duration_seconds')  # from Node.js Google API call
 
     if not boarding_loc or not dest_loc:
         return {"error": "Missing boardingLocation or destinationLocation"}, 400
@@ -211,6 +213,8 @@ def predict_simple():
         is_rush_hour = 1 if hour in range(7, 9) or hour in range(16, 19) else 0
 
         # Step 3: Call predict_time METHOD on the existing predictor instance
+        traffic_api_data = {'duration_seconds': road_duration_seconds} if road_duration_seconds else None
+
         prediction_seconds = journey_predictor.predict_time(
             lat=b_lat,
             lng=b_lng,
@@ -219,18 +223,23 @@ def predict_simple():
             hour=hour,
             day_of_week=day_of_week,
             is_weekend=is_weekend,
+            traffic_api_data=traffic_api_data,
             boarding_lat=b_lat,
             boarding_lng=b_lng,
             destination_lat=d_lat,
-            destination_lng=d_lng
+            destination_lng=d_lng,
+            road_distance_km=road_distance_km
         )
 
         predicted_minutes = round(prediction_seconds / 60, 2)
 
-        # Straight-line distance between boarding and destination (km)
-        journey_distance_km = round(
-            math.sqrt((b_lat - d_lat) ** 2 + (b_lng - d_lng) ** 2) * 111.32, 2
-        )
+        # Use actual road distance from Google if provided, otherwise fall back to straight-line
+        if road_distance_km is not None:
+            journey_distance_km = round(road_distance_km, 2)
+        else:
+            journey_distance_km = round(
+                math.sqrt((b_lat - d_lat) ** 2 + (b_lng - d_lng) ** 2) * 111.32, 2
+            )
 
         traffic_condition = "heavy" if is_rush_hour else "normal"
         recommendation = (
