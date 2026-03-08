@@ -526,19 +526,31 @@ function setPill(connected) {
 
 function connectDriver() {
   busId = document.getElementById('bus-id-input').value.trim();
-  const url = document.getElementById('server-url-input').value.trim() || 'http://localhost:3000';
+  const inputUrl = document.getElementById('server-url-input').value.trim() || 'http://localhost:3000';
 
   if (!busId) { setLog('Please enter a Bus ID.'); return; }
   if (socket) { socket.disconnect(); }
 
   setLog('Connecting...');
 
-  socket = io(url, {
+  // 1. Setup default options
+  let socketOptions = {
     transports: ['websocket', 'polling'],
     reconnection: true,
     reconnectionAttempts: 10,
     reconnectionDelay: 2000
-  });
+  };
+
+  // 2. Fix the Reverse Proxy Path Issue
+  let connectUrl = inputUrl;
+  if (inputUrl.includes('/backend')) {
+    // Connect to the root domain, but push socket traffic through the /backend path
+    connectUrl = inputUrl.replace('/backend', '');
+    socketOptions.path = '/backend/socket.io';
+  }
+
+  // 3. Initialize Socket
+  socket = io(connectUrl, socketOptions);
 
   socket.on('connect', () => {
     setPill(true);
