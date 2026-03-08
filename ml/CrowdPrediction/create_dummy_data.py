@@ -5,8 +5,8 @@ import json
 
 DATA_FOLDER = 'data'
 DATA_FILE = os.path.join(DATA_FOLDER, 'historical_crowd_data.csv')
-START_DATE = '2010-01-01'
-END_DATE = '2027-12-31'
+START_DATE = '2010-01-01'  # Extended to 2010
+END_DATE = '2026-01-30'
 
 os.makedirs(DATA_FOLDER, exist_ok=True)
 os.makedirs('models', exist_ok=True)

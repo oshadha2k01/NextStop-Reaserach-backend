@@ -28,10 +28,8 @@ df['is_late_night'] = (df['hour'] >= 20).astype(int)
 df['is_winter'] = df['month'].isin([12, 1, 2]).astype(int)
 df['is_summer'] = df['month'].isin([6, 7, 8]).astype(int)
 
-# Features — year and day_of_month intentionally excluded:
-# year breaks predictions for any date beyond the training END_DATE because XGBoost
-# cannot extrapolate to unseen (year, month) combinations → produces near-zero output.
-# day_of_month adds noise since synthetic data patterns do not vary by day number.
+# year and day_of_month excluded — year breaks predictions for dates
+# beyond training END_DATE; day_of_month adds noise in synthetic data
 features = [
     'hour', 'minute', 'day_of_week', 'month', 'quarter',
     'is_weekend', 'is_peak_morning', 'is_peak_evening', 'is_lunch_time',
