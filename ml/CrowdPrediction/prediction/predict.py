@@ -1,4 +1,4 @@
-import joblib
+import xgboost as xgb
 import os
 import pandas as pd
 import warnings
@@ -7,7 +7,8 @@ class CrowdPredictor:
     def __init__(self):
         # The model is now expected to be in ml/CrowdPrediction/models
         self.model_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'models', 'crowd_model.pkl')
-        self.model = joblib.load(self.model_path)
+        self.model = xgb.XGBRegressor()
+        self.model.load_model(self.model_path)
         print(f"Crowd Prediction Model loaded from {self.model_path}")
 
     def get_crowd_status(self, passenger_count):
