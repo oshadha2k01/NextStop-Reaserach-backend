@@ -24,7 +24,7 @@ class CrowdPredictor:
     def predict(self, date_str, time_str):
         if not self.model:
             raise ValueError("Crowd Prediction model is not loaded")
-        
+
         dt = pd.to_datetime(f"{date_str} {time_str}")
         hour = dt.hour
         minute = dt.minute
@@ -39,17 +39,29 @@ class CrowdPredictor:
         is_late_night = int(hour >= 20)
         is_winter = int(month in [12, 1, 2])
         is_summer = int(month in [6, 7, 8])
-        
+
+        # 1. Define the exact feature names used during training
+        feature_names = [
+            'hour', 'minute', 'day_of_week', 'month', 'quarter',
+            'is_weekend', 'is_peak_morning', 'is_peak_evening', 'is_lunch_time',
+            'is_early_morning', 'is_late_night', 'is_winter', 'is_summer'
+        ]
+
+        # 2. Construct a Pandas DataFrame instead of a standard list
+        features_df = pd.DataFrame([[
+            hour, minute, day_of_week, month, quarter,
+            is_weekend, is_peak_morning, is_peak_evening, is_lunch_time,
+            is_early_morning, is_late_night, is_winter, is_summer
+        ]], columns=feature_names)
+
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            features = [[hour, minute, day_of_week, month, quarter,
-                        is_weekend, is_peak_morning, is_peak_evening, is_lunch_time,
-                        is_early_morning, is_late_night, is_winter, is_summer]]
-            predicted_crowd = int(self.model.predict(features)[0])
-            
+            # 3. Pass the DataFrame to the predict function
+            predicted_crowd = int(self.model.predict(features_df)[0])
+
         predicted_crowd = max(0, min(100, predicted_crowd))
         crowd_info = self.get_crowd_status(predicted_crowd)
-        
+
         return {
             "date": date_str,
             "day_of_week": dt.strftime('%A'),
