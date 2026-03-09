@@ -233,13 +233,20 @@ def predict_simple():
 
         predicted_minutes = round(prediction_seconds / 60, 2)
 
-        # Use actual road distance from Google if provided, otherwise fall back to straight-line
+        # Use actual road distance from Google if provided,
+        # otherwise fall back to accurate route-sequence Haversine distance
         if road_distance_km is not None:
             journey_distance_km = round(road_distance_km, 2)
         else:
-            journey_distance_km = round(
-                math.sqrt((b_lat - d_lat) ** 2 + (b_lng - d_lng) ** 2) * 111.32, 2
-            )
+            try:
+                from JourneyModel.utils.feature_engineering import calculate_route_sequence_distance_km
+                journey_distance_km = round(
+                    calculate_route_sequence_distance_km(b_lat, b_lng, d_lat, d_lng), 2
+                )
+            except Exception:
+                journey_distance_km = round(
+                    math.sqrt((b_lat - d_lat) ** 2 + (b_lng - d_lng) ** 2) * 111.32, 2
+                )
 
         traffic_condition = "heavy" if is_rush_hour else "normal"
         recommendation = (
