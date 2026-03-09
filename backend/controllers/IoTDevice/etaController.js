@@ -161,7 +161,50 @@ async function etaHealthCheck(req, res) {
     }
 }
 
+/**
+ * Predict ETA using query parameters (GET request)
+ * Accepts: busId, userLat, userLng as query parameters
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+async function predictETAFromQuery(req, res) {
+    try {
+        const {
+            busId,
+            userLat,
+            userLng
+        } = req.query;
+
+        // Validate required fields
+        if (!busId || !userLat || !userLng) {
+            return res.status(400).json({
+                message: 'Missing required query parameters: busId, userLat, userLng',
+                received: req.query,
+                example: '/api/eta?busId=ESP32_WROOM_DA_01&userLat=6.9124&userLng=79.8516'
+            });
+        }
+
+        // Convert query params to request body format and call predictETA
+        req.body = {
+            device_id: busId,
+            user_lat: parseFloat(userLat),
+            user_lng: parseFloat(userLng)
+        };
+
+        // Call the existing predictETA function with converted parameters
+        await predictETA(req, res);
+
+    } catch (error) {
+        console.error('ETA prediction from query error:', error.message);
+        res.status(500).json({
+            message: 'ETA prediction failed',
+            error: error.message
+        });
+    }
+}
+
 module.exports = {
     predictETA,
+    predictETAFromQuery,
     etaHealthCheck
 };
