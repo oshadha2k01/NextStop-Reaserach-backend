@@ -1,11 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, Loader2, Eye, EyeOff, User, Phone } from 'lucide-react';
-import { showSuccessAlert, showErrorAlert, showToast } from '../utils/alerts';
+import { showSuccessAlert, showErrorAlert } from '../utils/alerts';
 import { authAPI } from '../utils/api';
 
 export default function Register() {
   const navigate = useNavigate();
+  const [step, setStep] = useState('register'); // 'register' | 'verify'
+  const [registeredEmail, setRegisteredEmail] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -43,7 +49,6 @@ export default function Register() {
       ...formData,
       [name]: value,
     });
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors({
         ...errors,
@@ -83,19 +88,14 @@ export default function Register() {
 
     let isValid = true;
 
-    // First Name validation
     if (!formData.firstName.trim()) {
       newErrors.firstName = 'First name is required';
       isValid = false;
     }
-
-    // Last Name validation
     if (!formData.lastName.trim()) {
       newErrors.lastName = 'Last name is required';
       isValid = false;
     }
-
-    // Username validation
     if (!formData.username.trim()) {
       newErrors.username = 'Username is required';
       isValid = false;
@@ -103,8 +103,6 @@ export default function Register() {
       newErrors.username = 'Username must be at least 3 characters';
       isValid = false;
     }
-
-    // Email validation
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
       isValid = false;
@@ -112,8 +110,6 @@ export default function Register() {
       newErrors.email = 'Please enter a valid email address';
       isValid = false;
     }
-
-    // Phone validation
     if (!formData.phoneNo.trim()) {
       newErrors.phoneNo = 'Phone number is required';
       isValid = false;
@@ -121,8 +117,6 @@ export default function Register() {
       newErrors.phoneNo = 'Phone number must be 10 digits';
       isValid = false;
     }
-
-    // Password validation
     if (!formData.password) {
       newErrors.password = 'Password is required';
       isValid = false;
@@ -130,8 +124,6 @@ export default function Register() {
       newErrors.password = 'Password must be at least 6 characters';
       isValid = false;
     }
-
-    // Confirm Password validation
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = 'Please confirm your password';
       isValid = false;
@@ -147,7 +139,6 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Mark all fields as touched
     setTouched({
       firstName: true,
       lastName: true,
@@ -158,15 +149,12 @@ export default function Register() {
       confirmPassword: true,
     });
 
-    // Validate form
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setIsLoading(true);
 
     try {
-      const response = await authAPI.adminRegister({
+      await authAPI.adminRegister({
         firstName: formData.firstName,
         lastName: formData.lastName,
         username: formData.username,
@@ -175,34 +163,120 @@ export default function Register() {
         password: formData.password,
       });
 
-      // Store token and user info
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('username', response.username);
-
-      showSuccessAlert('Success!', 'Registration successful');
-      setTimeout(() => {
-        navigate('/admindashbord');
-      }, 500);
+      setRegisteredEmail(formData.email);
+      setStep('verify');
     } catch (error) {
-      setIsLoading(false);
       showErrorAlert('Registration Failed', error.message || 'Something went wrong');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    if (!otp.trim()) {
+      showErrorAlert('Verification Failed', 'Please enter the OTP');
+      return;
+    }
+
+    setOtpLoading(true);
+    try {
+      const response = await authAPI.adminVerifyOtp({ email: registeredEmail, otp });
+
+      localStorage.setItem('token', response.token);
+      localStorage.setItem('username', response.username);
+
+      await showSuccessAlert('Success!', 'Registration successful');
+      navigate('/');
+    } catch (error) {
+      showErrorAlert('Verification Failed', error.message || 'Invalid OTP');
+    } finally {
+      setOtpLoading(false);
+    }
   };
 
-  const toggleConfirmPasswordVisibility = () => {
-    setShowConfirmPassword(!showConfirmPassword);
+  const handleResendOtp = async () => {
+    setResendLoading(true);
+    try {
+      await authAPI.adminResendOtp({ email: registeredEmail });
+      showSuccessAlert('OTP Sent', 'A new OTP has been sent to your email');
+    } catch (error) {
+      showErrorAlert('Resend Failed', error.message || 'Could not resend OTP');
+    } finally {
+      setResendLoading(false);
+    }
   };
 
+  const togglePasswordVisibility = () => setShowPassword(!showPassword);
+  const toggleConfirmPasswordVisibility = () => setShowConfirmPassword(!showConfirmPassword);
+
+  // OTP Verification Step
+  if (step === 'verify') {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-gray-300 py-12">
+        <div className="max-w-md w-full">
+          <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6">
+            <div className="text-center">
+              <h2 className="text-3xl font-bold text-gray-900">Verify Email</h2>
+              <p className="mt-2 text-sm text-gray-600">
+                An OTP has been sent to <strong>{registeredEmail}</strong>. Check your inbox (and spam folder).
+              </p>
+            </div>
+
+            <form onSubmit={handleVerifyOtp} className="space-y-5">
+              <div>
+                <label htmlFor="otp" className="block text-sm font-medium text-gray-700 mb-2">
+                  Enter OTP
+                </label>
+                <input
+                  id="otp"
+                  type="text"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  placeholder="Enter 6-digit OTP"
+                  maxLength={6}
+                  className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-600 focus:border-transparent outline-none h-11 text-center text-lg tracking-widest"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={otpLoading}
+                className="w-full flex items-center justify-center py-3 px-4 border border-transparent rounded-xl shadow-md text-white bg-[#ff6b35] hover:bg-[#cc562a] focus:outline-none font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed h-10"
+              >
+                {otpLoading ? <Loader2 className="h-5 w-5 text-white animate-spin" /> : 'Verify & Create Account'}
+              </button>
+            </form>
+
+            <div className="text-center pt-2 border-t border-gray-200">
+              <p className="text-sm text-gray-600">
+                Didn't receive the OTP?{' '}
+                <button
+                  onClick={handleResendOtp}
+                  disabled={resendLoading}
+                  className="font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50"
+                >
+                  {resendLoading ? 'Sending...' : 'Resend OTP'}
+                </button>
+              </p>
+              <button
+                onClick={() => setStep('register')}
+                className="mt-2 text-sm text-gray-500 hover:text-gray-700"
+              >
+                Back to registration
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Registration Step
   return (
     <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-gray-300 py-12">
       <div className="max-w-2xl w-full">
-        {/* Register Form */}
         <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6">
-          {/* Header */}
           <div className="text-center">
             <h2 className="text-3xl font-bold text-gray-900">Create Account</h2>
             <p className="mt-2 text-sm text-gray-600">
@@ -213,7 +287,6 @@ export default function Register() {
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* First Name and Last Name */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* First Name */}
               <div>
                 <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
                   First Name
@@ -230,21 +303,16 @@ export default function Register() {
                     onChange={handleChange}
                     onBlur={handleBlur}
                     className={`block w-full pl-10 pr-3 py-2 border ${
-                      errors.firstName 
-                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
+                      errors.firstName
+                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                         : 'border-gray-300 focus:ring-blue-600 focus:border-transparent'
                     } rounded-lg focus:ring-1 transition-all duration-200 outline-none h-9`}
                     placeholder="Enter first name"
                   />
                 </div>
-                {errors.firstName && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {errors.firstName}
-                  </p>
-                )}
+                {errors.firstName && <p className="mt-1 text-sm text-red-500">{errors.firstName}</p>}
               </div>
 
-              {/* Last Name */}
               <div>
                 <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
                   Last Name
@@ -261,18 +329,14 @@ export default function Register() {
                     onChange={handleChange}
                     onBlur={handleBlur}
                     className={`block w-full pl-10 pr-3 py-2 border ${
-                      errors.lastName 
-                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
+                      errors.lastName
+                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                         : 'border-gray-300 focus:ring-blue-600 focus:border-transparent'
                     } rounded-lg focus:ring-1 transition-all duration-200 outline-none h-9`}
                     placeholder="Enter last name"
                   />
                 </div>
-                {errors.lastName && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {errors.lastName}
-                  </p>
-                )}
+                {errors.lastName && <p className="mt-1 text-sm text-red-500">{errors.lastName}</p>}
               </div>
             </div>
 
@@ -293,23 +357,18 @@ export default function Register() {
                   onChange={handleChange}
                   onBlur={handleBlur}
                   className={`block w-full pl-10 pr-3 py-2 border ${
-                    errors.username 
-                      ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
+                    errors.username
+                      ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                       : 'border-gray-300 focus:ring-blue-600 focus:border-transparent'
                   } rounded-lg focus:ring-1 transition-all duration-200 outline-none h-9`}
                   placeholder="Enter username"
                 />
               </div>
-              {errors.username && (
-                <p className="mt-1 text-sm text-red-500">
-                  {errors.username}
-                </p>
-              )}
+              {errors.username && <p className="mt-1 text-sm text-red-500">{errors.username}</p>}
             </div>
 
             {/* Email and Phone */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Email */}
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                   Email Address
@@ -326,21 +385,16 @@ export default function Register() {
                     onChange={handleChange}
                     onBlur={handleBlur}
                     className={`block w-full pl-10 pr-3 py-2 border ${
-                      errors.email 
-                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
+                      errors.email
+                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                         : 'border-gray-300 focus:ring-blue-600 focus:border-transparent'
                     } rounded-lg focus:ring-1 transition-all duration-200 outline-none h-9`}
                     placeholder="Enter your email"
                   />
                 </div>
-                {errors.email && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {errors.email}
-                  </p>
-                )}
+                {errors.email && <p className="mt-1 text-sm text-red-500">{errors.email}</p>}
               </div>
 
-              {/* Phone Number */}
               <div>
                 <label htmlFor="phoneNo" className="block text-sm font-medium text-gray-700 mb-2">
                   Phone Number
@@ -357,24 +411,19 @@ export default function Register() {
                     onChange={handleChange}
                     onBlur={handleBlur}
                     className={`block w-full pl-10 pr-3 py-2 border ${
-                      errors.phoneNo 
-                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
+                      errors.phoneNo
+                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                         : 'border-gray-300 focus:ring-blue-600 focus:border-transparent'
                     } rounded-lg focus:ring-1 transition-all duration-200 outline-none h-9`}
                     placeholder="Enter phone number"
                   />
                 </div>
-                {errors.phoneNo && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {errors.phoneNo}
-                  </p>
-                )}
+                {errors.phoneNo && <p className="mt-1 text-sm text-red-500">{errors.phoneNo}</p>}
               </div>
             </div>
 
             {/* Password and Confirm Password */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Password */}
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
                   Password
@@ -391,8 +440,8 @@ export default function Register() {
                     onChange={handleChange}
                     onBlur={handleBlur}
                     className={`block w-full pl-10 pr-10 py-2 border ${
-                      errors.password 
-                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
+                      errors.password
+                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                         : 'border-gray-300 focus:ring-blue-600 focus:border-transparent'
                     } rounded-lg focus:ring-1 transition-all duration-200 outline-none h-9`}
                     placeholder="••••••••"
@@ -409,14 +458,9 @@ export default function Register() {
                     )}
                   </button>
                 </div>
-                {errors.password && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {errors.password}
-                  </p>
-                )}
+                {errors.password && <p className="mt-1 text-sm text-red-500">{errors.password}</p>}
               </div>
 
-              {/* Confirm Password */}
               <div>
                 <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
                   Confirm Password
@@ -433,8 +477,8 @@ export default function Register() {
                     onChange={handleChange}
                     onBlur={handleBlur}
                     className={`block w-full pl-10 pr-10 py-2 border ${
-                      errors.confirmPassword 
-                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
+                      errors.confirmPassword
+                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                         : 'border-gray-300 focus:ring-blue-600 focus:border-transparent'
                     } rounded-lg focus:ring-1 transition-all duration-200 outline-none h-9`}
                     placeholder="••••••••"
@@ -451,15 +495,10 @@ export default function Register() {
                     )}
                   </button>
                 </div>
-                {errors.confirmPassword && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {errors.confirmPassword}
-                  </p>
-                )}
+                {errors.confirmPassword && <p className="mt-1 text-sm text-red-500">{errors.confirmPassword}</p>}
               </div>
             </div>
 
-            {/* Submit Button */}
             <button
               type="submit"
               disabled={isLoading}
@@ -473,7 +512,6 @@ export default function Register() {
             </button>
           </form>
 
-          {/* Sign In Link */}
           <div className="text-center pt-4 border-t border-gray-200">
             <p className="text-sm text-gray-600">
               Already have an account?{' '}

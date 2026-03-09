@@ -7,13 +7,10 @@ import joblib
 import pandas as pd
 import numpy as np
 import os
-import sys
 from datetime import datetime
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from config import MODELS_PATH
-from utils.feature_engineering import create_features, get_feature_list
+from ..config import MODELS_PATH
+from ..utils.feature_engineering import create_features, get_feature_list
 
 
 class JourneyTimePredictor:
@@ -53,16 +50,29 @@ class JourneyTimePredictor:
     
     def predict_time(self, lat, lng, stop_duration_seconds, rain, hour,
                      day_of_week=2, is_weekend=0, traffic_api_data=None,
-                     boarding_lat=None, boarding_lng=None, 
-                     destination_lat=None, destination_lng=None):
+                     boarding_lat=None, boarding_lng=None,
+                     destination_lat=None, destination_lng=None,
+                     road_distance_km=None):
         """
-        Predict journey time
+        Predict journey time.
+
+        When both boarding and destination coords are provided, the geographic
+        midpoint is used as the lat/lng model input so the location feature is
+        direction-neutral (same midpoint for A->B and B->A).
         """
         try:
-            # Create input dataframe
+            # Use midpoint lat/lng so the location feature is the same regardless
+            # of whether the journey is forward or reverse on the route.
+            if boarding_lat is not None and destination_lat is not None:
+                effective_lat = (float(boarding_lat) + float(destination_lat)) / 2
+                effective_lng = (float(boarding_lng) + float(destination_lng)) / 2
+            else:
+                effective_lat = lat
+                effective_lng = lng
+
             input_dict = {
-                'lat': lat,
-                'lng': lng,
+                'lat': effective_lat,
+                'lng': effective_lng,
                 'stop_duration_seconds': stop_duration_seconds,
                 'weather_was_raining': int(rain),
                 'hour': int(hour),
@@ -70,69 +80,61 @@ class JourneyTimePredictor:
                 'is_weekend': int(is_weekend),
                 'timestamp': datetime.now().isoformat()
             }
-            
-            # Add journey coords if available for distance feature
+
+            # Add journey coords for distance + direction features
             if boarding_lat is not None:
                 input_dict['boarding_lat'] = boarding_lat
                 input_dict['boarding_lng'] = boarding_lng
                 input_dict['destination_lat'] = destination_lat
                 input_dict['destination_lng'] = destination_lng
-            
+
+            # Inject real road distance so feature_engineering skips fallback
+            if road_distance_km is not None:
+                input_dict['road_distance_km'] = float(road_distance_km)
+
             input_data = pd.DataFrame([input_dict])
-            
-            # Create features
             feature_data = create_features(input_data)
-            
-            # Get only required features (ensure all model features are present)
+
             X = pd.DataFrame(index=[0])
             for f in self.features:
-                if f in feature_data.columns:
-                    X[f] = feature_data[f]
-                else:
-                    X[f] = 0.0 # Default fallback
-            
-            # Make model prediction (this predicts stop/operating delay)
+                X[f] = feature_data[f] if f in feature_data.columns else 0.0
+
             ml_delay = self.model.predict(X)[0]
             ml_delay = max(ml_delay, 0)
-            
+
             # Hybrid Calculation
             google_duration = 0
             if traffic_api_data and isinstance(traffic_api_data, dict):
                 google_duration = traffic_api_data.get('duration_seconds', 0)
-            
+
             if google_duration == 0:
-                print("--- Traffic API data missing or invalid, using fallback calculation")
-                # Fallback to speed-based estimation if Google fails
-                # Average speed for bus in SL: 22 km/h
-                avg_speed_kmh = 22
-                
-                # Use distance from features if available, otherwise calculate from coords
+                print("--- Traffic API data missing, using Haversine speed fallback")
                 if boarding_lat and destination_lat:
-                    dist_km = np.sqrt(
-                        (float(boarding_lat) - float(destination_lat))**2 + 
-                        (float(boarding_lng) - float(destination_lng))**2
-                    ) * 111.32
-                    
-                    google_duration = (dist_km / avg_speed_kmh) * 3600
-                    print(f"--- Fallback: Distance={dist_km:.2f}km, Estimated Duration={google_duration/60:.1f} mins")
+                    from math import radians, sin, cos, sqrt, atan2
+                    R = 6371.0
+                    lat1, lon1 = radians(float(boarding_lat)), radians(float(boarding_lng))
+                    lat2, lon2 = radians(float(destination_lat)), radians(float(destination_lng))
+                    dlat, dlon = lat2 - lat1, lon2 - lon1
+                    a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
+                    dist_km = R * 2 * atan2(sqrt(a), sqrt(1 - a))
+                    google_duration = (dist_km / 22) * 3600
+                    print(f"--- Fallback: Haversine={dist_km:.2f}km, Estimated={google_duration/60:.1f} mins")
                 else:
-                    print("--- Fallback failed: Coordinates missing")
+                    print("--- Fallback failed: coordinates missing")
 
             if google_duration > 0:
-                # If ML delay is small (typical stop duration), add it as a 'delta' to travel time
-                if ml_delay < 900: # Less than 15 mins
+                if ml_delay < 900:
                     prediction = google_duration + ml_delay
                     print(f"--- Hybrid (Base+Delay): {google_duration/60:.1f} + {ml_delay/60:.1f} = {prediction/60:.1f} mins")
                 else:
-                    # Weighted blend for independent journey model
                     prediction = (ml_delay * 0.6) + (google_duration * 0.4)
                     print(f"--- Hybrid (Blend): ML={ml_delay/60:.1f}, Google={google_duration/60:.1f}, Result={prediction/60:.1f} mins")
             else:
                 prediction = ml_delay
                 print(f"--- No base duration, using ML only: {prediction/60:.1f} mins")
-            
+
             return float(prediction)
-            
+
         except Exception as e:
             print(f"!!! Prediction error: {e}")
             raise

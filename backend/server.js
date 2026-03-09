@@ -1,5 +1,6 @@
 require('dotenv').config();
 console.log('Environment check - API Key exists:', !!process.env.GOOGLE_MAPS_API_KEY);
+
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -10,14 +11,32 @@ const { Server } = require("socket.io");
 const adminAuthRoutes = require("./routes/Admin/adminAuthRoutes");
 const busRoutes = require("./routes/Bus/busRoutes");
 const superAdminAuthRoutes = require("./routes/SuperAdmin/superAdminAuthRoutes");
-const journeyModelRoutes = require("./routes/JourneyModel/journeyModelRoutes");
 const fareSystemRoutes = require("./routes/FareSystem/fareSystemRoutes");
+const predictionRoutes = require("./routes/CrowdPrediction/crowdPredictionRoutes");
+const driverRoutes = require("./routes/SuperAdmin/driverRoutes");
+const complaintRoutes = require("./routes/SuperAdmin/complaintRoutes");
+const feedbackRoutes = require("./routes/SuperAdmin/feedbackRoutes");
+const dashboardRoutes = require("./routes/SuperAdmin/dashboardRoutes");
+const journeyModelRoutes = require("./routes/JourneyModel/journeyModelRoutes");
+const routeRoutes = require("./routes/SuperAdmin/routeRoutes");
+const peopleConutRoutes = require("./routes/DL/peopleConutRoutes");
 
 // Import New IoT Routes
 const iotRoutes = require("./routes/IoTDevice/IoTRoutes");
 
+// Import Passenger Auth Routes
+const passengerAuthRoutes = require("./routes/Passenger/passengerAuthRoutes");
+
 // Import Passenger Boarding Notification Routes
 const boardingNotificationRoutes = require("./routes/Passenger/boardingNotificationRoutes");
+
+// Import ETA Routes
+const etaRoutes = require("./routes/IoTDevice/etaRoutes");
+// Import Bus-Device Registration Routes
+const busDeviceRoutes = require("./routes/BusDevice/busDeviceRoutes");
+
+// Import Data Routes
+const dataRoutes = require("./routes/SuperAdmin/dataRoutes");
 
 const app = express();
 const { MONGO_URI, PORT = 3000 } = process.env;
@@ -31,12 +50,30 @@ if (!MONGO_URI) {
 // WEBSOCKET SETUP
 // Wrap the Express app in a standard HTTP server
 const server = http.createServer(app);
+const buildCorsOrigin = () => {
+    if (process.env.NODE_ENV !== 'production') return '*';
+    const raw = process.env.CORS_ORIGIN || '';
+    if (!raw) return false;
+    const origins = raw.split(',').map(o => o.trim()).filter(Boolean);
+    if (origins.length === 0) return false;
+    if (origins.length === 1) return origins[0];
+    return (origin, callback) => {
+        if (!origin) return callback(null, true); // allow non-browser clients
+        const isAllowed = origins.some(allowed => {
+            if (allowed === 'http://localhost' || allowed === 'localhost') {
+                return /^http:\/\/localhost(:\d+)?$/.test(origin);
+            }
+            return allowed === origin;
+        });
+        callback(isAllowed ? null : new Error('Not allowed by CORS'), isAllowed);
+    };
+};
+const corsOrigin = buildCorsOrigin();
 const io = new Server(server, {
-    cors: { origin: "*" }
+    cors: { origin: corsOrigin }
 });
 
-// CRITICAL: Make the 'io' instance globally accessible to our controllers
-// Now you can call `req.app.get('io')` in your iotController to send live updates!
+
 app.set('io', io);
 
 // Socket.IO Connection Handler
@@ -62,22 +99,75 @@ io.on('connection', (socket) => {
 });
 // -----------------------------------------------------
 
-app.use(cors());
+// Auto-remove '/backend' prefix if DigitalOcean forwards it that way
+app.use((req, res, next) => {
+    if (req.url === '/backend' || req.url === '/backend/') {
+        req.url = '/';
+    } else if (req.url.startsWith('/backend/')) {
+        req.url = req.url.slice('/backend'.length);
+    }
+    next();
+});
+
+app.use(cors({ origin: corsOrigin }));
 app.use(express.json());
+
+// Health check (used by DigitalOcean App Platform)
+app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
+
+// Root route — required so DigitalOcean health checks and /backend access return 200
+app.get('/', (req, res) => res.json({
+    status: 'ok',
+    message: 'NextStop Backend API is running',
+    version: '1.0.0'
+}));
+
+// Serve Driver Dashboard test page (development only)
+if (process.env.NODE_ENV !== 'production') {
+  app.get('/driver', (req, res) => {
+    res.sendFile(require('path').join(__dirname, 'driver-dashboard.html'));
+  });
+
+  // Serve Passenger App test page (development only)
+  app.get('/passenger', (req, res) => {
+    res.sendFile(require('path').join(__dirname, 'passenger-app.html'));
+  });
+}
 
 // Mount Existing Routes
 app.use("/api/admin", adminAuthRoutes);
-app.use("/api/buses", busRoutes); 
+app.use("/api/passenger", passengerAuthRoutes);
+app.use("/api/buses", busRoutes);
 app.use("/api/superadmin", superAdminAuthRoutes);
-app.use("/api/journey-model", journeyModelRoutes);
-app.use("/api/fare-system", fareSystemRoutes);
+app.use("/api/drivers", driverRoutes);
+app.use("/api/complaints", complaintRoutes);
+app.use("/api/feedback", feedbackRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/destination", journeyModelRoutes);
+app.use("/api/fare", fareSystemRoutes);
+app.use("/api/predict", predictionRoutes);
+app.use("/api/dl", peopleConutRoutes);
+app.use("/api", routeRoutes);
 
 // Mount New IoT Routes (Matches your ESP32 Config.h: /api/sensor-data)
 // This will route to your iotController
 app.use("/api", iotRoutes);
 
 // Mount Passenger Boarding Notification Routes
-app.use("/api/notify", boardingNotificationRoutes); 
+app.use("/api/notify", boardingNotificationRoutes);
+
+// Mount ETA Routes
+app.use("/api/eta", etaRoutes); 
+// Mount Bus-Device Registration Routes
+app.use("/api/bus-device", busDeviceRoutes);
+
+// Global error handler
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  res.status(err.status || 500).json({ error: err.message || 'Internal server error' });
+});
+
 
 // MongoDB Connection
 mongoose

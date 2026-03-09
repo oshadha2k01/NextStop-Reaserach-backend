@@ -5,8 +5,109 @@ Creates features for ML model training
 
 import pandas as pd
 import numpy as np
+import json
+import os
 from datetime import datetime
+from math import radians, sin, cos, sqrt, atan2
 
+
+# ---------------------------------------------------------------------------
+# Geographic distance helpers
+# ---------------------------------------------------------------------------
+
+def haversine_km(lat1, lng1, lat2, lng2):
+    """Haversine great-circle distance in km between two GPS points."""
+    R = 6371.0
+    dlat = radians(lat2 - lat1)
+    dlng = radians(lng2 - lng1)
+    a = sin(dlat / 2) ** 2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlng / 2) ** 2
+    return R * 2 * atan2(sqrt(a), sqrt(1 - a))
+
+
+_route_stops_cache = None
+
+
+def _load_route_stops():
+    """Load Route 177 stops with module-level caching. Tries ml/data/ then root/data/."""
+    global _route_stops_cache
+    if _route_stops_cache is not None:
+        return _route_stops_cache
+
+    this_dir = os.path.dirname(os.path.abspath(__file__))
+    journey_model_dir = os.path.dirname(this_dir)
+    ml_dir = os.path.dirname(journey_model_dir)
+    root_dir = os.path.dirname(ml_dir)
+
+    for path in [
+        os.path.join(ml_dir, 'data', 'main_bus_stops.json'),
+        os.path.join(root_dir, 'data', 'main_bus_stops.json'),
+    ]:
+        if os.path.exists(path):
+            try:
+                with open(path, 'r', encoding='utf-8') as f:
+                    _route_stops_cache = json.load(f).get('stages', [])
+                return _route_stops_cache
+            except Exception:
+                pass
+
+    _route_stops_cache = []
+    return _route_stops_cache
+
+
+def _nearest_stop_idx(lat, lng, stops):
+    """Return 0-based index of the stop nearest to (lat, lng)."""
+    best_idx, best_dist = 0, float('inf')
+    for i, s in enumerate(stops):
+        c = s['coordinates']
+        d = haversine_km(lat, lng, c['latitude'], c['longitude'])
+        if d < best_dist:
+            best_dist, best_idx = d, i
+    return best_idx
+
+
+def calculate_route_sequence_distance_km(b_lat, b_lng, d_lat, d_lng):
+    """
+    Along-route distance by summing Haversine distances between consecutive
+    stops from boarding to destination.
+    Direction-independent: A->B == B->A.
+    Falls back to straight-line Haversine when stops data is unavailable.
+    """
+    stops = _load_route_stops()
+    if not stops:
+        return haversine_km(b_lat, b_lng, d_lat, d_lng)
+
+    b_idx = _nearest_stop_idx(b_lat, b_lng, stops)
+    d_idx = _nearest_stop_idx(d_lat, d_lng, stops)
+
+    if b_idx == d_idx:
+        return 0.0
+
+    lo, hi = min(b_idx, d_idx), max(b_idx, d_idx)
+    total = 0.0
+    for i in range(lo, hi):
+        c1 = stops[i]['coordinates']
+        c2 = stops[i + 1]['coordinates']
+        total += haversine_km(c1['latitude'], c1['longitude'],
+                              c2['latitude'], c2['longitude'])
+    return round(total, 3)
+
+
+def get_route_direction(b_lat, b_lng, d_lat, d_lng):
+    """
+    0 = forward  (boarding closer to Kaduwela  / stop id=1)
+    1 = reverse  (boarding closer to Kollupitiya / stop id=20)
+    """
+    stops = _load_route_stops()
+    if not stops:
+        return 0
+    b_idx = _nearest_stop_idx(b_lat, b_lng, stops)
+    d_idx = _nearest_stop_idx(d_lat, d_lng, stops)
+    return 0 if b_idx <= d_idx else 1
+
+
+# ---------------------------------------------------------------------------
+# Feature creation
+# ---------------------------------------------------------------------------
 
 def create_features(data):
     """
@@ -25,7 +126,8 @@ def create_features(data):
         for column in [
             'hour', 'day_of_week', 'is_weekend', 'is_rush_hour',
             'weather_was_raining', 'is_hot', 'is_cold',
-            'distance_from_center', 'stop_duration_minutes', 'traffic_intensity'
+            'distance_from_center', 'stop_duration_minutes', 'traffic_intensity',
+            'direction'
         ]:
             if column not in df.columns:
                 df[column] = pd.Series(dtype='float64')
@@ -78,21 +180,54 @@ def create_features(data):
     
     # Location-based features
     if 'lat' in df.columns and 'lng' in df.columns:
-        from config import DEFAULT_CENTER_LAT, DEFAULT_CENTER_LNG
+        from ..config import DEFAULT_CENTER_LAT, DEFAULT_CENTER_LNG
         
-        # Calculate distance from city center (Colombo)
-        df['distance_from_center'] = np.sqrt(
-            (df['lat'] - DEFAULT_CENTER_LAT)**2 + (df['lng'] - DEFAULT_CENTER_LNG)**2
+        # Haversine distance from Colombo city centre
+        df['distance_from_center'] = df.apply(
+            lambda row: haversine_km(
+                float(row['lat']), float(row['lng']),
+                DEFAULT_CENTER_LAT, DEFAULT_CENTER_LNG
+            ), axis=1
         )
-        
-        # Calculate Journey Distance if both boarding and destination coords are present
-        if 'boarding_lat' in df.columns and 'destination_lat' in df.columns:
-            df['journey_distance_km'] = np.sqrt(
-                (df['boarding_lat'] - df['destination_lat'])**2 + 
-                (df['boarding_lng'] - df['destination_lng'])**2
-            ) * 111.32 # Rough conversion to KM
+
+        # Journey Distance
+        # Priority 1: real road_distance_km injected by Node.js Google Maps call
+        if 'road_distance_km' in df.columns:
+            df['journey_distance_km'] = pd.to_numeric(df['road_distance_km'], errors='coerce').fillna(0.0)
+            print("--- journey_distance_km: using Google road distance")
+        # Priority 2: route-sequence Haversine (accurate along-route; same for A->B and B->A)
+        elif 'boarding_lat' in df.columns and 'destination_lat' in df.columns:
+            def _route_dist(row):
+                try:
+                    return calculate_route_sequence_distance_km(
+                        float(row['boarding_lat']), float(row['boarding_lng']),
+                        float(row['destination_lat']), float(row['destination_lng'])
+                    )
+                except Exception:
+                    return haversine_km(
+                        float(row['boarding_lat']), float(row['boarding_lng']),
+                        float(row['destination_lat']), float(row['destination_lng'])
+                    )
+            df['journey_distance_km'] = df.apply(_route_dist, axis=1)
+            print("--- journey_distance_km: using route-sequence Haversine")
+        # Priority 3: default
         else:
             df['journey_distance_km'] = 0.0
+
+        # Direction feature (0=forward Kaduwela->Kollupitiya, 1=reverse)
+        # Stored here for future model retraining; not yet in get_feature_list()
+        if 'boarding_lat' in df.columns and 'destination_lat' in df.columns:
+            def _direction(row):
+                try:
+                    return get_route_direction(
+                        float(row['boarding_lat']), float(row['boarding_lng']),
+                        float(row['destination_lat']), float(row['destination_lng'])
+                    )
+                except Exception:
+                    return 0
+            df['direction'] = df.apply(_direction, axis=1)
+        else:
+            df['direction'] = 0
     
     # Stop duration features
     if 'stop_duration_seconds' in df.columns:

@@ -109,6 +109,8 @@ dist-py/
 # Ensure models are included in deployment
 !ml/JourneyModel/models/journey_time_model.pkl
 !ml/JourneyModel/models/model_metadata.json
+!ml/CrowdPrediction/models/crowd_model.pkl
+!ml/ETAModel/models/eta_model.pkl
 checkpoints/
 saved_models/
 

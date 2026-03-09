@@ -1,5 +1,5 @@
 # Use official Python runtime as a parent image
-FROM python:3.9-slim
+FROM python:3.10-slim
 
 # Install system dependencies for XGBoost and other libraries
 RUN apt-get update && apt-get install -y \
@@ -21,5 +21,4 @@ COPY . .
 # Expose the port the app runs on (matching prediction_api.py)
 EXPOSE 5000
 
-# Run the unified NextStop ML Service (FareSystem + JourneyModel)
-CMD ["python", "app.py"]
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-5000} --workers 2 --timeout 120 app:app"]
