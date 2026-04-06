@@ -11,6 +11,10 @@ const journeyController = require('../../controllers/JourneyModel/journeyModelCo
 // Calculates journey time using road distance and real-time 177 traffic
 router.post('/predict', journeyController.getJourneyPrediction);
 
+// PATCH /api/journey-model/:predictionId/outcome
+// Records the actual journey time after the trip completes
+router.patch('/:predictionId/outcome', journeyController.recordJourneyOutcome);
+
 // GET /api/journey-model/health
 // Checks if the Flask service is alive
 router.get('/health', journeyController.checkMLHealth);

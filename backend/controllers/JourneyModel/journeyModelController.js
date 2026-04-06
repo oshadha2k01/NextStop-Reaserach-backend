@@ -1,5 +1,7 @@
 const journeyService = require('../../services/JourneyModel/journeyModelService');
 const JourneyPrediction = require('../../models/JourneyModel/JourneyPrediction');
+const fs = require('fs');
+const path = require('path');
 
 /**
  * JourneyModel MVC Controller
@@ -28,6 +30,19 @@ exports.getJourneyPrediction = async (req, res) => {
         }
 
         const data = result.data;
+        const validation = data.validation || null;
+        const modelVersion = (() => {
+            try {
+                const registryPath = path.join(__dirname, '../../../ml/JourneyModel/models/model_registry.json');
+                if (fs.existsSync(registryPath)) {
+                    const registry = JSON.parse(fs.readFileSync(registryPath, 'utf-8'));
+                    return registry?.trained_at || null;
+                }
+            } catch (error) {
+                console.warn('Unable to read model registry:', error.message);
+            }
+            return null;
+        })();
 
         const predictedMinutes = data.prediction.predicted_time_minutes;
         const expectedMinutes  = userExpectedTime != null ? Number(userExpectedTime) : null;
@@ -48,7 +63,15 @@ exports.getJourneyPrediction = async (req, res) => {
             nearestStages: {
                 boarding: data.details.nearest_stages?.boarding,
                 destination: data.details.nearest_stages?.destination
-            }
+            },
+            validation: validation ? {
+                distanceSource: validation.distance_source,
+                distanceDisagreementPct: validation.distance_disagreement_pct,
+                googleDistanceKm: validation.google_distance_km,
+                routeSequenceDistanceKm: validation.route_sequence_distance_km,
+                resolvedCoordinates: validation.resolved_coordinates
+            } : undefined,
+            modelVersion
         });
 
         await newPrediction.save();
@@ -76,6 +99,7 @@ exports.getJourneyPrediction = async (req, res) => {
             },
             ...(timeComparison && { time_comparison: timeComparison }),
             details: data.details,
+            validation: data.validation,
             historyId: newPrediction._id
         });
 
@@ -94,4 +118,51 @@ exports.checkMLHealth = async (req, res) => {
         return res.status(200).json(health.data);
     }
     return res.status(503).json({ status: "disconnected", error: health.error });
+};
+
+/**
+ * Record actual trip outcome after the journey completes.
+ * This closes the feedback loop for model accuracy monitoring.
+ */
+exports.recordJourneyOutcome = async (req, res) => {
+    try {
+        const { predictionId } = req.params;
+        const { actualTimeMinutes } = req.body;
+
+        if (!predictionId) {
+            return res.status(400).json({ error: "Missing predictionId" });
+        }
+
+        const actualMinutes = Number(actualTimeMinutes);
+        if (!Number.isFinite(actualMinutes) || actualMinutes <= 0) {
+            return res.status(400).json({ error: "actualTimeMinutes must be a positive number" });
+        }
+
+        const prediction = await JourneyPrediction.findById(predictionId);
+        if (!prediction) {
+            return res.status(404).json({ error: "Prediction record not found" });
+        }
+
+        const absoluteErrorMinutes = Math.abs(actualMinutes - prediction.predictedTimeMinutes);
+        const errorPercent = prediction.predictedTimeMinutes > 0
+            ? (absoluteErrorMinutes / prediction.predictedTimeMinutes) * 100
+            : null;
+
+        prediction.actualTimeMinutes = actualMinutes;
+        prediction.absoluteErrorMinutes = absoluteErrorMinutes;
+        prediction.errorPercent = errorPercent;
+        await prediction.save();
+
+        return res.status(200).json({
+            success: true,
+            predictionId: prediction._id,
+            predictedTimeMinutes: prediction.predictedTimeMinutes,
+            actualTimeMinutes: actualMinutes,
+            absoluteErrorMinutes,
+            errorPercent
+        });
+    } catch (error) {
+        console.error("❌ Outcome Logging Error:", error);
+        return res.status(500).json({ error: "Internal server error" });
+    }
 };

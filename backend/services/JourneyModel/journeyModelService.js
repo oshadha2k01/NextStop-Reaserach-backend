@@ -4,9 +4,75 @@
  */
 
 const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
 
 // Internal service URL for production scalability
 const ML_API_URL = process.env.ML_SERVICE_URL || 'http://localhost:5000';
+
+let routeStopsCache = null;
+
+function loadRouteStops() {
+    if (routeStopsCache) return routeStopsCache;
+
+    const candidates = [
+        path.join(__dirname, '../../../data/main_bus_stops.json'),
+        path.join(__dirname, '../../../../data/main_bus_stops.json')
+    ];
+
+    for (const filePath of candidates) {
+        try {
+            if (fs.existsSync(filePath)) {
+                const raw = fs.readFileSync(filePath, 'utf-8');
+                const parsed = JSON.parse(raw);
+                routeStopsCache = parsed?.stages || [];
+                if (Array.isArray(routeStopsCache) && routeStopsCache.length > 0) {
+                    return routeStopsCache;
+                }
+            }
+        } catch (error) {
+            console.warn('⚠️  Could not load route stop data:', error.message);
+        }
+    }
+
+    routeStopsCache = [];
+    return routeStopsCache;
+}
+
+function resolveToRouteStopCoordinates(locationName) {
+    if (!locationName || typeof locationName !== 'string') return null;
+
+    const stops = loadRouteStops();
+    if (!stops.length) return null;
+
+    const query = locationName.toLowerCase().trim();
+
+    // Pass 1: exact stage name
+    let matched = stops.find((stop) => stop?.name?.toLowerCase() === query);
+    if (matched?.coordinates) {
+        return {
+            name: matched.name,
+            lat: matched.coordinates.latitude,
+            lng: matched.coordinates.longitude
+        };
+    }
+
+    // Pass 2: substring match
+    matched = stops.find((stop) => {
+        const stageName = stop?.name?.toLowerCase();
+        return stageName && (query.includes(stageName) || stageName.includes(query));
+    });
+
+    if (matched?.coordinates) {
+        return {
+            name: matched.name,
+            lat: matched.coordinates.latitude,
+            lng: matched.coordinates.longitude
+        };
+    }
+
+    return null;
+}
 
 /**
  * Fetch actual road distance and driving duration between two location names
@@ -21,14 +87,28 @@ async function fetchRoadDistance(origin, destination) {
     }
 
     try {
+        const originStop = resolveToRouteStopCoordinates(origin);
+        const destinationStop = resolveToRouteStopCoordinates(destination);
+
+        // Prefer exact Route 177 coordinates to avoid ambiguous place-name geocoding.
+        const originsParam = originStop
+            ? `${originStop.lat},${originStop.lng}`
+            : `${origin}, Colombo, Sri Lanka`;
+        const destinationsParam = destinationStop
+            ? `${destinationStop.lat},${destinationStop.lng}`
+            : `${destination}, Colombo, Sri Lanka`;
+
         const response = await axios.get(
             'https://maps.googleapis.com/maps/api/distancematrix/json',
             {
                 params: {
-                    origins: origin,
-                    destinations: destination,
+                    origins: originsParam,
+                    destinations: destinationsParam,
                     mode: 'driving',
                     departure_time: 'now',
+                    region: 'lk',
+                    language: 'en',
+                    units: 'metric',
                     key: apiKey
                 },
                 timeout: 8000
@@ -45,10 +125,18 @@ async function fetchRoadDistance(origin, destination) {
         const durationSeconds =
             element.duration_in_traffic?.value ?? element.duration?.value ?? 0;
 
-        console.log(`✅ Google road distance: ${(distanceMeters / 1000).toFixed(2)} km, duration: ${Math.round(durationSeconds / 60)} min`);
+        // Sanity check for Route 177: reject obviously wrong geocoding outcomes.
+        // Typical trip distances are well below this threshold.
+        const distanceKm = distanceMeters / 1000;
+        if (distanceKm > 40) {
+            console.warn(`⚠️  Ignoring suspicious distance result (${distanceKm.toFixed(2)} km) for origin='${origin}' destination='${destination}'`);
+            return null;
+        }
+
+        console.log(`✅ Google road distance: ${distanceKm.toFixed(2)} km, duration: ${Math.round(durationSeconds / 60)} min`);
 
         return {
-            road_distance_km: Math.round((distanceMeters / 1000) * 100) / 100,
+            road_distance_km: Math.round(distanceKm * 100) / 100,
             road_duration_seconds: durationSeconds
         };
     } catch (error) {

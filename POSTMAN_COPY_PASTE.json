@@ -1,0 +1,88 @@
+{
+    "instruction": "Copy any of the JSON objects below directly into Postman Body (raw, JSON mode)",
+    "endpoint": "POST http://localhost:3000/api/journey/predict",
+    "headers": {
+        "Content-Type": "application/json"
+    },
+    "examples": [
+        {
+            "name": "Example 1: Borella to Malabe",
+            "json": {
+                "boardingLocation": "Borella (Senanayake Junction)",
+                "destinationLocation": "Malabe Junction",
+                "userExpectedTime": 35
+            }
+        },
+        {
+            "name": "Example 2: Malabe to Borella",
+            "json": {
+                "boardingLocation": "Malabe Junction",
+                "destinationLocation": "Borella (Senanayake Junction)",
+                "userExpectedTime": 30
+            }
+        },
+        {
+            "name": "Example 3: Kaduwela to Kollupitiya (Full Route)",
+            "json": {
+                "boardingLocation": "Kaduwela Bus Stand",
+                "destinationLocation": "Kollupitiya (Station Road)",
+                "userExpectedTime": 45
+            }
+        },
+        {
+            "name": "Example 4: SLIIT to Rajagiriya",
+            "json": {
+                "boardingLocation": "SLIIT Campus",
+                "destinationLocation": "Rajagiriya (Welikada)",
+                "userExpectedTime": 15
+            }
+        },
+        {
+            "name": "Example 5: Malabe to Battaramulla",
+            "json": {
+                "boardingLocation": "Malabe Junction",
+                "destinationLocation": "Battaramulla Junction",
+                "userExpectedTime": 8
+            }
+        },
+        {
+            "name": "Example 6: Battaramulla to Liberty Junction",
+            "json": {
+                "boardingLocation": "Battaramulla Junction",
+                "destinationLocation": "Liberty Junction",
+                "userExpectedTime": 12
+            }
+        },
+        {
+            "name": "Example 7: Koswatta to St. Bridgets",
+            "json": {
+                "boardingLocation": "Koswatta",
+                "destinationLocation": "St. Bridgets",
+                "userExpectedTime": 14
+            }
+        },
+        {
+            "name": "Example 8: Ethul Kotte to Borella",
+            "json": {
+                "boardingLocation": "Ethul Kotte",
+                "destinationLocation": "Borella (Senanayake Junction)",
+                "userExpectedTime": 10
+            }
+        },
+        {
+            "name": "Example 9: Without Expected Time",
+            "json": {
+                "boardingLocation": "Malabe Junction",
+                "destinationLocation": "Borella (Senanayake Junction)"
+            }
+        },
+        {
+            "name": "Example 10: Rajagiriya to Kollupitiya",
+            "json": {
+                "boardingLocation": "Rajagiriya (Welikada)",
+                "destinationLocation": "Kollupitiya (Station Road)",
+                "userExpectedTime": 18
+            }
+        }
+    ]
+}
