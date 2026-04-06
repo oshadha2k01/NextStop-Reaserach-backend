@@ -11,6 +11,8 @@ from flask import Flask
 from flask_cors import CORS
 import json
 import traceback
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from pymongo import MongoClient
 
 # Import configuration
@@ -196,6 +198,21 @@ def predict_simple():
     road_distance_km = data.get('road_distance_km')       # from Node.js Google API call
     road_duration_seconds = data.get('road_duration_seconds')  # from Node.js Google API call
 
+    # Safety checks to avoid propagating anomalous external traffic values.
+    try:
+        if road_distance_km is not None and float(road_distance_km) > 40:
+            print(f"--- Ignoring suspicious road_distance_km={road_distance_km}")
+            road_distance_km = None
+    except Exception:
+        road_distance_km = None
+
+    try:
+        if road_duration_seconds is not None and float(road_duration_seconds) > 3 * 3600:
+            print(f"--- Ignoring suspicious road_duration_seconds={road_duration_seconds}")
+            road_duration_seconds = None
+    except Exception:
+        road_duration_seconds = None
+
     if not boarding_loc or not dest_loc:
         return {"error": "Missing boardingLocation or destinationLocation"}, 400
 
@@ -218,7 +235,6 @@ def predict_simple():
         prediction_seconds = journey_predictor.predict_time(
             lat=b_lat,
             lng=b_lng,
-            stop_duration_seconds=120,   # default average stop duration
             rain=0,                      # default clear weather
             hour=hour,
             day_of_week=day_of_week,
@@ -233,20 +249,43 @@ def predict_simple():
 
         predicted_minutes = round(prediction_seconds / 60, 2)
 
-        # Use actual road distance from Google if provided,
-        # otherwise fall back to accurate route-sequence Haversine distance
-        if road_distance_km is not None:
-            journey_distance_km = round(road_distance_km, 2)
+        # Compute route-sequence distance for validation regardless of Google availability.
+        route_distance_km = None
+        try:
+            from JourneyModel.utils.feature_engineering import calculate_route_sequence_distance_km
+            route_distance_km = float(
+                calculate_route_sequence_distance_km(b_lat, b_lng, d_lat, d_lng)
+            )
+        except Exception:
+            route_distance_km = float(
+                round(math.sqrt((b_lat - d_lat) ** 2 + (b_lng - d_lng) ** 2) * 111.32, 2)
+            )
+
+        google_distance_km = float(road_distance_km) if road_distance_km is not None else None
+
+        # Distance calibration: blend only when both sources disagree notably.
+        # This reduces endpoint/geocoding bias while preserving real-time road awareness.
+        distance_disagreement_pct = 0.0
+        if google_distance_km is not None and route_distance_km and route_distance_km > 0:
+            distance_disagreement_pct = abs(google_distance_km - route_distance_km) / route_distance_km
+
+        if google_distance_km is None:
+            journey_distance_km = round(route_distance_km, 2)
+            distance_source = "route_sequence"
+        elif distance_disagreement_pct > 0.10:
+            journey_distance_km = round((google_distance_km * 0.65) + (route_distance_km * 0.35), 2)
+            distance_source = "calibrated_google_route"
         else:
-            try:
-                from JourneyModel.utils.feature_engineering import calculate_route_sequence_distance_km
-                journey_distance_km = round(
-                    calculate_route_sequence_distance_km(b_lat, b_lng, d_lat, d_lng), 2
-                )
-            except Exception:
-                journey_distance_km = round(
-                    math.sqrt((b_lat - d_lat) ** 2 + (b_lng - d_lng) ** 2) * 111.32, 2
-                )
+            journey_distance_km = round(google_distance_km, 2)
+            distance_source = "google_distance_matrix"
+
+        # Time validation against physical speed bounds to avoid unrealistic outputs.
+        if predicted_minutes > 0 and journey_distance_km > 0:
+            avg_speed_kmh = journey_distance_km / (predicted_minutes / 60.0)
+            if avg_speed_kmh < 8.0:
+                predicted_minutes = round((journey_distance_km / 8.0) * 60.0, 2)
+            elif avg_speed_kmh > 45.0:
+                predicted_minutes = round((journey_distance_km / 45.0) * 60.0, 2)
 
         traffic_condition = "heavy" if is_rush_hour else "normal"
         recommendation = (
@@ -263,6 +302,16 @@ def predict_simple():
                     "condition": traffic_condition
                 },
                 "recommendation": recommendation
+            },
+            "validation": {
+                "distance_source": distance_source,
+                "distance_disagreement_pct": round(distance_disagreement_pct * 100, 2),
+                "google_distance_km": round(google_distance_km, 2) if google_distance_km is not None else None,
+                "route_sequence_distance_km": round(route_distance_km, 2),
+                "resolved_coordinates": {
+                    "boarding": {"lat": round(b_lat, 6), "lng": round(b_lng, 6)},
+                    "destination": {"lat": round(d_lat, 6), "lng": round(d_lng, 6)}
+                }
             },
             "details": {
                 "boarding_location": boarding_display,
@@ -373,6 +422,61 @@ def predict_crowd():
         return result, 200
     except Exception as e:
         return {"error": str(e)}, 500
+
+
+def _get_auto_retrain_health():
+    """Return auto-retrain runtime configuration and last retrain metadata."""
+    retrain_state_path = os.path.join(
+        os.path.dirname(__file__),
+        'JourneyModel',
+        'models',
+        'retrain_state.json'
+    )
+
+    realtime_enabled = os.getenv('RETRAIN_REALTIME_ENABLED', 'true').lower() == 'true'
+    app_timezone = os.getenv('APP_TIMEZONE', 'Asia/Colombo')
+    interval_hours = int(os.getenv('RETRAIN_INTERVAL_HOURS', '24'))
+    min_new_records = int(os.getenv('RETRAIN_MIN_NEW_RECORDS', '50'))
+    debounce_seconds = int(os.getenv('RETRAIN_REALTIME_DEBOUNCE_SECONDS', '120'))
+
+    state_exists = os.path.exists(retrain_state_path)
+    last_retrain_utc = None
+    last_retrain_local = None
+
+    if state_exists:
+        try:
+            with open(retrain_state_path, 'r', encoding='utf-8') as state_file:
+                state_data = json.load(state_file)
+            last_retrain_utc = state_data.get('last_retrain_utc')
+
+            if last_retrain_utc:
+                utc_time = datetime.fromisoformat(last_retrain_utc.replace('Z', '+00:00')).astimezone(timezone.utc)
+                try:
+                    local_time = utc_time.astimezone(ZoneInfo(app_timezone))
+                    last_retrain_local = local_time.isoformat()
+                except Exception:
+                    last_retrain_local = utc_time.isoformat()
+        except Exception:
+            pass
+
+    return {
+        'enabled': True,
+        'mode': 'realtime' if realtime_enabled else 'scheduled',
+        'config': {
+            'min_new_records': min_new_records,
+            'interval_hours': interval_hours,
+            'realtime_debounce_seconds': debounce_seconds,
+            'app_timezone': app_timezone
+        },
+        'state': {
+            'state_file_exists': state_exists,
+            'state_file_path': retrain_state_path,
+            'last_retrain_utc': last_retrain_utc,
+            'last_retrain_local': last_retrain_local
+        }
+    }
+
+
 @app.route('/', methods=['GET'])
 @app.route('/health', methods=['GET'])
 def health_check():
@@ -394,7 +498,8 @@ def health_check():
         "status": "running",
         "service": "NextStop ML Service",
         "version": "2.0 - Modular",
-        "modules": modules
+        "modules": modules,
+        "auto_retrain": _get_auto_retrain_health()
     }
     if errors:
         response["load_errors"] = errors

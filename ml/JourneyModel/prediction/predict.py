@@ -10,7 +10,12 @@ import os
 from datetime import datetime
 
 from ..config import MODELS_PATH
-from ..utils.feature_engineering import create_features, get_feature_list
+from ..utils.feature_engineering import (
+    create_features,
+    get_feature_list,
+    estimate_expected_stop_duration,
+    calculate_route_sequence_distance_km,
+)
 
 
 class JourneyTimePredictor:
@@ -40,7 +45,7 @@ class JourneyTimePredictor:
     
     def validate_input(self, data):
         """Validate input data"""
-        required_fields = ['lat', 'lng', 'stop_duration_seconds', 'rain', 'hour']
+        required_fields = ['lat', 'lng', 'rain', 'hour']
         
         for field in required_fields:
             if field not in data:
@@ -48,7 +53,7 @@ class JourneyTimePredictor:
         
         return True, "Valid"
     
-    def predict_time(self, lat, lng, stop_duration_seconds, rain, hour,
+    def predict_time(self, lat, lng, rain, hour,
                      day_of_week=2, is_weekend=0, traffic_api_data=None,
                      boarding_lat=None, boarding_lng=None,
                      destination_lat=None, destination_lng=None,
@@ -70,14 +75,28 @@ class JourneyTimePredictor:
                 effective_lat = lat
                 effective_lng = lng
 
+            is_rush_hour_val = 1 if (7 <= int(hour) <= 9 or 16 <= int(hour) <= 19) else 0
+
+            # Estimate traffic intensity from external duration when available.
+            traffic_intensity_val = 1
+            if traffic_api_data and isinstance(traffic_api_data, dict):
+                traffic_intensity_val = 2 if traffic_api_data.get('duration_seconds', 0) > 1800 else 1
+
+            expected_stop_duration = estimate_expected_stop_duration(
+                hour=int(hour),
+                is_rush_hour=is_rush_hour_val,
+                traffic_intensity=traffic_intensity_val
+            )
+
             input_dict = {
                 'lat': effective_lat,
                 'lng': effective_lng,
-                'stop_duration_seconds': stop_duration_seconds,
+                'stop_duration_seconds': expected_stop_duration,
                 'weather_was_raining': int(rain),
                 'hour': int(hour),
                 'day_of_week': int(day_of_week),
                 'is_weekend': int(is_weekend),
+                'traffic_intensity': int(traffic_intensity_val),
                 'timestamp': datetime.now().isoformat()
             }
 
@@ -106,6 +125,25 @@ class JourneyTimePredictor:
             google_duration = 0
             if traffic_api_data and isinstance(traffic_api_data, dict):
                 google_duration = traffic_api_data.get('duration_seconds', 0)
+
+            # Guard against external duration outliers that can distort predictions.
+            if google_duration and boarding_lat is not None and destination_lat is not None:
+                try:
+                    route_km = calculate_route_sequence_distance_km(
+                        float(boarding_lat), float(boarding_lng),
+                        float(destination_lat), float(destination_lng)
+                    )
+                    # Conservative expected bounds for city buses on Route 177.
+                    min_seconds = (route_km / 45.0) * 3600.0 if route_km > 0 else 0.0
+                    max_seconds = (route_km / 8.0) * 3600.0 if route_km > 0 else 7200.0
+                    max_seconds = max(max_seconds, 1800.0)
+
+                    if google_duration < min_seconds * 0.5 or google_duration > max_seconds * 1.5:
+                        print(f"--- Ignoring suspicious Google duration: {google_duration/60:.1f} mins for {route_km:.2f} km route")
+                        google_duration = 0
+                except Exception:
+                    # Keep existing fallback behavior if route bounds cannot be computed.
+                    pass
 
             if google_duration == 0:
                 print("--- Traffic API data missing, using Haversine speed fallback")
@@ -139,14 +177,21 @@ class JourneyTimePredictor:
             print(f"!!! Prediction error: {e}")
             raise
     
-    def predict_with_explanation(self, lat, lng, stop_duration_seconds, rain, hour):
+    def predict_with_explanation(self, lat, lng, rain, hour):
         """
         Predict with explanation
         
         Returns:
             Dictionary with prediction and explanation
         """
-        prediction = self.predict_time(lat, lng, stop_duration_seconds, rain, hour)
+        prediction = self.predict_time(lat, lng, rain, hour)
+
+        is_rush_hour_val = 1 if (7 <= int(hour) <= 9 or 16 <= int(hour) <= 19) else 0
+        expected_stop_duration = estimate_expected_stop_duration(
+            hour=int(hour),
+            is_rush_hour=is_rush_hour_val,
+            traffic_intensity=1
+        )
         
         # Generate explanation
         explanation = {
@@ -155,26 +200,26 @@ class JourneyTimePredictor:
             'location': f"({lat:.4f}, {lng:.4f})",
             'weather': 'Rainy' if rain else 'Clear',
             'hour': hour,
-            'stop_duration_minutes': round(stop_duration_seconds / 60, 2)
+            'stop_duration_minutes': round(expected_stop_duration / 60, 2)
         }
         
         return explanation
 
 
-def predict_time(lat, lng, stop_duration, rain, hour):
+def predict_time(lat, lng, rain, hour):
     """
     Simplified prediction function for snippet compatibility
     """
     predictor = JourneyTimePredictor()
-    return predictor.predict_time(lat, lng, stop_duration, rain, hour)
+    return predictor.predict_time(lat, lng, rain, hour)
 
 
-def predict_single(lat, lng, stop_duration_seconds, rain, hour):
+def predict_single(lat, lng, rain, hour):
     """
     Simple prediction function
     """
     predictor = JourneyTimePredictor()
-    return predictor.predict_time(lat, lng, stop_duration_seconds, rain, hour)
+    return predictor.predict_time(lat, lng, rain, hour)
 if __name__ == "__main__":
     # Test prediction
     predictor = JourneyTimePredictor()
@@ -183,7 +228,6 @@ if __name__ == "__main__":
     result = predictor.predict_with_explanation(
         lat=-33.8688,
         lng=151.2093,
-        stop_duration_seconds=300,
         rain=0,
         hour=14
     )

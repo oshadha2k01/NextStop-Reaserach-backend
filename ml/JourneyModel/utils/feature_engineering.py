@@ -105,6 +105,22 @@ def get_route_direction(b_lat, b_lng, d_lat, d_lng):
     return 0 if b_idx <= d_idx else 1
 
 
+def estimate_expected_stop_duration(hour, is_rush_hour, traffic_intensity):
+    """
+    Estimate dwell time at a stop using context features available at prediction
+    time to avoid future-data leakage.
+    """
+    base_stop_seconds = 30
+
+    if int(is_rush_hour) == 1:
+        base_stop_seconds += 45
+
+    intensity_multiplier = {0: 0, 1: 20, 2: 60}
+    base_stop_seconds += intensity_multiplier.get(int(traffic_intensity), 20)
+
+    return int(base_stop_seconds)
+
+
 # ---------------------------------------------------------------------------
 # Feature creation
 # ---------------------------------------------------------------------------
@@ -180,7 +196,10 @@ def create_features(data):
     
     # Location-based features
     if 'lat' in df.columns and 'lng' in df.columns:
-        from ..config import DEFAULT_CENTER_LAT, DEFAULT_CENTER_LNG
+        try:
+            from ..config import DEFAULT_CENTER_LAT, DEFAULT_CENTER_LNG
+        except ImportError:
+            from config import DEFAULT_CENTER_LAT, DEFAULT_CENTER_LNG
         
         # Haversine distance from Colombo city centre
         df['distance_from_center'] = df.apply(
@@ -233,22 +252,37 @@ def create_features(data):
     if 'stop_duration_seconds' in df.columns:
         df['stop_duration_minutes'] = df['stop_duration_seconds'] / 60
     
-    # Traffic intensity (inferred from stop duration or speed)
-    # Robust version for single-row prediction
-    if 'stop_duration_seconds' in df.columns:
-        # Instead of pd.cut which fails on single rows, use simple thresholds
-        def get_intensity(sec):
-            if sec < 120: return 0 # low
-            if sec < 300: return 1 # medium
-            return 2 # high
-            
-        df['traffic_intensity'] = df['stop_duration_seconds'].apply(get_intensity)
-    elif 'traffic_intensity' not in df.columns:
-        df['traffic_intensity'] = 1 # Default to medium
+    # Traffic intensity must not be derived from target-like stop duration values.
+    # Priority:
+    # 1) keep provided traffic_intensity if present
+    # 2) infer from speed_kmh (slower speed => heavier traffic)
+    # 3) fallback to medium
+    if 'traffic_intensity' in df.columns:
+        df['traffic_intensity'] = pd.to_numeric(df['traffic_intensity'], errors='coerce').fillna(1).astype(int)
+    elif 'speed_kmh' in df.columns:
+        speed_series = pd.to_numeric(df['speed_kmh'], errors='coerce').fillna(20.0)
+
+        def get_intensity_from_speed(speed):
+            if speed < 15:
+                return 2  # heavy
+            if speed < 28:
+                return 1  # medium
+            return 0      # low
+
+        df['traffic_intensity'] = speed_series.apply(get_intensity_from_speed).astype(int)
+    else:
+        df['traffic_intensity'] = 1
     
     # Passenger count features (if available)
     if 'passenger_count' in df.columns:
         df['passenger_count'] = df['passenger_count'].fillna(0)
+
+    # Lag feature default for prediction-time single rows
+    if 'avg_route_speed_last_15m' not in df.columns:
+        if 'speed_kmh' in df.columns:
+            df['avg_route_speed_last_15m'] = pd.to_numeric(df['speed_kmh'], errors='coerce').fillna(20.0)
+        else:
+            df['avg_route_speed_last_15m'] = 20.0
     
     print("--- Features created:")
     print(f"  - Time-based: hour, day_of_week, is_weekend, is_rush_hour")
@@ -273,7 +307,8 @@ def get_feature_list():
         "lng",
         "distance_from_center",
         "traffic_intensity",
-        "journey_distance_km"
+        "journey_distance_km",
+        "avg_route_speed_last_15m"
     ]
     return features
 

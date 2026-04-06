@@ -10,7 +10,14 @@ services:
       - NODE_ENV=production
       - ML_SERVICE_URL=http://ml:5000
     depends_on:
-      - ml
+      ml:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3000/health', (res) => process.exit(res.statusCode===200 ? 0 : 1)).on('error', () => process.exit(1));"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     restart: unless-stopped
 
   ml:
@@ -18,4 +25,32 @@ services:
     ports:
       - "5000:5000"
     env_file: .env
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:5000/health', timeout=5).status == 200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    volumes:
+      - journey_model_models:/app/JourneyModel/models
+      - journey_model_datasets:/app/JourneyModel/datasets
+      - journey_model_logs:/app/JourneyModel/logs
     restart: unless-stopped
+
+  retrain:
+    build: ./ml
+    command: ["python", "JourneyModel/start_auto_retrain.py"]
+    env_file: .env
+    depends_on:
+      ml:
+        condition: service_healthy
+    volumes:
+      - journey_model_models:/app/JourneyModel/models
+      - journey_model_datasets:/app/JourneyModel/datasets
+      - journey_model_logs:/app/JourneyModel/logs
+    restart: unless-stopped
+
+volumes:
+  journey_model_models:
+  journey_model_datasets:
+  journey_model_logs:

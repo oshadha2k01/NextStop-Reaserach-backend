@@ -112,6 +112,9 @@ app.use(express.json());
 // Health check (used by DigitalOcean App Platform)
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
+// Local health alias for simpler checks in Postman
+app.get('/health', (req, res) => res.json({ status: 'ok' }));
+
 // Root route — required so DigitalOcean health checks and /backend access return 200
 app.get('/', (req, res) => res.json({
     status: 'ok',
@@ -140,6 +143,7 @@ app.use("/api/complaints", complaintRoutes);
 app.use("/api/feedback", feedbackRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/destination", journeyModelRoutes);
+app.use("/api/journey-model", journeyModelRoutes);
 app.use("/api/fare", fareSystemRoutes);
 app.use("/api/predict", predictionRoutes);
 app.use("/api/dl", peopleConutRoutes);
