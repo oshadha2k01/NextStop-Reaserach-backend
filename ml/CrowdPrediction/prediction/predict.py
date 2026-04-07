@@ -2,11 +2,12 @@ import xgboost as xgb
 import os
 import pandas as pd
 import warnings
+import holidays
 
 class CrowdPredictor:
     def __init__(self):
         # The model is now expected to be in ml/CrowdPrediction/models
-        self.model_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'models', 'crowd_model.pkl')
+        self.model_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'models', 'crowd_model.json')
         self.model = xgb.XGBRegressor()
         self.model.load_model(self.model_path)
         print(f"Crowd Prediction Model loaded from {self.model_path}")
@@ -21,7 +22,7 @@ class CrowdPredictor:
         else:
             return {"status": "Over Crowded", "recommendation": "Not recommended for this time in this route. Bus is over capacity. Please choose another time.", "crowd_level": "over_crowded"}
 
-    def predict(self, date_str, time_str):
+    def predict(self, date_str, time_str, route_id=177, direction='inbound', is_public_holiday=None, is_raining=0):
         if not self.model:
             raise ValueError("Crowd Prediction model is not loaded")
 
@@ -39,19 +40,29 @@ class CrowdPredictor:
         is_late_night = int(hour >= 20)
         is_winter = int(month in [12, 1, 2])
         is_summer = int(month in [6, 7, 8])
+        direction_code = 1 if str(direction).lower() == 'outbound' else 0
+        route_id = int(route_id)
+        if is_public_holiday is None:
+            sl_public_holidays = holidays.country_holidays('LK', years=[dt.year])
+            is_public_holiday = int(dt.date() in sl_public_holidays)
+        else:
+            is_public_holiday = int(bool(is_public_holiday))
+        is_raining = int(bool(is_raining))
 
         # 1. Define the exact feature names used during training
         feature_names = [
             'hour', 'minute', 'day_of_week', 'month', 'quarter',
             'is_weekend', 'is_peak_morning', 'is_peak_evening', 'is_lunch_time',
-            'is_early_morning', 'is_late_night', 'is_winter', 'is_summer'
+            'is_early_morning', 'is_late_night', 'is_winter', 'is_summer',
+            'route_id', 'direction_code', 'is_public_holiday', 'is_raining'
         ]
 
         # 2. Construct a Pandas DataFrame instead of a standard list
         features_df = pd.DataFrame([[
             hour, minute, day_of_week, month, quarter,
             is_weekend, is_peak_morning, is_peak_evening, is_lunch_time,
-            is_early_morning, is_late_night, is_winter, is_summer
+            is_early_morning, is_late_night, is_winter, is_summer,
+            route_id, direction_code, is_public_holiday, is_raining
         ]], columns=feature_names)
 
         with warnings.catch_warnings():
@@ -66,6 +77,10 @@ class CrowdPredictor:
             "date": date_str,
             "day_of_week": dt.strftime('%A'),
             "time": time_str,
+            "route_id": route_id,
+            "direction": 'outbound' if direction_code == 1 else 'inbound',
+            "is_public_holiday": is_public_holiday,
+            "is_raining": is_raining,
             "predicted_crowd": predicted_crowd,
             "status": crowd_info["status"],
             "recommendation": crowd_info["recommendation"],
