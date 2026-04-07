@@ -4,5 +4,7 @@ const predictionController = require('../../controllers/CrowdPrediction/crowdPre
 
 router.post('/crowd', predictionController.getPredictionAndSave); 
 router.post('/route-predict', predictionController.getRoutePrediction);
+router.patch('/crowd/:predictionId/actual', predictionController.updateActualCrowd);
+router.get('/crowd/metrics', predictionController.getValidationMetrics);
 
 module.exports = router;

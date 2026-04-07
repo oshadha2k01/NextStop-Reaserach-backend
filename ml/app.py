@@ -413,12 +413,26 @@ def predict_crowd():
     
     date_str = data.get('date')
     time_str = data.get('time')
+    route_number = data.get('routeNumber', data.get('route_id', 177))
+    direction = data.get('direction', 'inbound')
+    is_public_holiday = data.get('is_public_holiday', data.get('isPublicHoliday'))
+    is_raining = data.get('is_raining', data.get('isRaining', 0))
     
     if not date_str or not time_str:
         return {"error": "Missing date or time"}, 400
+
+    if str(direction).lower() not in {'inbound', 'outbound'}:
+        return {"error": "Invalid direction. Use 'inbound' or 'outbound'."}, 400
         
     try:
-        result = crowd_predictor_instance.predict(date_str, time_str)
+        result = crowd_predictor_instance.predict(
+            date_str=date_str,
+            time_str=time_str,
+            route_id=route_number,
+            direction=direction,
+            is_public_holiday=is_public_holiday,
+            is_raining=is_raining
+        )
         return result, 200
     except Exception as e:
         return {"error": str(e)}, 500
