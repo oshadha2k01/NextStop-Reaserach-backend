@@ -4,11 +4,13 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import SuperAdminLogin from './pages/SuperAdminLogin';
+import LoginChooser from './pages/LoginChooser';
 import Register from './pages/Register';
 import AdminDashboard from './pages/AdminDashboard';
 import AddBus from './pages/AddBus';
 import AddDriver from './pages/AddDriver';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
+import AppBrandLogo from './components/AppBrandLogo';
 
 // Protected Route Component
 const ProtectedRoute = ({ element }) => {
@@ -25,11 +27,13 @@ export default function App() {
   return (
     <Router>
       <AuthProvider>
+        <AppBrandLogo />
         <Routes>
           
+          <Route path="/" element={<Home />} />
+          <Route path="/access" element={<LoginChooser />} />
           <Route path="/login" element={<Login />} />
           <Route path="/superadminlogin" element={<SuperAdminLogin />} />
-          <Route path="/" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/admindashbord" element={<ProtectedRoute element={<AdminDashboard />} />} />
           <Route path="/admin-dashboard" element={<ProtectedRoute element={<AdminDashboard />} />} />

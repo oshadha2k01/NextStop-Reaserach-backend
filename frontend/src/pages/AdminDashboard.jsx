@@ -12,7 +12,6 @@ import {
 	Plus,
 	X,
 } from 'lucide-react';
-import LiveBusLocation from '../components/LiveBusLocation';
 import { showErrorAlert, showSuccessAlert, showConfirmAlert } from '../utils/alerts';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';

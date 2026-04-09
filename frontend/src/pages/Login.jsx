@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
-import { showSuccessAlert, showErrorAlert, showToast } from '../utils/alerts';
+import { showSuccessAlert, showErrorAlert } from '../utils/alerts';
 import { authAPI } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
   const navigate = useNavigate();
+  const { login: setAuthLogin } = useAuth();
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -126,9 +128,8 @@ export default function Login() {
         password: formData.password,
       });
 
-      // Store token and user info
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('username', response.username);
+      // Update auth context so protected routes allow immediate navigation.
+      setAuthLogin(response.token, response.username);
 
       setIsLoading(false);
       await showSuccessAlert('Success!', 'Login successful');

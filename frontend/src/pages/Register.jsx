@@ -3,9 +3,11 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, Loader2, Eye, EyeOff, User, Phone } from 'lucide-react';
 import { showErrorAlert, showSuccessAlert } from '../utils/alerts';
 import { authAPI } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 
 export default function Register() {
   const navigate = useNavigate();
+  const { register: setAuthRegister } = useAuth();
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -158,8 +160,8 @@ export default function Register() {
         password: formData.password,
       });
 
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('username', response.username);
+      // Update auth context so protected routes allow immediate navigation.
+      setAuthRegister(response.token, response.username);
 
       await showSuccessAlert('Success!', 'Registration successful');
       navigate('/admin-dashboard');
