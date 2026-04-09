@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
 import { showSuccessAlert, showErrorAlert } from '../utils/alerts';
 import { authAPI } from '../utils/api';
+import PageBackButton from '../components/PageBackButton';
 
 export default function SuperAdminLogin() {
   const navigate = useNavigate();
@@ -120,7 +121,8 @@ export default function SuperAdminLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-gray-300">
+    <div className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-gray-300">
+      <PageBackButton to="/access" label="Back to Access" className="absolute top-6 left-6" />
       <div className="max-w-md w-full">
         {/* Login Form */}
         <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6">

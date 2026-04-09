@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { busAPI, busDeviceAPI, iotAPI } from '../utils/api';
 import { showErrorAlert, showSuccessAlert } from '../utils/alerts';
+import PageBackButton from '../components/PageBackButton';
 
 const DEFAULT_ROUTE = '177 - Kaduwela-Kollupitiya';
 
@@ -118,6 +119,9 @@ export default function AddBus() {
 
 	return (
 		<div className="min-h-screen bg-[#fff4ec] text-[#2a1a15] px-4 py-8 sm:px-6 lg:px-10">
+			<div className="max-w-4xl mx-auto mb-4">
+				<PageBackButton to="/admin-dashboard" label="Back to Dashboard" />
+			</div>
 			<div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-sm border border-[#f2d9cc] overflow-hidden">
 				<div className="px-6 py-5 border-b border-[#f2d9cc] flex items-center justify-between">
 					<div>

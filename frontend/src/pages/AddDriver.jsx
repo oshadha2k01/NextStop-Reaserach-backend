@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
 import { showErrorAlert, showSuccessAlert } from '../utils/alerts';
 import { driverAPI } from '../utils/api';
+import PageBackButton from '../components/PageBackButton';
 
 export default function AddDriver() {
 	const navigate = useNavigate();
@@ -104,14 +104,9 @@ export default function AddDriver() {
 	return (
 		<div className="min-h-screen bg-[#fff4ec]">
 			<div className="max-w-2xl mx-auto p-6">
+				<PageBackButton to="/admin-dashboard" label="Back to Dashboard" className="mb-4" />
 				{/* Header */}
 				<div className="flex items-center gap-3 mb-8">
-					<button
-						onClick={() => navigate(-1)}
-						className="p-2 hover:bg-[#f2d9cc] rounded-lg transition-colors"
-					>
-						<ArrowLeft className="h-6 w-6 text-[#ff6b35]" />
-					</button>
 					<h1 className="text-3xl font-bold text-[#2a1a15]">Add New Driver</h1>
 				</div>
 
