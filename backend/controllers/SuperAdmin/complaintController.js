@@ -93,10 +93,34 @@ const deleteComplaint = async (req, res) => {
   }
 };
 
+// Complaint stats for dashboards
+const getComplaintStats = async (req, res) => {
+  try {
+    const [total, open, inReview, resolved, closed] = await Promise.all([
+      Complaint.countDocuments(),
+      Complaint.countDocuments({ status: 'Open' }),
+      Complaint.countDocuments({ status: 'In Review' }),
+      Complaint.countDocuments({ status: 'Resolved' }),
+      Complaint.countDocuments({ status: 'Closed' }),
+    ]);
+
+    return res.json({
+      total,
+      open,
+      inReview,
+      resolved,
+      closed,
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message || 'Server error' });
+  }
+};
+
 module.exports = {
   getComplaints,
   getComplaintById,
   createComplaint,
   updateComplaint,
   deleteComplaint,
+  getComplaintStats,
 };

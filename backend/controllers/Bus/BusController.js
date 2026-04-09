@@ -1,4 +1,6 @@
 const Bus = require("../../models/Bus/BusModel");
+const Driver = require("../../models/SuperAdmin/Driver");
+const BusDevice = require("../../models/BusDevice/BusDevice");
 
 function parseBase64Image(dataString) {
 	if (!dataString) return null;
@@ -11,6 +13,27 @@ function parseBase64Image(dataString) {
 	} catch {
 		return null;
 	}
+}
+
+async function attachDriverNames(buses) {
+	if (!Array.isArray(buses) || buses.length === 0) return buses;
+	const busIds = buses.map((b) => b._id);
+	const drivers = await Driver.find({ busId: { $in: busIds } })
+		.select("name busId")
+		.lean();
+
+	const driverByBusId = new Map();
+	for (const d of drivers) {
+		if (!d?.busId) continue;
+		if (!driverByBusId.has(String(d.busId))) {
+			driverByBusId.set(String(d.busId), d.name);
+		}
+	}
+
+	return buses.map((b) => ({
+		...b,
+		driverName: driverByBusId.get(String(b._id)) || null,
+	}));
 }
 
 const createBus = async (req, res) => {
@@ -52,10 +75,11 @@ const createBus = async (req, res) => {
 
 const getBuses = async (req, res) => {
 	try {
-		const buses = await Bus.find().sort({ createdAt: -1 }).lean();
+		let buses = await Bus.find().sort({ createdAt: -1 }).lean();
 		buses.forEach((b) => {
 			if (b.image) delete b.image.data;
 		});
+		buses = await attachDriverNames(buses);
 		return res.json(buses);
 	} catch (err) {
 		return res.status(500).json({ message: err.message || "Server error" });
@@ -67,7 +91,12 @@ const getBusById = async (req, res) => {
 		const bus = await Bus.findById(req.params.id).lean();
 		if (!bus) return res.status(404).json({ message: "Bus not found" });
 		if (bus.image) delete bus.image.data;
-		return res.json(bus);
+
+		const driver = await Driver.findOne({ busId: bus._id }).select("name").lean();
+		return res.json({
+			...bus,
+			driverName: driver?.name || null,
+		});
 	} catch (err) {
 		return res.status(500).json({ message: err.message || "Server error" });
 	}
@@ -117,6 +146,13 @@ const deleteBus = async (req, res) => {
 	try {
 		const deleted = await Bus.findByIdAndDelete(req.params.id).lean();
 		if (!deleted) return res.status(404).json({ message: "Bus not found" });
+
+		// Keep linked collections consistent when a bus is removed.
+		await Promise.all([
+			BusDevice.deleteMany({ bus_id: req.params.id }),
+			Driver.updateMany({ busId: req.params.id }, { $set: { busId: null } }),
+		]);
+
 		return res.json({ message: "Bus deleted" });
 	} catch (err) {
 		return res.status(500).json({ message: err.message || "Server error" });

@@ -5,10 +5,12 @@ const {
 	createFeedback,
 	updateFeedback,
 	deleteFeedback,
+	getFeedbackStats,
 } = require("../../controllers/SuperAdmin/feedbackController");
 
 const router = express.Router();
 
+router.get("/stats", getFeedbackStats);
 router.get("/", getFeedbacks);
 router.get("/:id", getFeedbackById);
 router.post("/", createFeedback);

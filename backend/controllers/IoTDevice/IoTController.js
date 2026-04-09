@@ -141,3 +141,37 @@ exports.getLiveEta = async (req, res) => {
         res.status(500).json({ error: "Failed to calculate ETA" });
     }
 };
+
+exports.getKnownDevices = async (req, res) => {
+    try {
+        const limit = Math.max(1, Math.min(200, Number(req.query.limit) || 50));
+        const devices = await SensorData.aggregate([
+            { $match: { device_id: { $exists: true, $ne: null, $ne: '' } } },
+            { $sort: { received_at: -1 } },
+            {
+                $group: {
+                    _id: '$device_id',
+                    lastSeenAt: { $first: '$received_at' },
+                    latestGps: { $first: '$gps' }
+                }
+            },
+            { $sort: { lastSeenAt: -1 } },
+            { $limit: limit }
+        ]);
+
+        return res.status(200).json({
+            success: true,
+            count: devices.length,
+            devices: devices.map((d) => ({
+                deviceId: d._id,
+                lastSeenAt: d.lastSeenAt,
+                lastKnownLocation: d.latestGps && typeof d.latestGps === 'object'
+                    ? { lat: d.latestGps.lat, lng: d.latestGps.lng }
+                    : null
+            }))
+        });
+    } catch (error) {
+        console.error('❌ Error fetching known IoT devices:', error);
+        return res.status(500).json({ error: 'Failed to fetch known devices' });
+    }
+};

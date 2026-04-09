@@ -1,16 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, Loader2, Eye, EyeOff, User, Phone } from 'lucide-react';
-import { showSuccessAlert, showErrorAlert } from '../utils/alerts';
+import { showErrorAlert, showSuccessAlert } from '../utils/alerts';
 import { authAPI } from '../utils/api';
 
 export default function Register() {
   const navigate = useNavigate();
-  const [step, setStep] = useState('register'); // 'register' | 'verify'
-  const [registeredEmail, setRegisteredEmail] = useState('');
-  const [otp, setOtp] = useState('');
-  const [otpLoading, setOtpLoading] = useState(false);
-  const [resendLoading, setResendLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -154,7 +149,7 @@ export default function Register() {
     setIsLoading(true);
 
     try {
-      await authAPI.adminRegister({
+      const response = await authAPI.adminRegister({
         firstName: formData.firstName,
         lastName: formData.lastName,
         username: formData.username,
@@ -163,8 +158,11 @@ export default function Register() {
         password: formData.password,
       });
 
-      setRegisteredEmail(formData.email);
-      setStep('verify');
+      localStorage.setItem('token', response.token);
+      localStorage.setItem('username', response.username);
+
+      await showSuccessAlert('Success!', 'Registration successful');
+      navigate('/admin-dashboard');
     } catch (error) {
       showErrorAlert('Registration Failed', error.message || 'Something went wrong');
     } finally {
@@ -172,105 +170,8 @@ export default function Register() {
     }
   };
 
-  const handleVerifyOtp = async (e) => {
-    e.preventDefault();
-    if (!otp.trim()) {
-      showErrorAlert('Verification Failed', 'Please enter the OTP');
-      return;
-    }
-
-    setOtpLoading(true);
-    try {
-      const response = await authAPI.adminVerifyOtp({ email: registeredEmail, otp });
-
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('username', response.username);
-
-      await showSuccessAlert('Success!', 'Registration successful');
-      navigate('/');
-    } catch (error) {
-      showErrorAlert('Verification Failed', error.message || 'Invalid OTP');
-    } finally {
-      setOtpLoading(false);
-    }
-  };
-
-  const handleResendOtp = async () => {
-    setResendLoading(true);
-    try {
-      await authAPI.adminResendOtp({ email: registeredEmail });
-      showSuccessAlert('OTP Sent', 'A new OTP has been sent to your email');
-    } catch (error) {
-      showErrorAlert('Resend Failed', error.message || 'Could not resend OTP');
-    } finally {
-      setResendLoading(false);
-    }
-  };
-
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
   const toggleConfirmPasswordVisibility = () => setShowConfirmPassword(!showConfirmPassword);
-
-  // OTP Verification Step
-  if (step === 'verify') {
-    return (
-      <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-gray-300 py-12">
-        <div className="max-w-md w-full">
-          <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6">
-            <div className="text-center">
-              <h2 className="text-3xl font-bold text-gray-900">Verify Email</h2>
-              <p className="mt-2 text-sm text-gray-600">
-                An OTP has been sent to <strong>{registeredEmail}</strong>. Check your inbox (and spam folder).
-              </p>
-            </div>
-
-            <form onSubmit={handleVerifyOtp} className="space-y-5">
-              <div>
-                <label htmlFor="otp" className="block text-sm font-medium text-gray-700 mb-2">
-                  Enter OTP
-                </label>
-                <input
-                  id="otp"
-                  type="text"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  placeholder="Enter 6-digit OTP"
-                  maxLength={6}
-                  className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-600 focus:border-transparent outline-none h-11 text-center text-lg tracking-widest"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={otpLoading}
-                className="w-full flex items-center justify-center py-3 px-4 border border-transparent rounded-xl shadow-md text-white bg-[#ff6b35] hover:bg-[#cc562a] focus:outline-none font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed h-10"
-              >
-                {otpLoading ? <Loader2 className="h-5 w-5 text-white animate-spin" /> : 'Verify & Create Account'}
-              </button>
-            </form>
-
-            <div className="text-center pt-2 border-t border-gray-200">
-              <p className="text-sm text-gray-600">
-                Didn't receive the OTP?{' '}
-                <button
-                  onClick={handleResendOtp}
-                  disabled={resendLoading}
-                  className="font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50"
-                >
-                  {resendLoading ? 'Sending...' : 'Resend OTP'}
-                </button>
-              </p>
-              <button
-                onClick={() => setStep('register')}
-                className="mt-2 text-sm text-gray-500 hover:text-gray-700"
-              >
-                Back to registration
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   // Registration Step
   return (

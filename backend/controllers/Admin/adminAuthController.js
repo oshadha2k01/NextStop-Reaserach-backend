@@ -165,22 +165,15 @@ exports.register = async (req, res) => {
       throw mailError;
     }
 
-    // Also log to console for backup
-    console.log('\n========================================');
-    console.log('📧 ADMIN REGISTRATION OTP');
-    console.log('========================================');
-    console.log(`Email: ${normalizedEmail}`);
-    console.log(`OTP Code: ${otp}`);
-    console.log(`Expires At: ${otpExpiresAt.toLocaleString()}`);
-    console.log('========================================\n');
+    const token = generateToken(admin);
 
-    res.status(200).json({
-      message: 'OTP sent to your email. Please check your inbox (and spam folder).',
-      email: normalizedEmail,
-      expiresIn: `${OTP_EXPIRY_MINUTES} minutes`
+    res.status(201).json({
+      message: 'Admin registered successfully.',
+      token,
+      username: admin.username,
     });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(500).json({ error: err.message });
   }
 };
 

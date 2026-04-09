@@ -92,10 +92,46 @@ const deleteFeedback = async (req, res) => {
   }
 };
 
+// Feedback stats for dashboards
+const getFeedbackStats = async (req, res) => {
+  try {
+    const [
+      total,
+      positive,
+      neutral,
+      negative,
+      fiveStar,
+      fourStar,
+      threeStarOrLess,
+    ] = await Promise.all([
+      Feedback.countDocuments(),
+      Feedback.countDocuments({ sentiment: 'Positive' }),
+      Feedback.countDocuments({ sentiment: 'Neutral' }),
+      Feedback.countDocuments({ sentiment: 'Negative' }),
+      Feedback.countDocuments({ rating: 5 }),
+      Feedback.countDocuments({ rating: 4 }),
+      Feedback.countDocuments({ rating: { $lte: 3 } }),
+    ]);
+
+    return res.json({
+      total,
+      positive,
+      neutral,
+      negative,
+      fiveStar,
+      fourStar,
+      threeStarOrLess,
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message || 'Server error' });
+  }
+};
+
 module.exports = {
   getFeedbacks,
   getFeedbackById,
   createFeedback,
   updateFeedback,
   deleteFeedback,
+  getFeedbackStats,
 };
