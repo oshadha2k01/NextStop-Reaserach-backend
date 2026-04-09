@@ -1,5 +1,21 @@
-const RAW_API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-const API_BASE_URL = String(RAW_API_BASE_URL).replace(/\/+$/, '');
+const RAW_API_BASE_URL = import.meta.env.VITE_API_URL
+  || (typeof window !== 'undefined' && window.location.hostname === 'smartbusstop.me'
+    ? 'https://smartbusstop.me/backend/api'
+    : 'http://localhost:3000/api');
+
+const normalizeBaseUrl = (value) => {
+  const trimmed = String(value || '').trim();
+  if (!trimmed) return 'http://localhost:3000/api';
+
+  const withProtocol = /^https?:\/\//i.test(trimmed)
+    ? trimmed
+    : `https://${trimmed.replace(/^\/+/, '')}`;
+
+  // Collapse duplicate slashes in path while preserving protocol (https://)
+  return withProtocol.replace(/([^:]\/)\/+/g, '$1').replace(/\/+$/, '');
+};
+
+const API_BASE_URL = normalizeBaseUrl(RAW_API_BASE_URL);
 const buildApiUrl = (endpoint) => `${API_BASE_URL}/${String(endpoint || '').replace(/^\/+/, '')}`;
 
 export const apiCall = async (method, endpoint, data = null) => {
