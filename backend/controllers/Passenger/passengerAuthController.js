@@ -2,17 +2,17 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
-const Admin = require('../../models/Admin/Admin');
-const PendingAdminRegistration = require('../../models/Admin/PendingAdminRegistration');
+const Passenger = require('../../models/Passenger/Passenger');
+const PendingPassengerRegistration = require('../../models/Passenger/PendingPassengerRegistration');
 
 const OTP_EXPIRY_MINUTES = parseInt(process.env.OTP_EXPIRY_MINUTES || '5', 10);
 const OTP_MAX_ATTEMPTS = parseInt(process.env.OTP_MAX_ATTEMPTS || '5', 10);
 const OTP_RESEND_COOLDOWN_SECONDS = parseInt(process.env.OTP_RESEND_COOLDOWN_SECONDS || '60', 10);
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const generateToken = (admin) => {
+const generateToken = (passenger) => {
  const secret = process.env.JWT_SECRET || 'your_secret_key';
- return jwt.sign({ id: admin._id }, secret, { expiresIn: '1d' });
+ return jwt.sign({ id: passenger._id }, secret, { expiresIn: '1d' });
 };
 
 // Generate cryptographically secure 6-digit OTP.
@@ -55,12 +55,12 @@ const sendOtpEmail = async (email, otp) => {
     const mailOptions = {
       from: process.env.SMTP_FROM || `"NextStop" <${process.env.SMTP_USER}>`,
       to: email,
-      subject: 'NextStop Admin Registration - OTP Verification',
+      subject: 'NextStop Passenger Registration - OTP Verification',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #333;">NextStop Admin Registration</h2>
+          <h2 style="color: #333;">NextStop Passenger Registration</h2>
           <p>Hello,</p>
-          <p>Your OTP for admin registration is:</p>
+          <p>Your OTP for passenger registration is:</p>
           <div style="background-color: #f4f4f4; padding: 20px; text-align: center; margin: 20px 0;">
             <h1 style="color: #007bff; margin: 0; letter-spacing: 5px;">${otp}</h1>
           </div>
@@ -70,7 +70,7 @@ const sendOtpEmail = async (email, otp) => {
           <p style="color: #888; font-size: 12px;">This is an automated email from NextStop. Please do not reply.</p>
         </div>
       `,
-      text: `Your OTP for NextStop admin registration is: ${otp}. This OTP will expire in 5 minutes.`,
+      text: `Your OTP for NextStop passenger registration is: ${otp}. This OTP will expire in 5 minutes.`,
     };
 
     console.log(`📧 Sending OTP email to: ${email}...`);
@@ -103,31 +103,31 @@ const sendOtpEmail = async (email, otp) => {
 
 exports.register = async (req, res) => {
   try {
-    const { fullName, email, phoneNo } = req.body;
+    const { fullName, email, telNo } = req.body;
     const normalizedEmail = String(email || '').trim().toLowerCase();
 
-    if (!fullName || !normalizedEmail || !phoneNo) {
-      return res.status(400).json({ message: 'Missing required fields: fullName, email, phoneNo' });
+    if (!fullName || !normalizedEmail || !telNo) {
+      return res.status(400).json({ message: 'Missing required fields: fullName, email, telNo' });
     }
 
     if (!EMAIL_REGEX.test(normalizedEmail)) {
       return res.status(400).json({ message: 'Invalid email format' });
     }
 
-    const existingAdmin = await Admin.findOne({
-      $or: [{ email: normalizedEmail }, { phoneNo }],
+    const existingPassenger = await Passenger.findOne({
+      $or: [{ email: normalizedEmail }, { telNo }],
     });
 
-    if (existingAdmin) {
-      if (existingAdmin.email === normalizedEmail) {
+    if (existingPassenger) {
+      if (existingPassenger.email === normalizedEmail) {
         return res.status(400).json({ message: 'Email already exists' });
       }
-      if (existingAdmin.phoneNo === phoneNo) {
-        return res.status(400).json({ message: 'Phone number already exists' });
+      if (existingPassenger.telNo === telNo) {
+        return res.status(400).json({ message: 'Telephone number already exists' });
       }
     }
 
-    const existingPending = await PendingAdminRegistration.findOne({ email: normalizedEmail });
+    const existingPending = await PendingPassengerRegistration.findOne({ email: normalizedEmail });
     const resendSecondsLeft = getResendSecondsLeft(existingPending?.lastOtpSentAt);
     if (resendSecondsLeft > 0) {
       return res.status(429).json({
@@ -143,12 +143,12 @@ exports.register = async (req, res) => {
     const now = new Date();
 
     // Save pending registration first, then rollback if email send fails.
-    const pending = await PendingAdminRegistration.findOneAndUpdate(
+    const pending = await PendingPassengerRegistration.findOneAndUpdate(
       { email: normalizedEmail },
       {
         fullName,
         email: normalizedEmail,
-        phoneNo,
+        telNo,
         otpHash,
         otpAttempts: 0,
         lastOtpSentAt: now,
@@ -161,44 +161,51 @@ exports.register = async (req, res) => {
     try {
       await sendOtpEmail(normalizedEmail, otp);
     } catch (mailError) {
-      await PendingAdminRegistration.deleteOne({ _id: pending._id });
+      await PendingPassengerRegistration.deleteOne({ _id: pending._id });
       throw mailError;
     }
 
-    const token = generateToken(admin);
+    // Also log to console for backup
+    console.log('\n========================================');
+    console.log('📧 PASSENGER REGISTRATION OTP');
+    console.log('========================================');
+    console.log(`Email: ${normalizedEmail}`);
+    console.log(`OTP Code: ${otp}`);
+    console.log(`Expires At: ${otpExpiresAt.toLocaleString()}`);
+    console.log('========================================\n');
 
-    res.status(201).json({
-      message: 'Admin registered successfully.',
-      token,
-      username: admin.username,
+    res.status(200).json({
+      message: 'OTP sent to your email. Please check your inbox (and spam folder).',
+      email: normalizedEmail,
+      expiresIn: `${OTP_EXPIRY_MINUTES} minutes`
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(400).json({ error: err.message });
   }
 };
 
 exports.verifyOtp = async (req, res) => {
   try {
-    const { email, otp, username, password } = req.body;
+    const { email, otp } = req.body;
     const normalizedEmail = String(email || '').trim().toLowerCase();
 
-    if (!normalizedEmail || !otp || !username || !password) {
-      return res.status(400).json({ message: 'Email, OTP, username, and password are required' });
+    if (!normalizedEmail || !otp) {
+      return res.status(400).json({ message: 'Email and OTP are required' });
     }
 
-    const pending = await PendingAdminRegistration.findOne({ email: normalizedEmail });
+    const pending = await PendingPassengerRegistration.findOne({ email: normalizedEmail });
 
     if (!pending) {
       return res.status(404).json({ message: 'No pending registration found. Please register first.' });
     }
 
     if (pending.otpExpiresAt < new Date()) {
-      await PendingAdminRegistration.deleteOne({ _id: pending._id });
+      await PendingPassengerRegistration.deleteOne({ _id: pending._id });
       return res.status(400).json({ message: 'OTP has expired. Please register again.' });
     }
 
     if ((pending.otpAttempts || 0) >= OTP_MAX_ATTEMPTS) {
-      await PendingAdminRegistration.deleteOne({ _id: pending._id });
+      await PendingPassengerRegistration.deleteOne({ _id: pending._id });
       return res.status(429).json({ message: 'Maximum OTP attempts exceeded. Please register again.' });
     }
 
@@ -216,46 +223,40 @@ exports.verifyOtp = async (req, res) => {
       });
     }
 
-    // Check if username is already taken
-    const existingAdmin = await Admin.findOne({
-      $or: [{ username }, { email: pending.email }, { phoneNo: pending.phoneNo }],
+    // Check if email already registered
+    const existingPassenger = await Passenger.findOne({
+      $or: [{ email: pending.email }, { telNo: pending.telNo }],
     });
 
-    if (existingAdmin) {
-      await PendingAdminRegistration.deleteOne({ _id: pending._id });
-      if (existingAdmin.username === username) {
-        return res.status(400).json({ message: 'Username already exists' });
-      }
-      return res.status(400).json({ message: 'Admin account already exists' });
+    if (existingPassenger) {
+      await PendingPassengerRegistration.deleteOne({ _id: pending._id });
+      return res.status(400).json({ message: 'Passenger account already exists' });
     }
 
-    // Split fullName into firstName and lastName
-    const nameParts = pending.fullName.trim().split(/\s+/);
-    const firstName = nameParts[0] || '';
-    const lastName = nameParts.slice(1).join(' ') || nameParts[0];
-
-    // Create admin account
-    const admin = await Admin.create({
-      firstName,
-      lastName,
-      username,
+    // Create passenger account
+    const passenger = await Passenger.create({
+      fullName: pending.fullName,
       email: pending.email,
-      phoneNo: pending.phoneNo,
-      password,
+      telNo: pending.telNo,
     });
 
     // Delete pending registration
-    await PendingAdminRegistration.deleteOne({ _id: pending._id });
+    await PendingPassengerRegistration.deleteOne({ _id: pending._id });
 
     // Generate token
-    const token = generateToken(admin);
+    const token = generateToken(passenger);
 
-    console.log(`✅ Admin verified and registered: ${admin.email}`);
+    console.log(`✅ Passenger verified and registered: ${passenger.email}`);
 
     res.status(201).json({
-      message: 'Email verified! Admin registered successfully.',
+      message: 'Email verified! Passenger registered successfully.',
       token,
-      username: admin.username
+      passenger: {
+        id: passenger._id,
+        fullName: passenger.fullName,
+        email: passenger.email,
+        telNo: passenger.telNo,
+      }
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -275,7 +276,7 @@ exports.resendOtp = async (req, res) => {
       return res.status(400).json({ message: 'Invalid email format' });
     }
 
-    const pending = await PendingAdminRegistration.findOne({ email: normalizedEmail });
+    const pending = await PendingPassengerRegistration.findOne({ email: normalizedEmail });
     if (!pending) {
       return res.status(404).json({ message: 'No pending registration found. Please register first.' });
     }
@@ -312,28 +313,13 @@ exports.resendOtp = async (req, res) => {
   }
 };
 
-exports.login = async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    const admin = await Admin.findOne({ username });
-    if (!admin || !(await admin.comparePassword(password))) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
-
-    const token = generateToken(admin);
-    res.json({ token, username: admin.username });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
 exports.getProfile = async (req, res) => {
   try {
-    const admin = await Admin.findById(req.user.id).select('-password');
-    if (!admin) {
-      return res.status(404).json({ message: 'Admin not found' });
+    const passenger = await Passenger.findById(req.user.id);
+    if (!passenger) {
+      return res.status(404).json({ message: 'Passenger not found' });
     }
-    res.json(admin);
+    res.json(passenger);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -341,46 +327,30 @@ exports.getProfile = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
   try {
-    const { firstName, lastName, username, email, phoneNo, currentPassword, newPassword } = req.body;
-    const admin = await Admin.findById(req.user.id);
+    const { fullName, email, telNo } = req.body;
+    const passenger = await Passenger.findById(req.user.id);
 
-    if (!admin) {
-      return res.status(404).json({ message: 'Admin not found' });
+    if (!passenger) {
+      return res.status(404).json({ message: 'Passenger not found' });
     }
 
-    if (!(await admin.comparePassword(currentPassword))) {
-      return res.status(400).json({ message: 'Current password is incorrect' });
-    }
-
-    if (username && username !== admin.username) {
-      const existing = await Admin.findOne({ username, _id: { $ne: admin._id } });
-      if (existing) return res.status(400).json({ message: 'Username already exists' });
-      admin.username = username;
-    }
-
-    if (email && email !== admin.email) {
-      const existing = await Admin.findOne({ email, _id: { $ne: admin._id } });
+    if (email && email !== passenger.email) {
+      const existing = await Passenger.findOne({ email, _id: { $ne: passenger._id } });
       if (existing) return res.status(400).json({ message: 'Email already exists' });
-      admin.email = email;
+      passenger.email = email;
     }
 
-    if (phoneNo && phoneNo !== admin.phoneNo) {
-      const existing = await Admin.findOne({ phoneNo, _id: { $ne: admin._id } });
-      if (existing) return res.status(400).json({ message: 'Phone number already exists' });
-      admin.phoneNo = phoneNo;
+    if (telNo && telNo !== passenger.telNo) {
+      const existing = await Passenger.findOne({ telNo, _id: { $ne: passenger._id } });
+      if (existing) return res.status(400).json({ message: 'Telephone number already exists' });
+      passenger.telNo = telNo;
     }
 
-    if (firstName) admin.firstName = firstName;
-    if (lastName) admin.lastName = lastName;
+    if (fullName) passenger.fullName = fullName;
 
-    if (newPassword) {
-      admin.password = newPassword;
-    }
+    await passenger.save();
 
-    await admin.save();
-
-    const updatedAdmin = await Admin.findById(admin._id).select('-password');
-    res.json({ message: 'Profile updated successfully', user: updatedAdmin });
+    res.json({ message: 'Profile updated successfully', user: passenger });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -388,13 +358,13 @@ exports.updateProfile = async (req, res) => {
 
 exports.deleteProfile = async (req, res) => {
   try {
-    const admin = await Admin.findById(req.user.id);
+    const passenger = await Passenger.findById(req.user.id);
 
-    if (!admin) {
-      return res.status(404).json({ message: 'Admin not found' });
+    if (!passenger) {
+      return res.status(404).json({ message: 'Passenger not found' });
     }
 
-    await Admin.findByIdAndDelete(req.user.id);
+    await Passenger.findByIdAndDelete(req.user.id);
     res.json({ message: 'Account deleted successfully' });
   } catch (err) {
     res.status(500).json({ error: err.message });
