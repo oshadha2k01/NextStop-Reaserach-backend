@@ -10,7 +10,6 @@ import AdminDashboard from './pages/AdminDashboard';
 import AddBus from './pages/AddBus';
 import AddDriver from './pages/AddDriver';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
-import AppBrandLogo from './components/AppBrandLogo';
 
 // Protected Route Component
 const ProtectedRoute = ({ element }) => {
@@ -27,7 +26,6 @@ export default function App() {
   return (
     <Router>
       <AuthProvider>
-        <AppBrandLogo />
         <Routes>
           
           <Route path="/" element={<Home />} />

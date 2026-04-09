@@ -4,8 +4,27 @@ import { BusFront, CheckCircle, XCircle, AlertCircle, Info, Check, Trash2, Searc
 import { busAPI, complaintAPI, feedbackAPI, monitoringAPI } from '../utils/api';
 import Feedbacks from './Feedbacks';
 import { showErrorAlert, showSuccessAlert, showConfirmAlert, showWarningAlert } from '../utils/alerts';
+import PageBackButton from '../components/PageBackButton';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const RAW_API_BASE_URL = import.meta.env.VITE_API_URL
+	|| (typeof window !== 'undefined' && window.location.hostname === 'smartbusstop.me'
+		? 'https://smartbusstop.me/backend/api'
+		: 'http://localhost:3000/api');
+
+const normalizeBaseUrl = (value) => {
+	const trimmed = String(value || '').trim();
+	if (!trimmed) return 'http://localhost:3000/api';
+
+	const withProtocol = /^https?:\/\//i.test(trimmed)
+		? trimmed
+		: `https://${trimmed.replace(/^\/+/, '')}`;
+
+	// Collapse duplicate slashes in path while preserving protocol (https://)
+	return withProtocol.replace(/([^:]\/)\/+/g, '$1').replace(/\/+$/, '');
+};
+
+const API_BASE_URL = normalizeBaseUrl(RAW_API_BASE_URL);
+const buildApiUrl = (endpoint) => `${API_BASE_URL}/${String(endpoint || '').replace(/^\/+/, '')}`;
 const DEFAULT_BUS_IMAGE = 'https://images.unsplash.com/photo-1464219414925-ead315e28213?w=400&h=300&fit=crop';
 
 export default function SuperAdminDashboard() {
@@ -136,7 +155,7 @@ export default function SuperAdminDashboard() {
 
 	const getBusImageUrl = (bus) => {
 		if (!bus?._id) return DEFAULT_BUS_IMAGE;
-		return `${API_BASE_URL}/buses/${bus._id}/image`;
+		return buildApiUrl(`/buses/${bus._id}/image`);
 	};
 
 	const fetchBuses = async () => {
@@ -405,6 +424,7 @@ export default function SuperAdminDashboard() {
 				{/* Main Content */}
 				{activeNav === 'approvals' && (
 					<main className="flex-1 p-6 sm:p-10 space-y-6">
+						<PageBackButton to="/access" label="Back to Access" />
 						<div>
 							<p className="text-sm text-[#6b4b3d]">Control Center</p>
 							<h2 className="text-2xl font-semibold">Bus Registration Approvals</h2>
@@ -648,6 +668,7 @@ export default function SuperAdminDashboard() {
 
 				{activeNav === 'monitoring' && (
 					<main className="flex-1 p-6 sm:p-10 space-y-6">
+						<PageBackButton to="/access" label="Back to Access" />
 						<div>
 							<p className="text-sm text-[#6b4b3d]">System Health</p>
 							<h2 className="text-2xl font-semibold">Real-Time Bus Monitoring</h2>
@@ -845,6 +866,7 @@ export default function SuperAdminDashboard() {
 
 				{activeNav === 'buses' && (
 					<main className="flex-1 p-6 sm:p-10 space-y-6">
+						<PageBackButton to="/access" label="Back to Access" />
 						<div>
 							<p className="text-sm text-[#6b4b3d]">Fleet Control</p>
 							<h2 className="text-2xl font-semibold">Remove Buses</h2>
@@ -891,6 +913,7 @@ export default function SuperAdminDashboard() {
 
 				{activeNav === 'complaints' && (
 					<main className="flex-1 p-6 sm:p-10 space-y-6">
+						<PageBackButton to="/access" label="Back to Access" />
 						<div>
 							<p className="text-sm text-[#6b4b3d]">Issue Desk</p>
 							<h2 className="text-2xl font-semibold">Driver & Bus Complaints</h2>
@@ -946,6 +969,7 @@ export default function SuperAdminDashboard() {
 
 				{activeNav === 'warnings' && (
 					<main className="flex-1 p-6 sm:p-10 space-y-6">
+						<PageBackButton to="/access" label="Back to Access" />
 						<div>
 							<p className="text-sm text-[#6b4b3d]">Risk Watch</p>
 							<h2 className="text-2xl font-semibold">Warnings & Alerts</h2>
@@ -990,6 +1014,9 @@ export default function SuperAdminDashboard() {
 
 				{activeNav === 'feedbacks' && (
 					<div className="flex-1">
+						<div className="p-6 sm:p-10 pb-0">
+							<PageBackButton to="/access" label="Back to Access" />
+						</div>
 						<Feedbacks />
 					</div>
 				)}

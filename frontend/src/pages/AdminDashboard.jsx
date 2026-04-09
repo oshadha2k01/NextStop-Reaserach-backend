@@ -13,8 +13,27 @@ import {
 	X,
 } from 'lucide-react';
 import { showErrorAlert, showSuccessAlert, showConfirmAlert } from '../utils/alerts';
+import PageBackButton from '../components/PageBackButton';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const RAW_API_BASE_URL = import.meta.env.VITE_API_URL
+	|| (typeof window !== 'undefined' && window.location.hostname === 'smartbusstop.me'
+		? 'https://smartbusstop.me/backend/api'
+		: 'http://localhost:3000/api');
+
+const normalizeBaseUrl = (value) => {
+	const trimmed = String(value || '').trim();
+	if (!trimmed) return 'http://localhost:3000/api';
+
+	const withProtocol = /^https?:\/\//i.test(trimmed)
+		? trimmed
+		: `https://${trimmed.replace(/^\/+/, '')}`;
+
+	// Collapse duplicate slashes in path while preserving protocol (https://)
+	return withProtocol.replace(/([^:]\/)\/+/g, '$1').replace(/\/+$/, '');
+};
+
+const API_BASE_URL = normalizeBaseUrl(RAW_API_BASE_URL);
+const buildApiUrl = (endpoint) => `${API_BASE_URL}/${String(endpoint || '').replace(/^\/+/, '')}`;
 
 const navItems = [
 	{ key: 'registeredBuses', label: 'Registered Buses', icon: BusFront },
@@ -72,49 +91,49 @@ export default function AdminDashboard() {
 			const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
 
 			// Fetch bus stats
-			const statsRes = await fetch(`${API_BASE_URL}/buses/stats`, { headers: authHeaders });
+			const statsRes = await fetch(buildApiUrl('/buses/stats'), { headers: authHeaders });
 			if (statsRes.ok) {
 				const statsData = await statsRes.json();
 				setStats(statsData);
 			}
 
 			// Fetch buses
-			const busesRes = await fetch(`${API_BASE_URL}/buses`, { headers: authHeaders });
+			const busesRes = await fetch(buildApiUrl('/buses'), { headers: authHeaders });
 			if (busesRes.ok) {
 				const busesData = await busesRes.json();
 				setBuses(busesData);
 			}
 
 			// Fetch drivers
-			const driversRes = await fetch(`${API_BASE_URL}/drivers`, { headers: authHeaders });
+			const driversRes = await fetch(buildApiUrl('/drivers'), { headers: authHeaders });
 			if (driversRes.ok) {
 				const driversData = await driversRes.json();
 				setDrivers(driversData);
 			}
 
 			// Fetch bus-device mappings
-			const busDevicesRes = await fetch(`${API_BASE_URL}/bus-device`, { headers: authHeaders });
+			const busDevicesRes = await fetch(buildApiUrl('/bus-device'), { headers: authHeaders });
 			if (busDevicesRes.ok) {
 				const busDevicesData = await busDevicesRes.json();
 				setBusDevices(busDevicesData.registrations || []);
 			}
 
 			// Fetch recently seen IoT devices for online/offline insights
-			const iotDevicesRes = await fetch(`${API_BASE_URL}/iot-devices?limit=200`, { headers: authHeaders });
+			const iotDevicesRes = await fetch(buildApiUrl('/iot-devices?limit=200'), { headers: authHeaders });
 			if (iotDevicesRes.ok) {
 				const iotDevicesData = await iotDevicesRes.json();
 				setKnownIotDevices(iotDevicesData.devices || []);
 			}
 
 			// Fetch complaints
-			const complaintsRes = await fetch(`${API_BASE_URL}/complaints`, { headers: authHeaders });
+			const complaintsRes = await fetch(buildApiUrl('/complaints'), { headers: authHeaders });
 			if (complaintsRes.ok) {
 				const complaintsData = await complaintsRes.json();
 				setComplaints(complaintsData);
 			}
 
 			// Fetch feedbacks
-			const feedbacksRes = await fetch(`${API_BASE_URL}/feedback` , { headers: authHeaders });
+			const feedbacksRes = await fetch(buildApiUrl('/feedback'), { headers: authHeaders });
 			if (feedbacksRes.ok) {
 				const feedbacksData = await feedbacksRes.json();
 				setFeedbacks(feedbacksData);
@@ -131,7 +150,7 @@ export default function AdminDashboard() {
 		try {
 			const token = localStorage.getItem('token');
 			const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
-			const res = await fetch(`${API_BASE_URL}/drivers/available-buses`, { headers: authHeaders });
+			const res = await fetch(buildApiUrl('/drivers/available-buses'), { headers: authHeaders });
 			const data = res.ok ? await res.json() : [];
 
 			const normalized = Array.isArray(data) ? data : [];
@@ -210,7 +229,7 @@ export default function AdminDashboard() {
 				rating: Number(driverForm.rating) || 0,
 			};
 
-			const endpoint = editingDriver ? `${API_BASE_URL}/drivers/${editingDriver._id}` : `${API_BASE_URL}/drivers`;
+			const endpoint = editingDriver ? buildApiUrl(`/drivers/${editingDriver._id}`) : buildApiUrl('/drivers');
 			const method = editingDriver ? 'PUT' : 'POST';
 
 			const res = await fetch(endpoint, {
@@ -244,7 +263,7 @@ export default function AdminDashboard() {
 		try {
 			const token = localStorage.getItem('token');
 			const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
-			const res = await fetch(`${API_BASE_URL}/drivers/${driver._id}`, {
+			const res = await fetch(buildApiUrl(`/drivers/${driver._id}`), {
 				method: 'DELETE',
 				headers: authHeaders,
 			});
@@ -281,7 +300,7 @@ export default function AdminDashboard() {
 
 			setRegistering(true);
 			try {
-				const response = await fetch(`${API_BASE_URL}/bus-device/register`, {
+				const response = await fetch(buildApiUrl('/bus-device/register'), {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
@@ -374,10 +393,10 @@ export default function AdminDashboard() {
 											<tr key={bus._id} className="hover:bg-[#fff4ec]">
 												<td className="px-6 py-3">
 													<img 
-														src={`${API_BASE_URL}/buses/${bus._id}/image`}
+														src={buildApiUrl(`/buses/${bus._id}/image`)}
 														alt={bus.regNo}
 														className="h-12 w-12 rounded object-cover cursor-pointer hover:opacity-80 border border-[#f2d9cc]"
-														onClick={() => window.open(`${API_BASE_URL}/buses/${bus._id}/image`, '_blank')}
+														onClick={() => window.open(buildApiUrl(`/buses/${bus._id}/image`), '_blank')}
 													/>
 												</td>
 												<td className="px-6 py-3 font-medium">{bus.regNo}</td>
@@ -459,10 +478,10 @@ export default function AdminDashboard() {
 										<tr key={bus._id} className="hover:bg-[#fff4ec]">
 											<td className="px-6 py-3">
 												<img 
-													src={`${API_BASE_URL}/buses/${bus._id}/image`}
+													src={buildApiUrl(`/buses/${bus._id}/image`)}
 													alt={bus.regNo}
 													className="h-12 w-12 rounded object-cover cursor-pointer hover:opacity-80 border border-[#f2d9cc]"
-													onClick={() => window.open(`${API_BASE_URL}/buses/${bus._id}/image`, '_blank')}
+													onClick={() => window.open(buildApiUrl(`/buses/${bus._id}/image`), '_blank')}
 												/>
 											</td>
 											<td className="px-6 py-3 font-medium">{bus.regNo}</td>
@@ -1009,6 +1028,7 @@ export default function AdminDashboard() {
 				</aside>
 
 				<main className="flex-1 p-6 sm:p-10 space-y-6">
+					<PageBackButton to="/access" label="Back to Access" />
 					<div className="flex items-center justify-between flex-wrap gap-3">
 						<div>
 							<p className="text-sm text-[#6b4b3d]">Control Center</p>

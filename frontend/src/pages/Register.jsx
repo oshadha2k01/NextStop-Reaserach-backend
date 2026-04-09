@@ -4,6 +4,7 @@ import { Mail, Lock, Loader2, Eye, EyeOff, User, Phone } from 'lucide-react';
 import { showErrorAlert, showSuccessAlert } from '../utils/alerts';
 import { authAPI } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import PageBackButton from '../components/PageBackButton';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -177,7 +178,8 @@ export default function Register() {
 
   // Registration Step
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-gray-300 py-12">
+    <div className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-gray-300 py-12">
+      <PageBackButton to="/access" label="Back to Access" className="absolute top-6 left-6" />
       <div className="max-w-2xl w-full">
         <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6">
           <div className="text-center">
