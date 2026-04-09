@@ -2,7 +2,8 @@ const mongoose = require('mongoose');
 
 const PendingAdminRegistrationSchema = new mongoose.Schema(
   {
-    fullName: { type: String, required: true },
+    firstName: { type: String, required: true },
+    lastName: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     phoneNo: { type: String, required: true },
     // Username and password will be provided during OTP verification
