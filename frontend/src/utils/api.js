@@ -1,4 +1,6 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const RAW_API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = String(RAW_API_BASE_URL).replace(/\/+$/, '');
+const buildApiUrl = (endpoint) => `${API_BASE_URL}/${String(endpoint || '').replace(/^\/+/, '')}`;
 
 export const apiCall = async (method, endpoint, data = null) => {
   try {
@@ -18,14 +20,21 @@ export const apiCall = async (method, endpoint, data = null) => {
       config.body = JSON.stringify(data);
     }
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-    const jsonData = await response.json();
+    const response = await fetch(buildApiUrl(endpoint), config);
+    const contentType = response.headers.get('content-type') || '';
+    const isJson = contentType.includes('application/json');
+    const parsedBody = isJson ? await response.json() : await response.text();
 
     if (!response.ok) {
-      throw new Error(jsonData.message || jsonData.error || 'An error occurred');
+      if (isJson) {
+        throw new Error(parsedBody.message || parsedBody.error || 'An error occurred');
+      }
+
+      const plainMessage = String(parsedBody || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+      throw new Error(plainMessage || `Request failed with status ${response.status}`);
     }
 
-    return jsonData;
+    return parsedBody;
   } catch (error) {
     throw new Error(error.message || 'Network error');
   }
@@ -49,14 +58,21 @@ export const apiCallFormData = async (method, endpoint, formData) => {
       config.body = formData;
     }
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-    const jsonData = await response.json();
+    const response = await fetch(buildApiUrl(endpoint), config);
+    const contentType = response.headers.get('content-type') || '';
+    const isJson = contentType.includes('application/json');
+    const parsedBody = isJson ? await response.json() : await response.text();
 
     if (!response.ok) {
-      throw new Error(jsonData.message || jsonData.error || 'An error occurred');
+      if (isJson) {
+        throw new Error(parsedBody.message || parsedBody.error || 'An error occurred');
+      }
+
+      const plainMessage = String(parsedBody || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+      throw new Error(plainMessage || `Request failed with status ${response.status}`);
     }
 
-    return jsonData;
+    return parsedBody;
   } catch (error) {
     throw new Error(error.message || 'Network error');
   }
@@ -66,8 +82,6 @@ export const apiCallFormData = async (method, endpoint, formData) => {
 export const authAPI = {
   // Admin Auth
   adminRegister: (data) => apiCall('POST', '/admin/register', data),
-  adminVerifyOtp: (data) => apiCall('POST', '/admin/verify-otp', data),
-  adminResendOtp: (data) => apiCall('POST', '/admin/resend-otp', data),
   adminLogin: (data) => apiCall('POST', '/admin/login', data),
   adminGetProfile: () => apiCall('GET', '/admin/profile'),
   adminUpdateProfile: (data) => apiCall('PUT', '/admin/profile', data),
