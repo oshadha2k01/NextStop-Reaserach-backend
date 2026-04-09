@@ -141,6 +141,7 @@ app.use("/api/superadmin", superAdminAuthRoutes);
 app.use("/api/drivers", driverRoutes);
 app.use("/api/complaints", complaintRoutes);
 app.use("/api/feedback", feedbackRoutes);
+app.use("/api/feedbacks", feedbackRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/destination", journeyModelRoutes);
 app.use("/api/journey-model", journeyModelRoutes);

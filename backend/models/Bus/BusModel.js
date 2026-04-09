@@ -31,6 +31,10 @@ const BusSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    device_id: {
+      type: String,
+      default: null,
+    },
     approvalStatus: {
       type: String,
       enum: ['pending', 'approved', 'rejected'],

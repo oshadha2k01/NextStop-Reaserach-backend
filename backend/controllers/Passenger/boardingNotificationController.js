@@ -1,4 +1,4 @@
-const BusDevice = require('../../models/Bus/BusDevice');
+const BusDevice = require('../../models/BusDevice/BusDevice');
 const SensorData = require('../../models/IoTDevice/SensorData');
 const axios = require('axios');
 

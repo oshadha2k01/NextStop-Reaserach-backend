@@ -15,7 +15,7 @@
 
 require('dotenv').config();
 const mongoose = require('mongoose');
-const BusDevice = require('../models/Bus/BusDevice');
+const BusDevice = require('../models/BusDevice/BusDevice');
 const readline = require('readline');
 
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/nextstop';

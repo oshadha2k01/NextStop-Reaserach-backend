@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Home from './pages/Home';
 import Login from './pages/Login';
+import SuperAdminLogin from './pages/SuperAdminLogin';
 import Register from './pages/Register';
 import AdminDashboard from './pages/AdminDashboard';
 import AddBus from './pages/AddBus';
@@ -26,13 +27,16 @@ export default function App() {
       <AuthProvider>
         <Routes>
           
+          <Route path="/login" element={<Login />} />
+          <Route path="/superadminlogin" element={<SuperAdminLogin />} />
           <Route path="/" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/admindashbord" element={<ProtectedRoute element={<AdminDashboard />} />} />
           <Route path="/admin-dashboard" element={<ProtectedRoute element={<AdminDashboard />} />} />
           <Route path="/add-bus" element={<ProtectedRoute element={<AddBus />} />} />
           <Route path="/add-driver" element={<ProtectedRoute element={<AddDriver />} />} />
-          <Route path="/superadmindashbord" element={<ProtectedRoute element={<SuperAdminDashboard />} />} />
+          <Route path="/superadmindashboard" element={<SuperAdminDashboard />} />
+          <Route path="/superadmindashbord" element={<Navigate to="/superadmindashboard" replace />} />
         </Routes>
       </AuthProvider>
     </Router>

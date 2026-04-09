@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { BusFront, Bell, Route, User, LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import DriverBoardingAlerts from '../components/DriverBoardingAlerts';
 
 /**
@@ -19,21 +20,49 @@ import DriverBoardingAlerts from '../components/DriverBoardingAlerts';
  */
 
 export default function DriverDashboard() {
-    // In production, get this from AuthContext or login response
-    // For now, using example busId (replace with actual MongoDB ObjectId)
-    const [busId] = useState('65a1b2c3d4e5f6g7h8i9j0k1'); // Example MongoDB ObjectId
-    const [driverInfo] = useState({
-        name: 'Rohan Perera',
-        busNumber: 'WP-AB-1234',
-        route: 'Route 177: Kaduwela - Kollupitiya',
-        shift: 'Morning Shift (6:00 AM - 2:00 PM)'
-    });
+    const navigate = useNavigate();
+    const [driverInfo, setDriverInfo] = useState(null);
+    const [driverBus, setDriverBus] = useState(null);
+
+    useEffect(() => {
+        const driverToken = localStorage.getItem('driverToken');
+        const storedDriver = localStorage.getItem('driverInfo');
+        const storedBus = localStorage.getItem('driverBus');
+
+        if (!driverToken || !storedDriver || !storedBus) {
+            navigate('/driverlogin', { replace: true });
+            return;
+        }
+
+        try {
+            setDriverInfo(JSON.parse(storedDriver));
+            setDriverBus(JSON.parse(storedBus));
+        } catch (error) {
+            localStorage.removeItem('driverToken');
+            localStorage.removeItem('driverInfo');
+            localStorage.removeItem('driverBus');
+            localStorage.removeItem('userRole');
+            navigate('/driverlogin', { replace: true });
+        }
+    }, [navigate]);
+
+    const busId = useMemo(() => driverBus?._id || '', [driverBus]);
 
     const handleLogout = () => {
-        // Implement logout logic
-        console.log('Driver logged out');
-        // In production: clear auth tokens, redirect to login
+        localStorage.removeItem('driverToken');
+        localStorage.removeItem('driverInfo');
+        localStorage.removeItem('driverBus');
+        localStorage.removeItem('userRole');
+        navigate('/driverlogin', { replace: true });
     };
+
+    if (!driverInfo || !driverBus) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+                <p className="text-gray-700 font-medium">Loading driver dashboard...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -72,11 +101,11 @@ export default function DriverDashboard() {
                             <div className="space-y-3">
                                 <div>
                                     <p className="text-sm text-gray-600">Bus Number</p>
-                                    <p className="text-xl font-bold text-blue-800">{driverInfo.busNumber}</p>
+                                    <p className="text-xl font-bold text-blue-800">{driverBus.regNo}</p>
                                 </div>
                                 <div>
                                     <p className="text-sm text-gray-600">Route</p>
-                                    <p className="font-semibold text-gray-800">{driverInfo.route}</p>
+                                    <p className="font-semibold text-gray-800">{driverBus.route}</p>
                                 </div>
                                 <div>
                                     <p className="text-sm text-gray-600">Shift</p>

@@ -130,63 +130,24 @@ exports.register = async (req, res) => {
       }
     }
 
-    const existingPending = await PendingAdminRegistration.findOne({ email: normalizedEmail });
-    const resendSecondsLeft = getResendSecondsLeft(existingPending?.lastOtpSentAt);
-    if (resendSecondsLeft > 0) {
-      return res.status(429).json({
-        message: `Please wait ${resendSecondsLeft}s before requesting another OTP.`,
-        retryAfterSeconds: resendSecondsLeft,
-      });
-    }
-
-    // Generate and hash OTP.
-    const otp = generateOtp();
-    const otpHash = await bcrypt.hash(otp, 10);
-    const otpExpiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
-    const now = new Date();
-
-    // Save pending registration first, then rollback if email send fails.
-    const pending = await PendingAdminRegistration.findOneAndUpdate(
-      { email: normalizedEmail },
-      {
-        firstName,
-        lastName,
-        username,
-        email: normalizedEmail,
-        phoneNo,
-        password,
-        otpHash,
-        otpAttempts: 0,
-        lastOtpSentAt: now,
-        otpExpiresAt,
-      },
-      { upsert: true, new: true }
-    );
-
-    // Send OTP via email to the real recipient mailbox.
-    try {
-      await sendOtpEmail(normalizedEmail, otp);
-    } catch (mailError) {
-      await PendingAdminRegistration.deleteOne({ _id: pending._id });
-      throw mailError;
-    }
-
-    // Also log to console for backup
-    console.log('\n========================================');
-    console.log('📧 ADMIN REGISTRATION OTP');
-    console.log('========================================');
-    console.log(`Email: ${normalizedEmail}`);
-    console.log(`OTP Code: ${otp}`);
-    console.log(`Expires At: ${otpExpiresAt.toLocaleString()}`);
-    console.log('========================================\n');
-
-    res.status(200).json({
-      message: 'OTP sent to your email. Please check your inbox (and spam folder).',
+    const admin = await Admin.create({
+      firstName,
+      lastName,
+      username,
       email: normalizedEmail,
-      expiresIn: `${OTP_EXPIRY_MINUTES} minutes`
+      phoneNo,
+      password,
+    });
+
+    const token = generateToken(admin);
+
+    res.status(201).json({
+      message: 'Admin registered successfully.',
+      token,
+      username: admin.username,
     });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(500).json({ error: err.message });
   }
 };
 
