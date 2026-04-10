@@ -38,8 +38,9 @@ async function attachDriverNames(buses) {
 
 const createBus = async (req, res) => {
 	try {
-		const { route, regNo, seats, ownerName, phoneNo, email } = req.body;
-		if (!route || !regNo || !seats || !ownerName || !phoneNo || !email) {
+		const { route, regNo, seats, ownerName, phoneNo, email, deviceId } = req.body;
+		const normalizedDeviceId = String(deviceId || '').trim();
+		if (!route || !regNo || !seats || !ownerName || !phoneNo || !email || !normalizedDeviceId) {
 			return res.status(400).json({ message: "Missing required fields" });
 		}
 
@@ -64,9 +65,39 @@ const createBus = async (req, res) => {
 		});
 
 		const created = await bus.save();
+
+		const existingDeviceAssignment = await BusDevice.findOne({ device_id: normalizedDeviceId }).lean();
+		if (existingDeviceAssignment && String(existingDeviceAssignment.bus_id) !== String(created._id)) {
+			await BusDevice.deleteOne({ _id: existingDeviceAssignment._id });
+			await Bus.findByIdAndUpdate(existingDeviceAssignment.bus_id, { device_id: null });
+		}
+
+		const registration = await BusDevice.findOneAndUpdate(
+			{ bus_id: created._id },
+			{
+				bus_id: created._id,
+				device_id: normalizedDeviceId,
+				is_active: true,
+				registered_at: new Date(),
+			},
+			{ upsert: true, new: true, setDefaultsOnInsert: true }
+		);
+
+		await Bus.findByIdAndUpdate(created._id, { device_id: normalizedDeviceId });
+
 		const obj = created.toObject();
 		if (obj.image) delete obj.image.data;
-		return res.status(201).json(obj);
+		return res.status(201).json({
+			...obj,
+			deviceId: normalizedDeviceId,
+			busDeviceRegistration: {
+				id: registration._id,
+				busId: registration.bus_id,
+				deviceId: registration.device_id,
+				isActive: registration.is_active,
+				registeredAt: registration.registered_at,
+			},
+		});
 	} catch (err) {
 		if (err.code === 11000) return res.status(409).json({ message: "regNo already exists" });
 		return res.status(500).json({ message: err.message || "Server error" });
@@ -115,7 +146,8 @@ const getBusImage = async (req, res) => {
 
 const updateBus = async (req, res) => {
 	try {
-		const { route, regNo, seats, ownerName, phoneNo, email } = req.body;
+		const { route, regNo, seats, ownerName, phoneNo, email, deviceId } = req.body;
+		const normalizedDeviceId = typeof deviceId === "string" ? deviceId.trim() : deviceId;
 		const update = {};
 		if (route) update.route = route;
 		if (regNo) update.regNo = regNo;
@@ -123,6 +155,7 @@ const updateBus = async (req, res) => {
 		if (ownerName) update.ownerName = ownerName;
 		if (phoneNo) update.phoneNo = phoneNo;
 		if (email) update.email = email;
+		if (typeof normalizedDeviceId !== "undefined") update.device_id = normalizedDeviceId || null;
 
 		if (req.file && req.file.buffer) {
 			update.image = { data: req.file.buffer, contentType: req.file.mimetype };
@@ -134,6 +167,55 @@ const updateBus = async (req, res) => {
 
 		const updated = await Bus.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true }).lean();
 		if (!updated) return res.status(404).json({ message: "Bus not found" });
+
+		if (typeof normalizedDeviceId !== "undefined") {
+			const currentRegistration = await BusDevice.findOne({ bus_id: req.params.id }).lean();
+
+			if (currentRegistration && currentRegistration.device_id && currentRegistration.device_id !== normalizedDeviceId) {
+				const oldDeviceId = currentRegistration.device_id;
+				const reassignedDevice = await BusDevice.findOne({ device_id: normalizedDeviceId }).lean();
+
+				if (reassignedDevice && String(reassignedDevice.bus_id) !== String(req.params.id)) {
+					await BusDevice.deleteOne({ _id: reassignedDevice._id });
+					await Bus.findByIdAndUpdate(reassignedDevice.bus_id, { device_id: null });
+				}
+
+				await BusDevice.findOneAndUpdate(
+					{ bus_id: req.params.id },
+					{
+						bus_id: req.params.id,
+						device_id: normalizedDeviceId || null,
+						is_active: true,
+						registered_at: currentRegistration.registered_at || new Date(),
+					},
+					{ upsert: true, new: true, setDefaultsOnInsert: true }
+				);
+
+				await Bus.findByIdAndUpdate(req.params.id, { device_id: normalizedDeviceId || null });
+				if (oldDeviceId && !normalizedDeviceId) {
+					await BusDevice.deleteOne({ bus_id: req.params.id });
+				}
+			} else if (!currentRegistration && normalizedDeviceId) {
+				const reassignedDevice = await BusDevice.findOne({ device_id: normalizedDeviceId }).lean();
+				if (reassignedDevice && String(reassignedDevice.bus_id) !== String(req.params.id)) {
+					await BusDevice.deleteOne({ _id: reassignedDevice._id });
+					await Bus.findByIdAndUpdate(reassignedDevice.bus_id, { device_id: null });
+				}
+
+				await BusDevice.findOneAndUpdate(
+					{ bus_id: req.params.id },
+					{
+						bus_id: req.params.id,
+						device_id: normalizedDeviceId,
+						is_active: true,
+						registered_at: new Date(),
+					},
+					{ upsert: true, new: true, setDefaultsOnInsert: true }
+				);
+				await Bus.findByIdAndUpdate(req.params.id, { device_id: normalizedDeviceId });
+			}
+		}
+
 		if (updated.image) delete updated.image.data;
 		return res.json(updated);
 	} catch (err) {

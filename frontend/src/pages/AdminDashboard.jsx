@@ -66,6 +66,19 @@ export default function AdminDashboard() {
 		deviceId: '',
 	});
 	const [registering, setRegistering] = useState(false);
+	const [showBusEditModal, setShowBusEditModal] = useState(false);
+	const [editingBus, setEditingBus] = useState(null);
+	const [busEditForm, setBusEditForm] = useState({
+		route: '',
+		regNo: '',
+		seats: '',
+		ownerName: '',
+		phoneNo: '',
+		email: '',
+		deviceId: '',
+	});
+	const [busEditImage, setBusEditImage] = useState(null);
+	const [busSaving, setBusSaving] = useState(false);
 	const [showDriverModal, setShowDriverModal] = useState(false);
 	const [editingDriver, setEditingDriver] = useState(null);
 	const [driverSaving, setDriverSaving] = useState(false);
@@ -202,6 +215,80 @@ export default function AdminDashboard() {
 	const closeDriverModal = () => {
 		setShowDriverModal(false);
 		setEditingDriver(null);
+	};
+
+	const openEditBusModal = (bus) => {
+		setEditingBus(bus);
+		setBusEditForm({
+			route: bus.route || '',
+			regNo: bus.regNo || '',
+			seats: bus.seats ?? '',
+			ownerName: bus.ownerName || '',
+			phoneNo: bus.phoneNo || '',
+			email: bus.email || '',
+			deviceId: bus.device_id || '',
+		});
+		setBusEditImage(null);
+		setShowBusEditModal(true);
+	};
+
+	const closeBusEditModal = () => {
+		setShowBusEditModal(false);
+		setEditingBus(null);
+		setBusEditImage(null);
+	};
+
+	const handleBusEditChange = (e) => {
+		const { name, value } = e.target;
+		setBusEditForm((prev) => ({ ...prev, [name]: value }));
+	};
+
+	const handleBusEditFile = (e) => {
+		const file = e.target.files?.[0];
+		setBusEditImage(file || null);
+	};
+
+	const handleSaveBus = async () => {
+		if (!editingBus) return;
+
+		if (!busEditForm.route.trim() || !busEditForm.regNo.trim() || !busEditForm.ownerName.trim() || !busEditForm.phoneNo.trim() || !busEditForm.email.trim() || !busEditForm.deviceId.trim()) {
+			await showErrorAlert('Validation Error', 'Route, registration number, owner, phone, email and device ID are required');
+			return;
+		}
+
+		setBusSaving(true);
+		try {
+			const payload = new FormData();
+			payload.append('route', busEditForm.route.trim());
+			payload.append('regNo', busEditForm.regNo.trim());
+			payload.append('seats', String(busEditForm.seats));
+			payload.append('ownerName', busEditForm.ownerName.trim());
+			payload.append('phoneNo', busEditForm.phoneNo.trim());
+			payload.append('email', busEditForm.email.trim());
+			payload.append('deviceId', busEditForm.deviceId.trim());
+			if (busEditImage) payload.append('image', busEditImage);
+
+			const response = await fetch(buildApiUrl(`/buses/${editingBus._id}`), {
+				method: 'PUT',
+				headers: {
+					Authorization: `Bearer ${localStorage.getItem('token')}`,
+				},
+				body: payload,
+			});
+
+			const data = await response.json();
+			if (!response.ok) {
+				throw new Error(data.message || 'Failed to update bus');
+			}
+
+			await showSuccessAlert('Success', 'Bus updated successfully');
+			closeBusEditModal();
+			await fetchData();
+		} catch (error) {
+			await showErrorAlert('Update Failed', error.message || 'Failed to update bus');
+		} finally {
+			setBusSaving(false);
+		}
 	};
 
 	const handleDriverFormChange = (e) => {
@@ -379,12 +466,13 @@ export default function AdminDashboard() {
 										<th className="px-6 py-3">Status</th>
 										<th className="px-6 py-3">Seats</th>
 										<th className="px-6 py-3">Driver</th>
+										<th className="px-6 py-3">Actions</th>
 									</tr>
 								</thead>
 								<tbody className="divide-y divide-[#f2d9cc] text-sm text-[#2a1a15]">
 									{buses.length === 0 ? (
 										<tr>
-											<td colSpan="6" className="px-6 py-8 text-center text-[#6b4b3d]">
+											<td colSpan="7" className="px-6 py-8 text-center text-[#6b4b3d]">
 												No buses registered yet
 											</td>
 										</tr>
@@ -416,6 +504,15 @@ export default function AdminDashboard() {
 												</td>
 												<td className="px-6 py-3">{bus.seats}</td>
 												<td className="px-6 py-3">{bus.driverName}</td>
+												<td className="px-6 py-3">
+													<button
+														onClick={() => openEditBusModal(bus)}
+														className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-[#3b82f6]/10 text-[#1d4ed8] hover:bg-[#3b82f6] hover:text-white text-xs font-medium"
+													>
+														<Pencil className="h-4 w-4" />
+														Edit
+													</button>
+												</td>
 											</tr>
 										))
 									)}
@@ -526,6 +623,65 @@ export default function AdminDashboard() {
 											<div key={bus._id} className="bg-white rounded-lg p-3 flex items-center justify-between border border-yellow-100">
 												<div>
 													<p className="font-medium text-sm text-[#2a1a15]">{bus.regNo}</p>
+
+											{showBusEditModal && (
+												<div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+													<div className="bg-white rounded-2xl shadow-lg w-full max-w-2xl border border-[#f2d9cc] max-h-[90vh] overflow-y-auto">
+														<div className="px-6 py-4 border-b border-[#f2d9cc] flex items-center justify-between">
+															<h3 className="text-lg font-semibold text-[#2a1a15]">Edit Bus</h3>
+															<button onClick={closeBusEditModal} className="text-[#6b4b3d] hover:text-[#2a1a15]">
+																<X className="h-5 w-5" />
+															</button>
+														</div>
+														<div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+															<div className="md:col-span-2">
+																<label className="block text-sm text-[#2a1a15] mb-1">Bus Image</label>
+																<input type="file" accept="image/*" onChange={handleBusEditFile} className="w-full px-3 py-2 border border-[#f2d9cc] rounded-lg" />
+																<p className="text-xs text-[#6b4b3d] mt-1">Leave empty to keep the current image.</p>
+															</div>
+															<div>
+																<label className="block text-sm text-[#2a1a15] mb-1">Route *</label>
+																<input name="route" value={busEditForm.route} onChange={handleBusEditChange} className="w-full px-3 py-2 border border-[#f2d9cc] rounded-lg" />
+															</div>
+															<div>
+																<label className="block text-sm text-[#2a1a15] mb-1">Registration No *</label>
+																<input name="regNo" value={busEditForm.regNo} onChange={handleBusEditChange} className="w-full px-3 py-2 border border-[#f2d9cc] rounded-lg" />
+															</div>
+															<div>
+																<label className="block text-sm text-[#2a1a15] mb-1">Seats *</label>
+																<input name="seats" type="number" min="1" value={busEditForm.seats} onChange={handleBusEditChange} className="w-full px-3 py-2 border border-[#f2d9cc] rounded-lg" />
+															</div>
+															<div>
+																<label className="block text-sm text-[#2a1a15] mb-1">Device ID *</label>
+																<select name="deviceId" value={busEditForm.deviceId} onChange={handleBusEditChange} className="w-full px-3 py-2 border border-[#f2d9cc] rounded-lg">
+																	<option value="">Select device ID</option>
+																	{knownIotDevices.map((d) => (
+																		<option key={d.deviceId} value={d.deviceId}>{d.deviceId}</option>
+																	))}
+																</select>
+															</div>
+															<div>
+																<label className="block text-sm text-[#2a1a15] mb-1">Owner Name *</label>
+																<input name="ownerName" value={busEditForm.ownerName} onChange={handleBusEditChange} className="w-full px-3 py-2 border border-[#f2d9cc] rounded-lg" />
+															</div>
+															<div>
+																<label className="block text-sm text-[#2a1a15] mb-1">Phone No *</label>
+																<input name="phoneNo" value={busEditForm.phoneNo} onChange={handleBusEditChange} className="w-full px-3 py-2 border border-[#f2d9cc] rounded-lg" />
+															</div>
+															<div className="md:col-span-2">
+																<label className="block text-sm text-[#2a1a15] mb-1">Email *</label>
+																<input name="email" value={busEditForm.email} onChange={handleBusEditChange} className="w-full px-3 py-2 border border-[#f2d9cc] rounded-lg" />
+															</div>
+														</div>
+														<div className="px-6 py-4 border-t border-[#f2d9cc] flex items-center justify-end gap-3">
+															<button onClick={closeBusEditModal} className="px-4 py-2 border border-[#f2d9cc] rounded-lg text-[#6b4b3d] hover:bg-[#fff4ec]">Cancel</button>
+															<button onClick={handleSaveBus} disabled={busSaving} className="px-4 py-2 bg-[#ff6b35] text-white rounded-lg hover:bg-[#e55a24] disabled:opacity-60">
+																{busSaving ? 'Saving...' : 'Update Bus'}
+															</button>
+														</div>
+													</div>
+												</div>
+											)}
 													<p className="text-xs text-[#6b4b3d]">{bus.route}</p>
 												</div>
 												<button
