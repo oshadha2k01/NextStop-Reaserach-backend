@@ -75,6 +75,7 @@ export default function AddBus() {
 			fd.append('ownerName', form.ownerName.trim());
 			fd.append('phoneNo', form.phoneNo.trim());
 			fd.append('email', form.email.trim());
+			fd.append('deviceId', form.deviceId.trim());
 			fd.append('image', form.imageFile);
 
 			// Step 1: Create Bus
