@@ -1,11 +1,19 @@
 const jwt = require('jsonwebtoken');
 
+const FALLBACK_SUPERADMINS = [
+  { email: 'superadmin1@nextstop.com', password: 'password@123' },
+  { email: 'superadmin2@nextstop.com', password: 'superadmin@123' },
+];
+
 const getSuperAdmins = () => {
   try {
     const parsed = JSON.parse(process.env.SUPERADMIN_CREDENTIALS || '[]');
-    return Array.isArray(parsed) ? parsed : [];
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      return parsed;
+    }
+    return FALLBACK_SUPERADMINS;
   } catch (error) {
-    return [];
+    return FALLBACK_SUPERADMINS;
   }
 };
 

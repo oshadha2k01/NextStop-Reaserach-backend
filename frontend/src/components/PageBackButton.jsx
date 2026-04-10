@@ -9,7 +9,7 @@ export default function PageBackButton({ to = '/access', label = 'Back', classNa
     <button
       type="button"
       onClick={() => navigate(to)}
-      className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[#ff6b35] font-medium hover:bg-[#ff6b35]/10 transition-colors ${className}`}
+      className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[#ff6b35] font-medium hover:bg-[#ff6b35]/10 transition-colors cursor-pointer ${className}`}
     >
       <ArrowLeft className="h-4 w-4" />
       {label}
