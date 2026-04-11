@@ -40,7 +40,10 @@ const dataRoutes = require("./routes/SuperAdmin/dataRoutes");
 
 const app = express();
 const { MONGO_URI, PORT = 3000 } = process.env;
-const SOCKET_PATH = process.env.SOCKET_PATH || (process.env.NODE_ENV === 'production' ? '/backend/socket.io' : '/socket.io');
+const configuredSocketPath = (process.env.SOCKET_PATH || '').trim();
+const SOCKET_PATH = configuredSocketPath === '/backend/socket.io'
+  ? '/socket.io'
+  : (configuredSocketPath || '/socket.io');
 
 if (!MONGO_URI) {
   console.error("Missing MONGO_URI environment variable. Set it in a .env file at the project root.");
