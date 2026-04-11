@@ -49,8 +49,9 @@ if (!MONGO_URI) {
 
 // -----------------------------------------------------
 // WEBSOCKET SETUP
-// Wrap the Express app in a standard HTTP server
-const server = http.createServer(app);
+// Create a standard HTTP server first, then attach Socket.IO before Express.
+// This avoids Express returning 404 for handshake URLs before Socket.IO sees them.
+const server = http.createServer();
 const buildCorsOrigin = () => {
     if (process.env.NODE_ENV !== 'production') return '*';
     const raw = process.env.CORS_ORIGIN || '';
@@ -74,6 +75,9 @@ const io = new Server(server, {
   cors: { origin: corsOrigin },
   path: SOCKET_PATH,
 });
+
+// Attach Express after Socket.IO listeners are in place.
+server.on('request', app);
 
 
 app.set('io', io);
@@ -103,6 +107,11 @@ io.on('connection', (socket) => {
 
 // Auto-remove '/backend' prefix if DigitalOcean forwards it that way
 app.use((req, res, next) => {
+  // Never rewrite Socket.IO handshake URLs.
+  if (req.url.startsWith('/socket.io') || req.url.startsWith('/backend/socket.io')) {
+    return next();
+  }
+
     if (req.url === '/backend' || req.url === '/backend/') {
         req.url = '/';
     } else if (req.url.startsWith('/backend/')) {
@@ -189,6 +198,7 @@ mongoose
 // Note: We use `server.listen` instead of `app.listen` to allow WebSockets to work!
 server.listen(PORT, () => {
   console.log(`\n Server running on port ${PORT}`);
+  console.log(` Socket.IO path: ${SOCKET_PATH}`);
   console.log(` API endpoint: POST http://localhost:${PORT}/api/predict`);
   console.log(` IoT endpoint: POST http://localhost:${PORT}/api/sensor-data`);
   console.log('Start Flask service on Port 5000 BEFORE testing');
