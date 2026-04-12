@@ -1,5 +1,6 @@
 const BusDevice = require('../../models/BusDevice/BusDevice');
 const SensorData = require('../../models/IoTDevice/SensorData');
+const Bus = require('../../models/Bus/BusModel');
 const axios = require('axios');
 
 // Compound index should be created in MongoDB for performance:
@@ -53,17 +54,32 @@ exports.notifyBusDriver = async (req, res) => {
         console.log(`📡 Bus current position: ${busLat}, ${busLng}`);
 
         // STEP 2: Reverse-lookup busId from BusDevice for Socket.IO room name
-        const busDevice = await BusDevice.findOne({ device_id: deviceId, is_active: true });
+        // Use newest active mapping first to avoid stale assignment issues.
+        const activeMappings = await BusDevice.find({ device_id: deviceId, is_active: true })
+            .sort({ registered_at: -1 })
+            .lean();
 
-        if (!busDevice) {
+        if (!activeMappings || activeMappings.length === 0) {
             console.error(`❌ No active BusDevice registration found for device ${deviceId}`);
             return res.status(404).json({
                 error: "Device is not registered to any active bus"
             });
         }
 
-        const busId = busDevice.bus_id.toString();
-        console.log(`🔗 Resolved Bus ID: ${busId}`);
+        const primaryBusId = String(activeMappings[0].bus_id);
+        const candidateBusIds = new Set([primaryBusId]);
+
+        // Fallback candidate: Bus document that currently carries this device_id.
+        // This helps if historical bus-device records got out of sync.
+        const busByDevice = await Bus.findOne({ device_id: deviceId }).select('_id regNo route').lean();
+        if (busByDevice?._id) {
+            candidateBusIds.add(String(busByDevice._id));
+        }
+
+        console.log(`🔗 Primary Bus ID from BusDevice: ${primaryBusId}`);
+        if (busByDevice?._id) {
+            console.log(`🔗 Bus ID from Bus.device_id lookup: ${String(busByDevice._id)} (${busByDevice.regNo || 'N/A'})`);
+        }
 
         // STEP 3: Call Google Maps Distance Matrix API
         // Returns real road distance and estimated travel time with traffic
@@ -175,11 +191,16 @@ exports.notifyBusDriver = async (req, res) => {
             status: 'unacknowledged'
         };
 
-        // Emit to room named after busId (driver joins this room on login)
-        const roomName = `bus-${busId}`;
-        io.to(roomName).emit('passenger_boarding', notificationPayload);
-        
-        console.log(`🔔 Notification sent to room: ${roomName}`);
+        // Emit to one or more candidate rooms to tolerate stale mapping drift.
+        const emittedRooms = [];
+        for (const busId of candidateBusIds) {
+            const roomName = `bus-${busId}`;
+            const roomSize = io.sockets.adapter.rooms.get(roomName)?.size || 0;
+            io.to(roomName).emit('passenger_boarding', notificationPayload);
+            emittedRooms.push({ room: roomName, subscribers: roomSize });
+            console.log(`🔔 Notification sent to room: ${roomName} (subscribers: ${roomSize})`);
+        }
+
         console.log(`📦 Payload:`, JSON.stringify(notificationPayload, null, 2));
 
         // Return success to passenger app
@@ -189,7 +210,8 @@ exports.notifyBusDriver = async (req, res) => {
             data: {
                 distance: roadDistanceText,
                 estimatedTime: travelDurationText,
-                stopsAway: stopCount
+                stopsAway: stopCount,
+                emittedRooms
             }
         });
 
