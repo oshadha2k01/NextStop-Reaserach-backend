@@ -24,8 +24,10 @@ class JourneyTimePredictor:
     def __init__(self):
         """Initialize predictor with trained model"""
         self.model_path = os.path.join(MODELS_PATH, "journey_time_model.pkl")
+        self.metadata_path = os.path.join(MODELS_PATH, "model_metadata.json")
         self.model = None
         self.features = None
+        self.target_transform = None
         self.load_model()
     
     def load_model(self):
@@ -36,6 +38,14 @@ class JourneyTimePredictor:
             
             self.model = joblib.load(self.model_path)
             self.features = get_feature_list()
+            if os.path.exists(self.metadata_path):
+                try:
+                    import json
+                    with open(self.metadata_path, 'r', encoding='utf-8') as metadata_file:
+                        metadata = json.load(metadata_file)
+                    self.target_transform = (metadata.get('metrics') or {}).get('target_transform')
+                except Exception:
+                    self.target_transform = None
             print(f"--- Model loaded successfully")
             print(f"  Features: {len(self.features)}")
             
@@ -119,6 +129,8 @@ class JourneyTimePredictor:
                 X[f] = feature_data[f] if f in feature_data.columns else 0.0
 
             ml_delay = self.model.predict(X)[0]
+            if self.target_transform == 'log1p':
+                ml_delay = np.expm1(ml_delay)
             ml_delay = max(ml_delay, 0)
 
             # Hybrid Calculation

@@ -21,6 +21,9 @@ from config import (
     MODELS_PATH,
     MODEL_CONFIG,
     MODEL_PROMOTION_MIN_IMPROVEMENT_PCT,
+    MODEL_PROMOTION_MIN_HOLDOUT_R2,
+    MODEL_PROMOTION_MIN_BASELINE_IMPROVEMENT_PCT,
+    MODEL_PROMOTION_MIN_HOLDOUT_SAMPLES,
     MODEL_ROLLBACK_ENABLED,
     MODEL_REGISTRY_FILE,
     MODEL_EVALUATION_REPORT_FILE,
@@ -102,10 +105,27 @@ def _time_series_holdout_split(X, y, holdout_ratio=0.2):
 
 def _evaluate_model(model, X_eval, y_eval):
     predictions = model.predict(X_eval)
+    if model is not None:
+        predictions = np.expm1(predictions)
+        predictions = np.maximum(predictions, 0)
     return {
         'mae': float(mean_absolute_error(y_eval, predictions)),
         'rmse': float(np.sqrt(mean_squared_error(y_eval, predictions))),
         'r2': float(r2_score(y_eval, predictions))
+    }
+
+
+def _evaluate_baseline(y_train, y_eval):
+    """Mean baseline on holdout, used as a hard minimum quality bar."""
+    if len(y_eval) == 0:
+        return None
+
+    baseline_value = float(y_train.mean()) if len(y_train) > 0 else float(y_eval.mean())
+    baseline_predictions = np.full(shape=len(y_eval), fill_value=baseline_value)
+    return {
+        'mae': float(mean_absolute_error(y_eval, baseline_predictions)),
+        'rmse': float(np.sqrt(mean_squared_error(y_eval, baseline_predictions))),
+        'r2': float(r2_score(y_eval, baseline_predictions))
     }
 
 
@@ -238,8 +258,10 @@ def train_model(X, y):
         verbose=1
     )
 
+    y_train_log = np.log1p(np.clip(y_train, a_min=0, a_max=None))
+
     try:
-        grid_search.fit(X_train, y_train)
+        grid_search.fit(X_train, y_train_log)
     except Exception as e:
         print(f"!!! XGBoost Training Error: {e}")
         return None, None, None
@@ -249,6 +271,7 @@ def train_model(X, y):
 
     train_metrics = _evaluate_model(best_model, X_train, y_train)
     holdout_metrics = _evaluate_model(best_model, X_holdout, y_holdout) if len(X_holdout) > 0 else None
+    baseline_metrics = _evaluate_baseline(y_train, y_holdout) if len(X_holdout) > 0 else None
 
     print("\n--- Final Model Performance:")
     print(f"    Train MAE:  {train_metrics['mae']:.4f}")
@@ -271,29 +294,64 @@ def train_model(X, y):
     metrics = {
         'best_params': grid_search.best_params_,
         'cv_best_neg_mae': float(grid_search.best_score_),
+        'target_transform': 'log1p',
+        'holdout_count': int(len(X_holdout)),
         'train_mae': train_metrics['mae'],
         'train_rmse': train_metrics['rmse'],
         'train_r2': train_metrics['r2'],
         'holdout_mae': holdout_metrics['mae'] if holdout_metrics else None,
         'holdout_rmse': holdout_metrics['rmse'] if holdout_metrics else None,
-        'holdout_r2': holdout_metrics['r2'] if holdout_metrics else None
+        'holdout_r2': holdout_metrics['r2'] if holdout_metrics else None,
+        'baseline_holdout_mae': baseline_metrics['mae'] if baseline_metrics else None,
+        'baseline_holdout_r2': baseline_metrics['r2'] if baseline_metrics else None,
     }
+
+    if metrics['holdout_mae'] is not None and metrics['baseline_holdout_mae'] is not None and metrics['baseline_holdout_mae'] > 0:
+        metrics['baseline_improvement_pct'] = float(
+            ((metrics['baseline_holdout_mae'] - metrics['holdout_mae']) / metrics['baseline_holdout_mae']) * 100
+        )
+    else:
+        metrics['baseline_improvement_pct'] = None
 
     return best_model, metrics, feature_importance
 
 
 def _should_promote(candidate_metrics, current_metrics):
-    if not current_metrics:
-        return True
+    reasons = []
+
+    holdout_count = candidate_metrics.get('holdout_count')
+    holdout_r2 = candidate_metrics.get('holdout_r2')
+    baseline_improvement_pct = candidate_metrics.get('baseline_improvement_pct')
+
+    if holdout_count is None or holdout_count < MODEL_PROMOTION_MIN_HOLDOUT_SAMPLES:
+        reasons.append(
+            f"holdout_count={holdout_count} below minimum {MODEL_PROMOTION_MIN_HOLDOUT_SAMPLES}"
+        )
+
+    if holdout_r2 is None or holdout_r2 < MODEL_PROMOTION_MIN_HOLDOUT_R2:
+        reasons.append(
+            f"holdout_r2={holdout_r2} below minimum {MODEL_PROMOTION_MIN_HOLDOUT_R2}"
+        )
+
+    if baseline_improvement_pct is None or baseline_improvement_pct < MODEL_PROMOTION_MIN_BASELINE_IMPROVEMENT_PCT:
+        reasons.append(
+            f"baseline_improvement_pct={baseline_improvement_pct} below minimum {MODEL_PROMOTION_MIN_BASELINE_IMPROVEMENT_PCT}"
+        )
 
     candidate_mae = candidate_metrics.get('holdout_mae')
-    current_mae = current_metrics.get('holdout_mae')
+    current_mae = current_metrics.get('holdout_mae') if current_metrics else None
 
-    if candidate_mae is None or current_mae is None:
-        return True
+    if current_metrics and (candidate_mae is None or current_mae is None):
+        reasons.append("missing holdout_mae for candidate or current model")
+    elif current_metrics:
+        improvement_pct = ((current_mae - candidate_mae) / current_mae) * 100 if current_mae > 0 else 0
+        if improvement_pct < MODEL_PROMOTION_MIN_IMPROVEMENT_PCT:
+            reasons.append(
+                f"improvement_vs_current_pct={improvement_pct:.3f} below minimum {MODEL_PROMOTION_MIN_IMPROVEMENT_PCT}"
+            )
 
-    improvement_pct = ((current_mae - candidate_mae) / current_mae) * 100 if current_mae > 0 else 0
-    return improvement_pct >= MODEL_PROMOTION_MIN_IMPROVEMENT_PCT
+    promote = len(reasons) == 0
+    return promote, reasons
 
 
 def save_model(model, metrics, feature_importance, features_used, data_profile=None, drift_summary=None):
@@ -305,7 +363,7 @@ def save_model(model, metrics, feature_importance, features_used, data_profile=N
     candidate_path = os.path.join(MODELS_PATH, "journey_time_model_candidate.pkl")
 
     current_metrics = _load_current_model_metrics()
-    promote = _should_promote(metrics, current_metrics)
+    promote, promotion_reasons = _should_promote(metrics, current_metrics)
 
     joblib.dump(model, candidate_path)
 
@@ -319,6 +377,8 @@ def save_model(model, metrics, feature_importance, features_used, data_profile=N
         promoted_state = 'promoted'
     else:
         print("--- Candidate model not promoted; current production model retained")
+        for reason in promotion_reasons:
+            print(f"--- Promotion gate: {reason}")
         promoted_state = 'retained_current'
 
     registry_payload = {
@@ -328,6 +388,7 @@ def save_model(model, metrics, feature_importance, features_used, data_profile=N
         'features': features_used,
         'production_metrics': metrics,
         'current_metrics': current_metrics,
+        'promotion_reasons': promotion_reasons,
         'data_profile': data_profile,
         'drift_summary': drift_summary,
         'model_path': model_path,
@@ -343,7 +404,8 @@ def save_model(model, metrics, feature_importance, features_used, data_profile=N
             "features": features_used,
             "metrics": metrics,
             "current_metrics": current_metrics,
-            "production_state": promoted_state
+            "production_state": promoted_state,
+            "promotion_reasons": promotion_reasons
         }, f, indent=4)
     print(f"--- Metadata saved to {metadata_path}")
 
@@ -358,6 +420,7 @@ def save_model(model, metrics, feature_importance, features_used, data_profile=N
         'production_state': promoted_state,
         'candidate_metrics': metrics,
         'current_metrics': current_metrics,
+        'promotion_reasons': promotion_reasons,
         'drift_summary': drift_summary,
         'feature_importance_top5': feature_importance.head(5).to_dict(orient='records')
     }
@@ -396,6 +459,9 @@ def training_pipeline():
     
     # Train model
     model, metrics, feature_importance = train_model(X, y)
+    if model is None or metrics is None or feature_importance is None:
+        print("--- Training failed; skipping model save")
+        return False
     
     # Save / promote model
     save_model(

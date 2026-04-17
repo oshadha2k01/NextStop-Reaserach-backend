@@ -103,6 +103,20 @@ def clean_data(df):
         df = df.dropna(subset=core_fields)
         print(f"--- Removed rows missing core fields: {before_core - len(df)} rows")
 
+    # Remove obviously invalid coordinates (e.g., 0,0) and out-of-route noise.
+    # Route 177 is in Colombo region; keep a conservative geo-bounding box.
+    if 'lat' in df.columns and 'lng' in df.columns:
+        before_geo = len(df)
+        lat_series = pd.to_numeric(df['lat'], errors='coerce')
+        lng_series = pd.to_numeric(df['lng'], errors='coerce')
+        valid_geo_mask = (
+            lat_series.between(5.5, 8.0)
+            & lng_series.between(79.5, 81.0)
+            & ~((lat_series.abs() < 1e-6) & (lng_series.abs() < 1e-6))
+        )
+        df = df[valid_geo_mask].copy()
+        print(f"--- Removed invalid/out-of-route coordinates: {before_geo - len(df)} rows")
+
     # Fill optional fields with safe defaults (avoid wiping out data)
     if 'weather_was_raining' in df.columns:
         df['weather_was_raining'] = pd.to_numeric(df['weather_was_raining'], errors='coerce').fillna(0).astype(int)
@@ -192,6 +206,12 @@ def preprocess_pipeline():
     # Create features
     print("\n--- Creating features...")
     processed_df = create_features(cleaned_df)
+
+    # Remove duplicate columns from merge (_x, _y artifacts)
+    duplicate_merge_columns = [col for col in processed_df.columns if col.endswith('_x') or col.endswith('_y')]
+    if duplicate_merge_columns:
+        processed_df = processed_df.drop(columns=duplicate_merge_columns)
+        print(f"--- Removed duplicate merge columns: {duplicate_merge_columns}")
     
     # Validate processed data
     print("\n--- Validating processed data...")
