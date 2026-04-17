@@ -26,6 +26,7 @@ const iotRoutes = require("./routes/IoTDevice/IoTRoutes");
 
 // Import Passenger Auth Routes
 const passengerAuthRoutes = require("./routes/Passenger/passengerAuthRoutes");
+const userRegisterRoutes = require("./routes/UserRegister/userRegisterRoutes");
 
 // Import Passenger Boarding Notification Routes
 const boardingNotificationRoutes = require("./routes/Passenger/boardingNotificationRoutes");
@@ -154,6 +155,7 @@ if (process.env.NODE_ENV !== 'production') {
 // Mount Existing Routes
 app.use("/api/admin", adminAuthRoutes);
 app.use("/api/passenger", passengerAuthRoutes);
+app.use("/api/user-register", userRegisterRoutes);
 app.use("/api/buses", busRoutes);
 app.use("/api/superadmin", superAdminAuthRoutes);
 app.use("/api/drivers", driverRoutes);
