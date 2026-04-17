@@ -10,11 +10,12 @@ const generateToken = (passenger) => {
 
 exports.register = async (req, res) => {
   try {
-    const { fullName, email, telNo } = req.body;
+    const { firstName, email, telNo } = req.body;
     const normalizedEmail = String(email || '').trim().toLowerCase();
+    const resolvedFirstName = String(firstName || '').trim();
 
-    if (!fullName || !normalizedEmail || !telNo) {
-      return res.status(400).json({ message: 'Missing required fields: fullName, email, telNo' });
+    if (!resolvedFirstName || !normalizedEmail || !telNo) {
+      return res.status(400).json({ message: 'Missing required fields: firstName, email, telNo' });
     }
 
     if (!EMAIL_REGEX.test(normalizedEmail)) {
@@ -35,7 +36,7 @@ exports.register = async (req, res) => {
     }
 
     const passenger = await Passenger.create({
-      fullName,
+      firstName: resolvedFirstName,
       email: normalizedEmail,
       telNo,
     });
@@ -47,7 +48,7 @@ exports.register = async (req, res) => {
       token,
       passenger: {
         id: passenger._id,
-        fullName: passenger.fullName,
+        firstName: passenger.firstName,
         email: passenger.email,
         telNo: passenger.telNo,
       },
@@ -76,7 +77,7 @@ exports.login = async (req, res) => {
       token,
       passenger: {
         id: passenger._id,
-        fullName: passenger.fullName,
+        firstName: passenger.firstName,
         email: passenger.email,
         telNo: passenger.telNo,
       },
@@ -100,7 +101,7 @@ exports.getProfile = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
   try {
-    const { fullName, email, telNo } = req.body;
+    const { firstName, email, telNo } = req.body;
     const passenger = await Passenger.findById(req.user.id);
 
     if (!passenger) {
@@ -123,7 +124,9 @@ exports.updateProfile = async (req, res) => {
       passenger.telNo = telNo;
     }
 
-    if (fullName) passenger.fullName = fullName;
+    if (firstName) {
+      passenger.firstName = firstName;
+    }
 
     await passenger.save();
 
