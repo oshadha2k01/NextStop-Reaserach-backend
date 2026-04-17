@@ -1,5 +1,5 @@
 {
-    "trained_at": "2026-04-06T19:03:37.586018",
+    "trained_at": "2026-04-17T20:24:41.002205",
     "features": [
         "hour",
         "day_of_week",
@@ -13,18 +13,59 @@
         "distance_from_center",
         "traffic_intensity",
         "journey_distance_km",
-        "avg_route_speed_last_15m"
+        "avg_route_speed_last_15m",
+        "boarding_stop_idx",
+        "destination_stop_idx",
+        "segment_count",
+        "route_progress",
+        "hist_stop_duration_mean",
+        "hist_stop_obs_count",
+        "device_prev_stop_duration",
+        "device_prev3_stop_duration_mean"
     ],
     "metrics": {
         "best_params": {
             "learning_rate": 0.01,
-            "max_depth": 4,
+            "max_depth": 6,
             "n_estimators": 100,
-            "subsample": 1.0
+            "subsample": 0.8
         },
-        "cv_best_neg_mae": -36.3926456451416,
-        "train_mae": 24.523693084716797,
-        "train_rmse": 36.297530800145346,
-        "train_r2": 0.5036388635635376
-    }
+        "cv_best_neg_mae": -0.7364935877685166,
+        "target_transform": "log1p",
+        "holdout_count": 21,
+        "train_mae": 18.75889778137207,
+        "train_rmse": 36.22508404223774,
+        "train_r2": 0.3644077777862549,
+        "holdout_mae": 25.293296813964844,
+        "holdout_rmse": 39.41137952340034,
+        "holdout_r2": 0.09637421369552612,
+        "baseline_holdout_mae": 30.550852439741327,
+        "baseline_holdout_r2": -0.012832803249526403,
+        "baseline_improvement_pct": 17.20919452622972
+    },
+    "current_metrics": {
+        "best_params": {
+            "learning_rate": 0.01,
+            "max_depth": 6,
+            "n_estimators": 100,
+            "subsample": 0.8
+        },
+        "cv_best_neg_mae": -0.7364935877685166,
+        "target_transform": "log1p",
+        "holdout_count": 21,
+        "train_mae": 18.75889778137207,
+        "train_rmse": 36.22508404223774,
+        "train_r2": 0.3644077777862549,
+        "holdout_mae": 25.293296813964844,
+        "holdout_rmse": 39.41137952340034,
+        "holdout_r2": 0.09637421369552612,
+        "baseline_holdout_mae": 30.550852439741327,
+        "baseline_holdout_r2": -0.012832803249526403,
+        "baseline_improvement_pct": 17.20919452622972
+    },
+    "production_state": "retained_current",
+    "promotion_reasons": [
+        "holdout_r2=0.09637421369552612 below minimum 0.1",
+        "improvement_vs_current_pct=0.000 below minimum 2.0"
+    ]
 }

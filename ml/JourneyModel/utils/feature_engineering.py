@@ -65,6 +65,21 @@ def _nearest_stop_idx(lat, lng, stops):
     return best_idx
 
 
+def _route_stop_count():
+    stops = _load_route_stops()
+    return len(stops) if stops else 0
+
+
+def _nearest_stop_idx_safe(lat, lng):
+    stops = _load_route_stops()
+    if not stops:
+        return 0
+    try:
+        return int(_nearest_stop_idx(float(lat), float(lng), stops))
+    except Exception:
+        return 0
+
+
 def calculate_route_sequence_distance_km(b_lat, b_lng, d_lat, d_lng):
     """
     Along-route distance by summing Haversine distances between consecutive
@@ -245,12 +260,81 @@ def create_features(data):
                 except Exception:
                     return 0
             df['direction'] = df.apply(_direction, axis=1)
+
+            # Route segment features from nearest route stop indices.
+            df['boarding_stop_idx'] = df.apply(
+                lambda row: _nearest_stop_idx_safe(row['boarding_lat'], row['boarding_lng']),
+                axis=1
+            )
+            df['destination_stop_idx'] = df.apply(
+                lambda row: _nearest_stop_idx_safe(row['destination_lat'], row['destination_lng']),
+                axis=1
+            )
+            df['segment_count'] = (df['destination_stop_idx'] - df['boarding_stop_idx']).abs().astype(int)
         else:
             df['direction'] = 0
+
+            # Training-time fallback when only current GPS is available.
+            df['current_stop_idx'] = df.apply(
+                lambda row: _nearest_stop_idx_safe(row['lat'], row['lng']),
+                axis=1
+            )
+            if 'timestamp' in df.columns and 'device_id' in df.columns:
+                df = df.sort_values(['device_id', 'timestamp']).reset_index(drop=True)
+                df['previous_stop_idx'] = df.groupby('device_id')['current_stop_idx'].shift(1)
+            else:
+                df['previous_stop_idx'] = df['current_stop_idx']
+
+            df['previous_stop_idx'] = df['previous_stop_idx'].fillna(df['current_stop_idx']).astype(int)
+            df['boarding_stop_idx'] = df['previous_stop_idx']
+            df['destination_stop_idx'] = df['current_stop_idx']
+            df['segment_count'] = (df['destination_stop_idx'] - df['boarding_stop_idx']).abs().astype(int)
+
+        stop_count = max(_route_stop_count() - 1, 1)
+        df['route_progress'] = pd.to_numeric(df['destination_stop_idx'], errors='coerce').fillna(0) / stop_count
     
     # Stop duration features
     if 'stop_duration_seconds' in df.columns:
         df['stop_duration_minutes'] = df['stop_duration_seconds'] / 60
+
+    # Historical stop-duration proxy features (leakage-safe via shift(1)).
+    # These features give the model route/stop temporal context and are only
+    # computed from past observations.
+    expected_proxy_seconds = estimate_expected_stop_duration(
+        hour=int(df['hour'].iloc[0]) if len(df) else 12,
+        is_rush_hour=int(df['is_rush_hour'].iloc[0]) if len(df) else 0,
+        traffic_intensity=int(df['traffic_intensity'].iloc[0]) if 'traffic_intensity' in df.columns and len(df) else 1,
+    )
+
+    if 'stop_duration_seconds' in df.columns and 'timestamp' in df.columns:
+        target_series = pd.to_numeric(df['stop_duration_seconds'], errors='coerce')
+        global_target_median = float(target_series.dropna().median()) if target_series.dropna().size > 0 else float(expected_proxy_seconds)
+
+        grouped = df.groupby(['destination_stop_idx', 'hour'])['stop_duration_seconds']
+        df['hist_stop_duration_mean'] = grouped.transform(
+            lambda series: pd.to_numeric(series, errors='coerce').shift(1).expanding().mean()
+        )
+        df['hist_stop_obs_count'] = grouped.cumcount()
+
+        if 'device_id' in df.columns:
+            device_target = df.groupby('device_id')['stop_duration_seconds']
+            df['device_prev_stop_duration'] = device_target.shift(1)
+            df['device_prev3_stop_duration_mean'] = device_target.transform(
+                lambda series: pd.to_numeric(series, errors='coerce').shift(1).rolling(3, min_periods=1).mean()
+            )
+        else:
+            df['device_prev_stop_duration'] = np.nan
+            df['device_prev3_stop_duration_mean'] = np.nan
+
+        df['hist_stop_duration_mean'] = pd.to_numeric(df['hist_stop_duration_mean'], errors='coerce').fillna(global_target_median)
+        df['hist_stop_obs_count'] = pd.to_numeric(df['hist_stop_obs_count'], errors='coerce').fillna(0).astype(int)
+        df['device_prev_stop_duration'] = pd.to_numeric(df['device_prev_stop_duration'], errors='coerce').fillna(global_target_median)
+        df['device_prev3_stop_duration_mean'] = pd.to_numeric(df['device_prev3_stop_duration_mean'], errors='coerce').fillna(global_target_median)
+    else:
+        df['hist_stop_duration_mean'] = float(expected_proxy_seconds)
+        df['hist_stop_obs_count'] = 0
+        df['device_prev_stop_duration'] = float(expected_proxy_seconds)
+        df['device_prev3_stop_duration_mean'] = float(expected_proxy_seconds)
     
     # Traffic intensity must not be derived from target-like stop duration values.
     # Priority:
@@ -288,6 +372,8 @@ def create_features(data):
     print(f"  - Time-based: hour, day_of_week, is_weekend, is_rush_hour")
     print(f"  - Weather: weather_was_raining, is_hot, is_cold")
     print(f"  - Location: lat, lng, distance_from_center")
+    print(f"  - Route segments: boarding_stop_idx, destination_stop_idx, segment_count, route_progress")
+    print(f"  - Historical proxies: hist_stop_duration_mean, hist_stop_obs_count, device_prev_stop_duration, device_prev3_stop_duration_mean")
     print(f"  - Traffic: stop_duration_minutes, traffic_intensity")
     
     return df
@@ -308,7 +394,15 @@ def get_feature_list():
         "distance_from_center",
         "traffic_intensity",
         "journey_distance_km",
-        "avg_route_speed_last_15m"
+        "avg_route_speed_last_15m",
+        "boarding_stop_idx",
+        "destination_stop_idx",
+        "segment_count",
+        "route_progress",
+        "hist_stop_duration_mean",
+        "hist_stop_obs_count",
+        "device_prev_stop_duration",
+        "device_prev3_stop_duration_mean"
     ]
     return features
 

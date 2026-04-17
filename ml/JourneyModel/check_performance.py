@@ -58,10 +58,22 @@ def check_model_accuracy():
 
     print(f"\n--- Accuracy Metrics ---")
     print(f"  Accuracy Rating: {final_rating:.1f}/100")
-    print(f"  Holdout MAE (Error): {metrics.get('holdout_mae', metrics.get('test_mae', 0)):.2f} minutes")
+    holdout_mae = metrics.get('holdout_mae', metrics.get('test_mae', 0))
+    print(f"  Holdout MAE (Error): {holdout_mae:.2f} seconds ({(holdout_mae / 60):.2f} minutes)")
     print(f"  Holdout R^2: {metrics.get('holdout_r2', metrics.get('test_r2', 0)):.4f}")
+    if metrics.get('holdout_count') is not None:
+        print(f"  Holdout Sample Count: {metrics.get('holdout_count')}")
     if metrics.get('cv_best_neg_mae') is not None:
-        print(f"  CV Best Neg MAE: {metrics.get('cv_best_neg_mae'):.4f}")
+        cv_mae_seconds = abs(metrics.get('cv_best_neg_mae'))
+        if metrics.get('target_transform') == 'log1p':
+            print(f"  CV Best MAE (log-space): {cv_mae_seconds:.4f} (not directly seconds)")
+        else:
+            print(f"  CV Best MAE: {cv_mae_seconds:.4f} seconds ({(cv_mae_seconds / 60):.2f} minutes)")
+    if metrics.get('baseline_holdout_mae') is not None:
+        baseline_mae = metrics.get('baseline_holdout_mae')
+        print(f"  Baseline Holdout MAE: {baseline_mae:.2f} seconds ({(baseline_mae / 60):.2f} minutes)")
+    if metrics.get('baseline_improvement_pct') is not None:
+        print(f"  Improvement vs Baseline: {metrics.get('baseline_improvement_pct'):.2f}%")
 
     if report:
         print(f"\n--- Latest Evaluation Report ---")
@@ -72,6 +84,11 @@ def check_model_accuracy():
         if drift:
             print(f"  Drift Score: {drift.get('drift_score_pct')}")
             print(f"  Drift Available: {drift.get('available')}")
+        reasons = report.get('promotion_reasons', [])
+        if reasons:
+            print("  Promotion Gates:")
+            for reason in reasons:
+                print(f"    - {reason}")
 
     if os.path.exists(IMPORTANCE_FILE):
         print(f"\n--- Top Feature Drivers ---")
