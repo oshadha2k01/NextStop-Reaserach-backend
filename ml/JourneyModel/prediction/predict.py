@@ -106,8 +106,13 @@ class JourneyTimePredictor:
                 'hour': int(hour),
                 'day_of_week': int(day_of_week),
                 'is_weekend': int(is_weekend),
+                'is_rush_hour': is_rush_hour_val,
                 'traffic_intensity': int(traffic_intensity_val),
-                'timestamp': datetime.now().isoformat()
+                'weather_temperature': 25,  # default neutral temp
+                'speed_kmh': 22.0,  # default city bus speed
+                'avg_route_speed_last_15m': 22.0,
+                'timestamp': datetime.now().isoformat(),
+                'device_id': 'prediction_api'  # for lag feature consistency
             }
 
             # Add journey coords for distance + direction features
