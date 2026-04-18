@@ -368,6 +368,22 @@ def create_features(data):
         else:
             df['avg_route_speed_last_15m'] = 20.0
     
+    # CRITICAL: Ensure ALL required model features are present with defaults (for single-row predictions)
+    required_features = get_feature_list()
+    for feature in required_features:
+        if feature not in df.columns:
+            # Set appropriate defaults based on feature name
+            if 'duration' in feature or 'obs_count' in feature:
+                df[feature] = 0.0
+            elif 'idx' in feature or 'segment' in feature:
+                df[feature] = 0
+            elif 'progress' in feature:
+                df[feature] = 0.5
+            elif 'stop_minutes' in feature:
+                df[feature] = 1.0
+            else:
+                df[feature] = 0.0
+    
     print("--- Features created:")
     print(f"  - Time-based: hour, day_of_week, is_weekend, is_rush_hour")
     print(f"  - Weather: weather_was_raining, is_hot, is_cold")
