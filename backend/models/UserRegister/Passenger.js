@@ -8,6 +8,14 @@ const PassengerSchema = new mongoose.Schema({
     required: true,
     validate: [/^([0-9]{10}|\+94[0-9]{9})$/, 'Invalid telephone number']
   },
+  lastVerifiedAt: {
+    type: Date,
+    default: null,
+  },
+  authExpiresAt: {
+    type: Date,
+    default: null,
+  },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Passenger', PassengerSchema);

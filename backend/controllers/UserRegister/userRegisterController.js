@@ -9,6 +9,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const OTP_REGEX = /^\d{6}$/;
 const DEFAULT_OTP_EXPIRY_SECONDS = Number(process.env.OTP_EXPIRY_SECONDS || 600);
 const DEFAULT_OTP_RESEND_COOLDOWN_SECONDS = Number(process.env.OTP_RESEND_COOLDOWN_SECONDS || 120);
+const DEFAULT_SESSION_VALIDITY_DAYS = Number(process.env.USER_REGISTER_SESSION_VALIDITY_DAYS || 30);
 
 function normalizePhone(phoneInput) {
   const input = String(phoneInput || '').trim().replace(/\s+/g, '');
@@ -40,6 +41,13 @@ function getOtpConfig() {
   return {
     expirySeconds: DEFAULT_OTP_EXPIRY_SECONDS,
     resendCooldownSeconds: DEFAULT_OTP_RESEND_COOLDOWN_SECONDS,
+  };
+}
+
+function getSessionConfig() {
+  return {
+    validityDays: DEFAULT_SESSION_VALIDITY_DAYS,
+    validityMs: DEFAULT_SESSION_VALIDITY_DAYS * 24 * 60 * 60 * 1000,
   };
 }
 
@@ -105,7 +113,13 @@ async function sendOtpEmail(email, otp, firstName, expirySeconds) {
 }
 
 function createAuthToken(passenger) {
-  return jwt.sign({ id: passenger._id }, getJwtSecret(), { expiresIn: '1d' });
+  const { validityDays } = getSessionConfig();
+  return jwt.sign({ id: passenger._id }, getJwtSecret(), { expiresIn: `${validityDays}d` });
+}
+
+function getAuthExpiryDate() {
+  const { validityMs } = getSessionConfig();
+  return new Date(Date.now() + validityMs);
 }
 
 exports.registerAndSendOtp = async (req, res) => {
@@ -137,10 +151,13 @@ exports.registerAndSendOtp = async (req, res) => {
     });
 
     if (existingPassenger) {
-      if (existingPassenger.email === resolvedEmail) {
-        return res.status(409).json({ message: 'Email already registered' });
+      const sessionStillActive = existingPassenger.authExpiresAt && existingPassenger.authExpiresAt.getTime() > Date.now();
+      if (sessionStillActive) {
+        return res.status(409).json({
+          message: 'Account already active. Please open the app and use your stored session.',
+          authExpiresAt: existingPassenger.authExpiresAt,
+        });
       }
-      return res.status(409).json({ message: 'Phone number already registered' });
     }
 
     const otp = createOtpCode();
@@ -217,7 +234,16 @@ exports.verifyOtpAndCreateUser = async (req, res) => {
         firstName: pending.firstName,
         email: pending.email,
         telNo: pending.telNo,
+        lastVerifiedAt: new Date(),
+        authExpiresAt: getAuthExpiryDate(),
       });
+    } else {
+      passenger.firstName = pending.firstName;
+      passenger.email = pending.email;
+      passenger.telNo = pending.telNo;
+      passenger.lastVerifiedAt = new Date();
+      passenger.authExpiresAt = getAuthExpiryDate();
+      await passenger.save();
     }
 
     await PendingUserRegistration.deleteOne({ _id: pending._id });
@@ -232,10 +258,41 @@ exports.verifyOtpAndCreateUser = async (req, res) => {
         firstName: passenger.firstName,
         email: passenger.email,
         telNo: passenger.telNo,
+        authExpiresAt: passenger.authExpiresAt,
       },
+      authExpiresAt: passenger.authExpiresAt,
+      sessionValidityDays: getSessionConfig().validityDays,
     });
   } catch (error) {
     return res.status(500).json({ message: 'Failed to verify OTP', error: error.message });
+  }
+};
+
+exports.checkSession = async (req, res) => {
+  try {
+    const passenger = req.user;
+
+    if (!passenger) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    if (!passenger.authExpiresAt || passenger.authExpiresAt.getTime() <= Date.now()) {
+      return res.status(401).json({ message: 'Session expired. Please register again.' });
+    }
+
+    return res.status(200).json({
+      authenticated: true,
+      passenger: {
+        id: passenger._id,
+        firstName: passenger.firstName,
+        email: passenger.email,
+        telNo: passenger.telNo,
+      },
+      authExpiresAt: passenger.authExpiresAt,
+      sessionValidityDays: getSessionConfig().validityDays,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to validate session', error: error.message });
   }
 };
 
