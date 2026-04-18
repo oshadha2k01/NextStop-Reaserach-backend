@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
 
-const Passenger = require('../../models/Passenger/Passenger');
+const Passenger = require('../../models/UserRegister/Passenger');
 const PendingUserRegistration = require('../../models/UserRegister/PendingUserRegistration');
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
