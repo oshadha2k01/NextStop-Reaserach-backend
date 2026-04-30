@@ -1,0 +1,1472 @@
+[
+  {
+    "from_id": 0,
+    "from_name": "Kaduwela Bus Stand",
+    "to_id": 0,
+    "to_name": "Kaduwela Bus Stand",
+    "fare": 0
+  },
+  {
+    "from_id": 0,
+    "from_name": "Kaduwela Bus Stand",
+    "to_id": 1,
+    "to_name": "Kothalawala",
+    "fare": 30
+  },
+  {
+    "from_id": 0,
+    "from_name": "Kaduwela Bus Stand",
+    "to_id": 2,
+    "to_name": "SLIIT Campus",
+    "fare": 39
+  },
+  {
+    "from_id": 0,
+    "from_name": "Kaduwela Bus Stand",
+    "to_id": 3,
+    "to_name": "Pittugala",
+    "fare": 39
+  },
+  {
+    "from_id": 0,
+    "from_name": "Kaduwela Bus Stand",
+    "to_id": 4,
+    "to_name": "Chandrika Kumaratunga Mw",
+    "fare": 50
+  },
+  {
+    "from_id": 0,
+    "from_name": "Kaduwela Bus Stand",
+    "to_id": 5,
+    "to_name": "Malabe Junction",
+    "fare": 50
+  },
+  {
+    "from_id": 0,
+    "from_name": "Kaduwela Bus Stand",
+    "to_id": 6,
+    "to_name": "Thalahena",
+    "fare": 62
+  },
+  {
+    "from_id": 0,
+    "from_name": "Kaduwela Bus Stand",
+    "to_id": 7,
+    "to_name": "Koswatta",
+    "fare": 62
+  },
+  {
+    "from_id": 0,
+    "from_name": "Kaduwela Bus Stand",
+    "to_id": 8,
+    "to_name": "Battaramulla Junction",
+    "fare": 74
+  },
+  {
+    "from_id": 0,
+    "from_name": "Kaduwela Bus Stand",
+    "to_id": 9,
+    "to_name": "Ethul Kotte",
+    "fare": 85
+  },
+  {
+    "from_id": 0,
+    "from_name": "Kaduwela Bus Stand",
+    "to_id": 10,
+    "to_name": "Diyatha Uyana / Waters Edge",
+    "fare": 85
+  },
+  {
+    "from_id": 0,
+    "from_name": "Kaduwela Bus Stand",
+    "to_id": 11,
+    "to_name": "Rajagiriya (Welikada)",
+    "fare": 97
+  },
+  {
+    "from_id": 0,
+    "from_name": "Kaduwela Bus Stand",
+    "to_id": 12,
+    "to_name": "Ayurveda Junction",
+    "fare": 97
+  },
+  {
+    "from_id": 0,
+    "from_name": "Kaduwela Bus Stand",
+    "to_id": 13,
+    "to_name": "Castle Street (Hospital)",
+    "fare": 101
+  },
+  {
+    "from_id": 0,
+    "from_name": "Kaduwela Bus Stand",
+    "to_id": 14,
+    "to_name": "Devi Balika Junction",
+    "fare": 101
+  },
+  {
+    "from_id": 0,
+    "from_name": "Kaduwela Bus Stand",
+    "to_id": 15,
+    "to_name": "Borella (Senanayake Junction)",
+    "fare": 101
+  },
+  {
+    "from_id": 0,
+    "from_name": "Kaduwela Bus Stand",
+    "to_id": 16,
+    "to_name": "St. Bridgets",
+    "fare": 109
+  },
+  {
+    "from_id": 0,
+    "from_name": "Kaduwela Bus Stand",
+    "to_id": 17,
+    "to_name": "Horton Place (Wijerama Mw)",
+    "fare": 109
+  },
+  {
+    "from_id": 0,
+    "from_name": "Kaduwela Bus Stand",
+    "to_id": 18,
+    "to_name": "Liberty Junction",
+    "fare": 116
+  },
+  {
+    "from_id": 0,
+    "from_name": "Kaduwela Bus Stand",
+    "to_id": 19,
+    "to_name": "Kollupitiya (Station Road)",
+    "fare": 116
+  },
+  {
+    "from_id": 1,
+    "from_name": "Kothalawala",
+    "to_id": 1,
+    "to_name": "Kothalawala",
+    "fare": 0
+  },
+  {
+    "from_id": 1,
+    "from_name": "Kothalawala",
+    "to_id": 2,
+    "to_name": "SLIIT Campus",
+    "fare": 30
+  },
+  {
+    "from_id": 1,
+    "from_name": "Kothalawala",
+    "to_id": 3,
+    "to_name": "Pittugala",
+    "fare": 30
+  },
+  {
+    "from_id": 1,
+    "from_name": "Kothalawala",
+    "to_id": 4,
+    "to_name": "Chandrika Kumaratunga Mw",
+    "fare": 39
+  },
+  {
+    "from_id": 1,
+    "from_name": "Kothalawala",
+    "to_id": 5,
+    "to_name": "Malabe Junction",
+    "fare": 39
+  },
+  {
+    "from_id": 1,
+    "from_name": "Kothalawala",
+    "to_id": 6,
+    "to_name": "Thalahena",
+    "fare": 50
+  },
+  {
+    "from_id": 1,
+    "from_name": "Kothalawala",
+    "to_id": 7,
+    "to_name": "Koswatta",
+    "fare": 50
+  },
+  {
+    "from_id": 1,
+    "from_name": "Kothalawala",
+    "to_id": 8,
+    "to_name": "Battaramulla Junction",
+    "fare": 62
+  },
+  {
+    "from_id": 1,
+    "from_name": "Kothalawala",
+    "to_id": 9,
+    "to_name": "Ethul Kotte",
+    "fare": 74
+  },
+  {
+    "from_id": 1,
+    "from_name": "Kothalawala",
+    "to_id": 10,
+    "to_name": "Diyatha Uyana / Waters Edge",
+    "fare": 74
+  },
+  {
+    "from_id": 1,
+    "from_name": "Kothalawala",
+    "to_id": 11,
+    "to_name": "Rajagiriya (Welikada)",
+    "fare": 85
+  },
+  {
+    "from_id": 1,
+    "from_name": "Kothalawala",
+    "to_id": 12,
+    "to_name": "Ayurveda Junction",
+    "fare": 85
+  },
+  {
+    "from_id": 1,
+    "from_name": "Kothalawala",
+    "to_id": 13,
+    "to_name": "Castle Street (Hospital)",
+    "fare": 97
+  },
+  {
+    "from_id": 1,
+    "from_name": "Kothalawala",
+    "to_id": 14,
+    "to_name": "Devi Balika Junction",
+    "fare": 97
+  },
+  {
+    "from_id": 1,
+    "from_name": "Kothalawala",
+    "to_id": 15,
+    "to_name": "Borella (Senanayake Junction)",
+    "fare": 97
+  },
+  {
+    "from_id": 1,
+    "from_name": "Kothalawala",
+    "to_id": 16,
+    "to_name": "St. Bridgets",
+    "fare": 101
+  },
+  {
+    "from_id": 1,
+    "from_name": "Kothalawala",
+    "to_id": 17,
+    "to_name": "Horton Place (Wijerama Mw)",
+    "fare": 101
+  },
+  {
+    "from_id": 1,
+    "from_name": "Kothalawala",
+    "to_id": 18,
+    "to_name": "Liberty Junction",
+    "fare": 109
+  },
+  {
+    "from_id": 1,
+    "from_name": "Kothalawala",
+    "to_id": 19,
+    "to_name": "Kollupitiya (Station Road)",
+    "fare": 109
+  },
+  {
+    "from_id": 2,
+    "from_name": "SLIIT Campus",
+    "to_id": 2,
+    "to_name": "SLIIT Campus",
+    "fare": 0
+  },
+  {
+    "from_id": 2,
+    "from_name": "SLIIT Campus",
+    "to_id": 3,
+    "to_name": "Pittugala",
+    "fare": 30
+  },
+  {
+    "from_id": 2,
+    "from_name": "SLIIT Campus",
+    "to_id": 4,
+    "to_name": "Chandrika Kumaratunga Mw",
+    "fare": 30
+  },
+  {
+    "from_id": 2,
+    "from_name": "SLIIT Campus",
+    "to_id": 5,
+    "to_name": "Malabe Junction",
+    "fare": 30
+  },
+  {
+    "from_id": 2,
+    "from_name": "SLIIT Campus",
+    "to_id": 6,
+    "to_name": "Thalahena",
+    "fare": 39
+  },
+  {
+    "from_id": 2,
+    "from_name": "SLIIT Campus",
+    "to_id": 7,
+    "to_name": "Koswatta",
+    "fare": 39
+  },
+  {
+    "from_id": 2,
+    "from_name": "SLIIT Campus",
+    "to_id": 8,
+    "to_name": "Battaramulla Junction",
+    "fare": 50
+  },
+  {
+    "from_id": 2,
+    "from_name": "SLIIT Campus",
+    "to_id": 9,
+    "to_name": "Ethul Kotte",
+    "fare": 62
+  },
+  {
+    "from_id": 2,
+    "from_name": "SLIIT Campus",
+    "to_id": 10,
+    "to_name": "Diyatha Uyana / Waters Edge",
+    "fare": 62
+  },
+  {
+    "from_id": 2,
+    "from_name": "SLIIT Campus",
+    "to_id": 11,
+    "to_name": "Rajagiriya (Welikada)",
+    "fare": 74
+  },
+  {
+    "from_id": 2,
+    "from_name": "SLIIT Campus",
+    "to_id": 12,
+    "to_name": "Ayurveda Junction",
+    "fare": 74
+  },
+  {
+    "from_id": 2,
+    "from_name": "SLIIT Campus",
+    "to_id": 13,
+    "to_name": "Castle Street (Hospital)",
+    "fare": 85
+  },
+  {
+    "from_id": 2,
+    "from_name": "SLIIT Campus",
+    "to_id": 14,
+    "to_name": "Devi Balika Junction",
+    "fare": 85
+  },
+  {
+    "from_id": 2,
+    "from_name": "SLIIT Campus",
+    "to_id": 15,
+    "to_name": "Borella (Senanayake Junction)",
+    "fare": 85
+  },
+  {
+    "from_id": 2,
+    "from_name": "SLIIT Campus",
+    "to_id": 16,
+    "to_name": "St. Bridgets",
+    "fare": 97
+  },
+  {
+    "from_id": 2,
+    "from_name": "SLIIT Campus",
+    "to_id": 17,
+    "to_name": "Horton Place (Wijerama Mw)",
+    "fare": 97
+  },
+  {
+    "from_id": 2,
+    "from_name": "SLIIT Campus",
+    "to_id": 18,
+    "to_name": "Liberty Junction",
+    "fare": 101
+  },
+  {
+    "from_id": 2,
+    "from_name": "SLIIT Campus",
+    "to_id": 19,
+    "to_name": "Kollupitiya (Station Road)",
+    "fare": 101
+  },
+  {
+    "from_id": 3,
+    "from_name": "Pittugala",
+    "to_id": 3,
+    "to_name": "Pittugala",
+    "fare": 0
+  },
+  {
+    "from_id": 3,
+    "from_name": "Pittugala",
+    "to_id": 4,
+    "to_name": "Chandrika Kumaratunga Mw",
+    "fare": 30
+  },
+  {
+    "from_id": 3,
+    "from_name": "Pittugala",
+    "to_id": 5,
+    "to_name": "Malabe Junction",
+    "fare": 30
+  },
+  {
+    "from_id": 3,
+    "from_name": "Pittugala",
+    "to_id": 6,
+    "to_name": "Thalahena",
+    "fare": 39
+  },
+  {
+    "from_id": 3,
+    "from_name": "Pittugala",
+    "to_id": 7,
+    "to_name": "Koswatta",
+    "fare": 39
+  },
+  {
+    "from_id": 3,
+    "from_name": "Pittugala",
+    "to_id": 8,
+    "to_name": "Battaramulla Junction",
+    "fare": 50
+  },
+  {
+    "from_id": 3,
+    "from_name": "Pittugala",
+    "to_id": 9,
+    "to_name": "Ethul Kotte",
+    "fare": 62
+  },
+  {
+    "from_id": 3,
+    "from_name": "Pittugala",
+    "to_id": 10,
+    "to_name": "Diyatha Uyana / Waters Edge",
+    "fare": 62
+  },
+  {
+    "from_id": 3,
+    "from_name": "Pittugala",
+    "to_id": 11,
+    "to_name": "Rajagiriya (Welikada)",
+    "fare": 74
+  },
+  {
+    "from_id": 3,
+    "from_name": "Pittugala",
+    "to_id": 12,
+    "to_name": "Ayurveda Junction",
+    "fare": 74
+  },
+  {
+    "from_id": 3,
+    "from_name": "Pittugala",
+    "to_id": 13,
+    "to_name": "Castle Street (Hospital)",
+    "fare": 85
+  },
+  {
+    "from_id": 3,
+    "from_name": "Pittugala",
+    "to_id": 14,
+    "to_name": "Devi Balika Junction",
+    "fare": 85
+  },
+  {
+    "from_id": 3,
+    "from_name": "Pittugala",
+    "to_id": 15,
+    "to_name": "Borella (Senanayake Junction)",
+    "fare": 85
+  },
+  {
+    "from_id": 3,
+    "from_name": "Pittugala",
+    "to_id": 16,
+    "to_name": "St. Bridgets",
+    "fare": 97
+  },
+  {
+    "from_id": 3,
+    "from_name": "Pittugala",
+    "to_id": 17,
+    "to_name": "Horton Place (Wijerama Mw)",
+    "fare": 97
+  },
+  {
+    "from_id": 3,
+    "from_name": "Pittugala",
+    "to_id": 18,
+    "to_name": "Liberty Junction",
+    "fare": 101
+  },
+  {
+    "from_id": 3,
+    "from_name": "Pittugala",
+    "to_id": 19,
+    "to_name": "Kollupitiya (Station Road)",
+    "fare": 101
+  },
+  {
+    "from_id": 4,
+    "from_name": "Chandrika Kumaratunga Mw",
+    "to_id": 4,
+    "to_name": "Chandrika Kumaratunga Mw",
+    "fare": 0
+  },
+  {
+    "from_id": 4,
+    "from_name": "Chandrika Kumaratunga Mw",
+    "to_id": 5,
+    "to_name": "Malabe Junction",
+    "fare": 30
+  },
+  {
+    "from_id": 4,
+    "from_name": "Chandrika Kumaratunga Mw",
+    "to_id": 6,
+    "to_name": "Thalahena",
+    "fare": 30
+  },
+  {
+    "from_id": 4,
+    "from_name": "Chandrika Kumaratunga Mw",
+    "to_id": 7,
+    "to_name": "Koswatta",
+    "fare": 30
+  },
+  {
+    "from_id": 4,
+    "from_name": "Chandrika Kumaratunga Mw",
+    "to_id": 8,
+    "to_name": "Battaramulla Junction",
+    "fare": 39
+  },
+  {
+    "from_id": 4,
+    "from_name": "Chandrika Kumaratunga Mw",
+    "to_id": 9,
+    "to_name": "Ethul Kotte",
+    "fare": 50
+  },
+  {
+    "from_id": 4,
+    "from_name": "Chandrika Kumaratunga Mw",
+    "to_id": 10,
+    "to_name": "Diyatha Uyana / Waters Edge",
+    "fare": 50
+  },
+  {
+    "from_id": 4,
+    "from_name": "Chandrika Kumaratunga Mw",
+    "to_id": 11,
+    "to_name": "Rajagiriya (Welikada)",
+    "fare": 62
+  },
+  {
+    "from_id": 4,
+    "from_name": "Chandrika Kumaratunga Mw",
+    "to_id": 12,
+    "to_name": "Ayurveda Junction",
+    "fare": 62
+  },
+  {
+    "from_id": 4,
+    "from_name": "Chandrika Kumaratunga Mw",
+    "to_id": 13,
+    "to_name": "Castle Street (Hospital)",
+    "fare": 74
+  },
+  {
+    "from_id": 4,
+    "from_name": "Chandrika Kumaratunga Mw",
+    "to_id": 14,
+    "to_name": "Devi Balika Junction",
+    "fare": 74
+  },
+  {
+    "from_id": 4,
+    "from_name": "Chandrika Kumaratunga Mw",
+    "to_id": 15,
+    "to_name": "Borella (Senanayake Junction)",
+    "fare": 74
+  },
+  {
+    "from_id": 4,
+    "from_name": "Chandrika Kumaratunga Mw",
+    "to_id": 16,
+    "to_name": "St. Bridgets",
+    "fare": 85
+  },
+  {
+    "from_id": 4,
+    "from_name": "Chandrika Kumaratunga Mw",
+    "to_id": 17,
+    "to_name": "Horton Place (Wijerama Mw)",
+    "fare": 85
+  },
+  {
+    "from_id": 4,
+    "from_name": "Chandrika Kumaratunga Mw",
+    "to_id": 18,
+    "to_name": "Liberty Junction",
+    "fare": 97
+  },
+  {
+    "from_id": 4,
+    "from_name": "Chandrika Kumaratunga Mw",
+    "to_id": 19,
+    "to_name": "Kollupitiya (Station Road)",
+    "fare": 97
+  },
+  {
+    "from_id": 5,
+    "from_name": "Malabe Junction",
+    "to_id": 5,
+    "to_name": "Malabe Junction",
+    "fare": 0
+  },
+  {
+    "from_id": 5,
+    "from_name": "Malabe Junction",
+    "to_id": 6,
+    "to_name": "Thalahena",
+    "fare": 30
+  },
+  {
+    "from_id": 5,
+    "from_name": "Malabe Junction",
+    "to_id": 7,
+    "to_name": "Koswatta",
+    "fare": 30
+  },
+  {
+    "from_id": 5,
+    "from_name": "Malabe Junction",
+    "to_id": 8,
+    "to_name": "Battaramulla Junction",
+    "fare": 39
+  },
+  {
+    "from_id": 5,
+    "from_name": "Malabe Junction",
+    "to_id": 9,
+    "to_name": "Ethul Kotte",
+    "fare": 50
+  },
+  {
+    "from_id": 5,
+    "from_name": "Malabe Junction",
+    "to_id": 10,
+    "to_name": "Diyatha Uyana / Waters Edge",
+    "fare": 50
+  },
+  {
+    "from_id": 5,
+    "from_name": "Malabe Junction",
+    "to_id": 11,
+    "to_name": "Rajagiriya (Welikada)",
+    "fare": 62
+  },
+  {
+    "from_id": 5,
+    "from_name": "Malabe Junction",
+    "to_id": 12,
+    "to_name": "Ayurveda Junction",
+    "fare": 62
+  },
+  {
+    "from_id": 5,
+    "from_name": "Malabe Junction",
+    "to_id": 13,
+    "to_name": "Castle Street (Hospital)",
+    "fare": 74
+  },
+  {
+    "from_id": 5,
+    "from_name": "Malabe Junction",
+    "to_id": 14,
+    "to_name": "Devi Balika Junction",
+    "fare": 74
+  },
+  {
+    "from_id": 5,
+    "from_name": "Malabe Junction",
+    "to_id": 15,
+    "to_name": "Borella (Senanayake Junction)",
+    "fare": 74
+  },
+  {
+    "from_id": 5,
+    "from_name": "Malabe Junction",
+    "to_id": 16,
+    "to_name": "St. Bridgets",
+    "fare": 85
+  },
+  {
+    "from_id": 5,
+    "from_name": "Malabe Junction",
+    "to_id": 17,
+    "to_name": "Horton Place (Wijerama Mw)",
+    "fare": 85
+  },
+  {
+    "from_id": 5,
+    "from_name": "Malabe Junction",
+    "to_id": 18,
+    "to_name": "Liberty Junction",
+    "fare": 97
+  },
+  {
+    "from_id": 5,
+    "from_name": "Malabe Junction",
+    "to_id": 19,
+    "to_name": "Kollupitiya (Station Road)",
+    "fare": 97
+  },
+  {
+    "from_id": 6,
+    "from_name": "Thalahena",
+    "to_id": 6,
+    "to_name": "Thalahena",
+    "fare": 0
+  },
+  {
+    "from_id": 6,
+    "from_name": "Thalahena",
+    "to_id": 7,
+    "to_name": "Koswatta",
+    "fare": 30
+  },
+  {
+    "from_id": 6,
+    "from_name": "Thalahena",
+    "to_id": 8,
+    "to_name": "Battaramulla Junction",
+    "fare": 30
+  },
+  {
+    "from_id": 6,
+    "from_name": "Thalahena",
+    "to_id": 9,
+    "to_name": "Ethul Kotte",
+    "fare": 39
+  },
+  {
+    "from_id": 6,
+    "from_name": "Thalahena",
+    "to_id": 10,
+    "to_name": "Diyatha Uyana / Waters Edge",
+    "fare": 39
+  },
+  {
+    "from_id": 6,
+    "from_name": "Thalahena",
+    "to_id": 11,
+    "to_name": "Rajagiriya (Welikada)",
+    "fare": 50
+  },
+  {
+    "from_id": 6,
+    "from_name": "Thalahena",
+    "to_id": 12,
+    "to_name": "Ayurveda Junction",
+    "fare": 50
+  },
+  {
+    "from_id": 6,
+    "from_name": "Thalahena",
+    "to_id": 13,
+    "to_name": "Castle Street (Hospital)",
+    "fare": 62
+  },
+  {
+    "from_id": 6,
+    "from_name": "Thalahena",
+    "to_id": 14,
+    "to_name": "Devi Balika Junction",
+    "fare": 62
+  },
+  {
+    "from_id": 6,
+    "from_name": "Thalahena",
+    "to_id": 15,
+    "to_name": "Borella (Senanayake Junction)",
+    "fare": 62
+  },
+  {
+    "from_id": 6,
+    "from_name": "Thalahena",
+    "to_id": 16,
+    "to_name": "St. Bridgets",
+    "fare": 74
+  },
+  {
+    "from_id": 6,
+    "from_name": "Thalahena",
+    "to_id": 17,
+    "to_name": "Horton Place (Wijerama Mw)",
+    "fare": 74
+  },
+  {
+    "from_id": 6,
+    "from_name": "Thalahena",
+    "to_id": 18,
+    "to_name": "Liberty Junction",
+    "fare": 85
+  },
+  {
+    "from_id": 6,
+    "from_name": "Thalahena",
+    "to_id": 19,
+    "to_name": "Kollupitiya (Station Road)",
+    "fare": 85
+  },
+  {
+    "from_id": 7,
+    "from_name": "Koswatta",
+    "to_id": 7,
+    "to_name": "Koswatta",
+    "fare": 0
+  },
+  {
+    "from_id": 7,
+    "from_name": "Koswatta",
+    "to_id": 8,
+    "to_name": "Battaramulla Junction",
+    "fare": 30
+  },
+  {
+    "from_id": 7,
+    "from_name": "Koswatta",
+    "to_id": 9,
+    "to_name": "Ethul Kotte",
+    "fare": 39
+  },
+  {
+    "from_id": 7,
+    "from_name": "Koswatta",
+    "to_id": 10,
+    "to_name": "Diyatha Uyana / Waters Edge",
+    "fare": 39
+  },
+  {
+    "from_id": 7,
+    "from_name": "Koswatta",
+    "to_id": 11,
+    "to_name": "Rajagiriya (Welikada)",
+    "fare": 50
+  },
+  {
+    "from_id": 7,
+    "from_name": "Koswatta",
+    "to_id": 12,
+    "to_name": "Ayurveda Junction",
+    "fare": 50
+  },
+  {
+    "from_id": 7,
+    "from_name": "Koswatta",
+    "to_id": 13,
+    "to_name": "Castle Street (Hospital)",
+    "fare": 62
+  },
+  {
+    "from_id": 7,
+    "from_name": "Koswatta",
+    "to_id": 14,
+    "to_name": "Devi Balika Junction",
+    "fare": 62
+  },
+  {
+    "from_id": 7,
+    "from_name": "Koswatta",
+    "to_id": 15,
+    "to_name": "Borella (Senanayake Junction)",
+    "fare": 62
+  },
+  {
+    "from_id": 7,
+    "from_name": "Koswatta",
+    "to_id": 16,
+    "to_name": "St. Bridgets",
+    "fare": 74
+  },
+  {
+    "from_id": 7,
+    "from_name": "Koswatta",
+    "to_id": 17,
+    "to_name": "Horton Place (Wijerama Mw)",
+    "fare": 74
+  },
+  {
+    "from_id": 7,
+    "from_name": "Koswatta",
+    "to_id": 18,
+    "to_name": "Liberty Junction",
+    "fare": 85
+  },
+  {
+    "from_id": 7,
+    "from_name": "Koswatta",
+    "to_id": 19,
+    "to_name": "Kollupitiya (Station Road)",
+    "fare": 85
+  },
+  {
+    "from_id": 8,
+    "from_name": "Battaramulla Junction",
+    "to_id": 8,
+    "to_name": "Battaramulla Junction",
+    "fare": 0
+  },
+  {
+    "from_id": 8,
+    "from_name": "Battaramulla Junction",
+    "to_id": 9,
+    "to_name": "Ethul Kotte",
+    "fare": 30
+  },
+  {
+    "from_id": 8,
+    "from_name": "Battaramulla Junction",
+    "to_id": 10,
+    "to_name": "Diyatha Uyana / Waters Edge",
+    "fare": 30
+  },
+  {
+    "from_id": 8,
+    "from_name": "Battaramulla Junction",
+    "to_id": 11,
+    "to_name": "Rajagiriya (Welikada)",
+    "fare": 39
+  },
+  {
+    "from_id": 8,
+    "from_name": "Battaramulla Junction",
+    "to_id": 12,
+    "to_name": "Ayurveda Junction",
+    "fare": 39
+  },
+  {
+    "from_id": 8,
+    "from_name": "Battaramulla Junction",
+    "to_id": 13,
+    "to_name": "Castle Street (Hospital)",
+    "fare": 50
+  },
+  {
+    "from_id": 8,
+    "from_name": "Battaramulla Junction",
+    "to_id": 14,
+    "to_name": "Devi Balika Junction",
+    "fare": 50
+  },
+  {
+    "from_id": 8,
+    "from_name": "Battaramulla Junction",
+    "to_id": 15,
+    "to_name": "Borella (Senanayake Junction)",
+    "fare": 50
+  },
+  {
+    "from_id": 8,
+    "from_name": "Battaramulla Junction",
+    "to_id": 16,
+    "to_name": "St. Bridgets",
+    "fare": 62
+  },
+  {
+    "from_id": 8,
+    "from_name": "Battaramulla Junction",
+    "to_id": 17,
+    "to_name": "Horton Place (Wijerama Mw)",
+    "fare": 62
+  },
+  {
+    "from_id": 8,
+    "from_name": "Battaramulla Junction",
+    "to_id": 18,
+    "to_name": "Liberty Junction",
+    "fare": 74
+  },
+  {
+    "from_id": 8,
+    "from_name": "Battaramulla Junction",
+    "to_id": 19,
+    "to_name": "Kollupitiya (Station Road)",
+    "fare": 74
+  },
+  {
+    "from_id": 9,
+    "from_name": "Ethul Kotte",
+    "to_id": 9,
+    "to_name": "Ethul Kotte",
+    "fare": 0
+  },
+  {
+    "from_id": 9,
+    "from_name": "Ethul Kotte",
+    "to_id": 10,
+    "to_name": "Diyatha Uyana / Waters Edge",
+    "fare": 30
+  },
+  {
+    "from_id": 9,
+    "from_name": "Ethul Kotte",
+    "to_id": 11,
+    "to_name": "Rajagiriya (Welikada)",
+    "fare": 30
+  },
+  {
+    "from_id": 9,
+    "from_name": "Ethul Kotte",
+    "to_id": 12,
+    "to_name": "Ayurveda Junction",
+    "fare": 30
+  },
+  {
+    "from_id": 9,
+    "from_name": "Ethul Kotte",
+    "to_id": 13,
+    "to_name": "Castle Street (Hospital)",
+    "fare": 39
+  },
+  {
+    "from_id": 9,
+    "from_name": "Ethul Kotte",
+    "to_id": 14,
+    "to_name": "Devi Balika Junction",
+    "fare": 39
+  },
+  {
+    "from_id": 9,
+    "from_name": "Ethul Kotte",
+    "to_id": 15,
+    "to_name": "Borella (Senanayake Junction)",
+    "fare": 39
+  },
+  {
+    "from_id": 9,
+    "from_name": "Ethul Kotte",
+    "to_id": 16,
+    "to_name": "St. Bridgets",
+    "fare": 50
+  },
+  {
+    "from_id": 9,
+    "from_name": "Ethul Kotte",
+    "to_id": 17,
+    "to_name": "Horton Place (Wijerama Mw)",
+    "fare": 50
+  },
+  {
+    "from_id": 9,
+    "from_name": "Ethul Kotte",
+    "to_id": 18,
+    "to_name": "Liberty Junction",
+    "fare": 62
+  },
+  {
+    "from_id": 9,
+    "from_name": "Ethul Kotte",
+    "to_id": 19,
+    "to_name": "Kollupitiya (Station Road)",
+    "fare": 62
+  },
+  {
+    "from_id": 10,
+    "from_name": "Diyatha Uyana / Waters Edge",
+    "to_id": 10,
+    "to_name": "Diyatha Uyana / Waters Edge",
+    "fare": 0
+  },
+  {
+    "from_id": 10,
+    "from_name": "Diyatha Uyana / Waters Edge",
+    "to_id": 11,
+    "to_name": "Rajagiriya (Welikada)",
+    "fare": 30
+  },
+  {
+    "from_id": 10,
+    "from_name": "Diyatha Uyana / Waters Edge",
+    "to_id": 12,
+    "to_name": "Ayurveda Junction",
+    "fare": 30
+  },
+  {
+    "from_id": 10,
+    "from_name": "Diyatha Uyana / Waters Edge",
+    "to_id": 13,
+    "to_name": "Castle Street (Hospital)",
+    "fare": 39
+  },
+  {
+    "from_id": 10,
+    "from_name": "Diyatha Uyana / Waters Edge",
+    "to_id": 14,
+    "to_name": "Devi Balika Junction",
+    "fare": 39
+  },
+  {
+    "from_id": 10,
+    "from_name": "Diyatha Uyana / Waters Edge",
+    "to_id": 15,
+    "to_name": "Borella (Senanayake Junction)",
+    "fare": 39
+  },
+  {
+    "from_id": 10,
+    "from_name": "Diyatha Uyana / Waters Edge",
+    "to_id": 16,
+    "to_name": "St. Bridgets",
+    "fare": 50
+  },
+  {
+    "from_id": 10,
+    "from_name": "Diyatha Uyana / Waters Edge",
+    "to_id": 17,
+    "to_name": "Horton Place (Wijerama Mw)",
+    "fare": 50
+  },
+  {
+    "from_id": 10,
+    "from_name": "Diyatha Uyana / Waters Edge",
+    "to_id": 18,
+    "to_name": "Liberty Junction",
+    "fare": 62
+  },
+  {
+    "from_id": 10,
+    "from_name": "Diyatha Uyana / Waters Edge",
+    "to_id": 19,
+    "to_name": "Kollupitiya (Station Road)",
+    "fare": 62
+  },
+  {
+    "from_id": 11,
+    "from_name": "Rajagiriya (Welikada)",
+    "to_id": 11,
+    "to_name": "Rajagiriya (Welikada)",
+    "fare": 0
+  },
+  {
+    "from_id": 11,
+    "from_name": "Rajagiriya (Welikada)",
+    "to_id": 12,
+    "to_name": "Ayurveda Junction",
+    "fare": 30
+  },
+  {
+    "from_id": 11,
+    "from_name": "Rajagiriya (Welikada)",
+    "to_id": 13,
+    "to_name": "Castle Street (Hospital)",
+    "fare": 30
+  },
+  {
+    "from_id": 11,
+    "from_name": "Rajagiriya (Welikada)",
+    "to_id": 14,
+    "to_name": "Devi Balika Junction",
+    "fare": 30
+  },
+  {
+    "from_id": 11,
+    "from_name": "Rajagiriya (Welikada)",
+    "to_id": 15,
+    "to_name": "Borella (Senanayake Junction)",
+    "fare": 30
+  },
+  {
+    "from_id": 11,
+    "from_name": "Rajagiriya (Welikada)",
+    "to_id": 16,
+    "to_name": "St. Bridgets",
+    "fare": 39
+  },
+  {
+    "from_id": 11,
+    "from_name": "Rajagiriya (Welikada)",
+    "to_id": 17,
+    "to_name": "Horton Place (Wijerama Mw)",
+    "fare": 39
+  },
+  {
+    "from_id": 11,
+    "from_name": "Rajagiriya (Welikada)",
+    "to_id": 18,
+    "to_name": "Liberty Junction",
+    "fare": 50
+  },
+  {
+    "from_id": 11,
+    "from_name": "Rajagiriya (Welikada)",
+    "to_id": 19,
+    "to_name": "Kollupitiya (Station Road)",
+    "fare": 50
+  },
+  {
+    "from_id": 12,
+    "from_name": "Ayurveda Junction",
+    "to_id": 12,
+    "to_name": "Ayurveda Junction",
+    "fare": 0
+  },
+  {
+    "from_id": 12,
+    "from_name": "Ayurveda Junction",
+    "to_id": 13,
+    "to_name": "Castle Street (Hospital)",
+    "fare": 30
+  },
+  {
+    "from_id": 12,
+    "from_name": "Ayurveda Junction",
+    "to_id": 14,
+    "to_name": "Devi Balika Junction",
+    "fare": 30
+  },
+  {
+    "from_id": 12,
+    "from_name": "Ayurveda Junction",
+    "to_id": 15,
+    "to_name": "Borella (Senanayake Junction)",
+    "fare": 30
+  },
+  {
+    "from_id": 12,
+    "from_name": "Ayurveda Junction",
+    "to_id": 16,
+    "to_name": "St. Bridgets",
+    "fare": 39
+  },
+  {
+    "from_id": 12,
+    "from_name": "Ayurveda Junction",
+    "to_id": 17,
+    "to_name": "Horton Place (Wijerama Mw)",
+    "fare": 39
+  },
+  {
+    "from_id": 12,
+    "from_name": "Ayurveda Junction",
+    "to_id": 18,
+    "to_name": "Liberty Junction",
+    "fare": 50
+  },
+  {
+    "from_id": 12,
+    "from_name": "Ayurveda Junction",
+    "to_id": 19,
+    "to_name": "Kollupitiya (Station Road)",
+    "fare": 50
+  },
+  {
+    "from_id": 13,
+    "from_name": "Castle Street (Hospital)",
+    "to_id": 13,
+    "to_name": "Castle Street (Hospital)",
+    "fare": 0
+  },
+  {
+    "from_id": 13,
+    "from_name": "Castle Street (Hospital)",
+    "to_id": 14,
+    "to_name": "Devi Balika Junction",
+    "fare": 30
+  },
+  {
+    "from_id": 13,
+    "from_name": "Castle Street (Hospital)",
+    "to_id": 15,
+    "to_name": "Borella (Senanayake Junction)",
+    "fare": 30
+  },
+  {
+    "from_id": 13,
+    "from_name": "Castle Street (Hospital)",
+    "to_id": 16,
+    "to_name": "St. Bridgets",
+    "fare": 30
+  },
+  {
+    "from_id": 13,
+    "from_name": "Castle Street (Hospital)",
+    "to_id": 17,
+    "to_name": "Horton Place (Wijerama Mw)",
+    "fare": 30
+  },
+  {
+    "from_id": 13,
+    "from_name": "Castle Street (Hospital)",
+    "to_id": 18,
+    "to_name": "Liberty Junction",
+    "fare": 39
+  },
+  {
+    "from_id": 13,
+    "from_name": "Castle Street (Hospital)",
+    "to_id": 19,
+    "to_name": "Kollupitiya (Station Road)",
+    "fare": 39
+  },
+  {
+    "from_id": 14,
+    "from_name": "Devi Balika Junction",
+    "to_id": 14,
+    "to_name": "Devi Balika Junction",
+    "fare": 0
+  },
+  {
+    "from_id": 14,
+    "from_name": "Devi Balika Junction",
+    "to_id": 15,
+    "to_name": "Borella (Senanayake Junction)",
+    "fare": 30
+  },
+  {
+    "from_id": 14,
+    "from_name": "Devi Balika Junction",
+    "to_id": 16,
+    "to_name": "St. Bridgets",
+    "fare": 30
+  },
+  {
+    "from_id": 14,
+    "from_name": "Devi Balika Junction",
+    "to_id": 17,
+    "to_name": "Horton Place (Wijerama Mw)",
+    "fare": 30
+  },
+  {
+    "from_id": 14,
+    "from_name": "Devi Balika Junction",
+    "to_id": 18,
+    "to_name": "Liberty Junction",
+    "fare": 39
+  },
+  {
+    "from_id": 14,
+    "from_name": "Devi Balika Junction",
+    "to_id": 19,
+    "to_name": "Kollupitiya (Station Road)",
+    "fare": 39
+  },
+  {
+    "from_id": 15,
+    "from_name": "Borella (Senanayake Junction)",
+    "to_id": 15,
+    "to_name": "Borella (Senanayake Junction)",
+    "fare": 0
+  },
+  {
+    "from_id": 15,
+    "from_name": "Borella (Senanayake Junction)",
+    "to_id": 16,
+    "to_name": "St. Bridgets",
+    "fare": 30
+  },
+  {
+    "from_id": 15,
+    "from_name": "Borella (Senanayake Junction)",
+    "to_id": 17,
+    "to_name": "Horton Place (Wijerama Mw)",
+    "fare": 30
+  },
+  {
+    "from_id": 15,
+    "from_name": "Borella (Senanayake Junction)",
+    "to_id": 18,
+    "to_name": "Liberty Junction",
+    "fare": 39
+  },
+  {
+    "from_id": 15,
+    "from_name": "Borella (Senanayake Junction)",
+    "to_id": 19,
+    "to_name": "Kollupitiya (Station Road)",
+    "fare": 39
+  },
+  {
+    "from_id": 16,
+    "from_name": "St. Bridgets",
+    "to_id": 16,
+    "to_name": "St. Bridgets",
+    "fare": 0
+  },
+  {
+    "from_id": 16,
+    "from_name": "St. Bridgets",
+    "to_id": 17,
+    "to_name": "Horton Place (Wijerama Mw)",
+    "fare": 30
+  },
+  {
+    "from_id": 16,
+    "from_name": "St. Bridgets",
+    "to_id": 18,
+    "to_name": "Liberty Junction",
+    "fare": 30
+  },
+  {
+    "from_id": 16,
+    "from_name": "St. Bridgets",
+    "to_id": 19,
+    "to_name": "Kollupitiya (Station Road)",
+    "fare": 30
+  },
+  {
+    "from_id": 17,
+    "from_name": "Horton Place (Wijerama Mw)",
+    "to_id": 17,
+    "to_name": "Horton Place (Wijerama Mw)",
+    "fare": 0
+  },
+  {
+    "from_id": 17,
+    "from_name": "Horton Place (Wijerama Mw)",
+    "to_id": 18,
+    "to_name": "Liberty Junction",
+    "fare": 30
+  },
+  {
+    "from_id": 17,
+    "from_name": "Horton Place (Wijerama Mw)",
+    "to_id": 19,
+    "to_name": "Kollupitiya (Station Road)",
+    "fare": 30
+  },
+  {
+    "from_id": 18,
+    "from_name": "Liberty Junction",
+    "to_id": 18,
+    "to_name": "Liberty Junction",
+    "fare": 0
+  },
+  {
+    "from_id": 18,
+    "from_name": "Liberty Junction",
+    "to_id": 19,
+    "to_name": "Kollupitiya (Station Road)",
+    "fare": 30
+  },
+  {
+    "from_id": 19,
+    "from_name": "Kollupitiya (Station Road)",
+    "to_id": 19,
+    "to_name": "Kollupitiya (Station Road)",
+    "fare": 0
+  }
+]
