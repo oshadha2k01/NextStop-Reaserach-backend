@@ -1,5 +1,7 @@
 const NationalRoute = require('../../models/AllRoutes/NationalRoute');
 
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 // 1. Home Page Search (Find route containing From & To)
 exports.searchRouteBetweenStops = async (req, res) => {
   try {
@@ -9,11 +11,20 @@ exports.searchRouteBetweenStops = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Missing from or to location' });
     }
 
+    const searchTerms = [fromLocation, toLocation]
+      .map((value) => String(value).trim())
+      .filter(Boolean);
+
     const matchingRoutes = await NationalRoute.find({
-      $and: [
-        { 'stages.name': fromLocation },
-        { 'stages.name': toLocation }
-      ]
+      $and: searchTerms.map((term) => {
+        const pattern = new RegExp(escapeRegex(term), 'i');
+        return {
+          $or: [
+            { route_name: pattern },
+            { route_number: pattern }
+          ]
+        };
+      })
     });
 
     if (matchingRoutes.length === 0) {

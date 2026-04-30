@@ -14,13 +14,18 @@ const StageSchema = new mongoose.Schema({
 });
 
 const NationalRouteSchema = new mongoose.Schema({
+  source: { type: String },
+  country: { type: String },
   province: { type: String, required: true, index: true },
   district: { type: String, required: true, index: true },
   route_number: { type: String, required: true, index: true },
   route_name: { type: String, required: true },
   service_type: { type: String, default: 'Normal' },
   operator: { type: String },
-  stages: [StageSchema]
+  osm_id: { type: Number },
+  coordinate_count: { type: Number },
+  coordinates: { type: [[Number]], default: [] },
+  stages: { type: [StageSchema], default: [] }
 }, { timestamps: true });
 
 module.exports = mongoose.model('NationalRoute', NationalRouteSchema);
