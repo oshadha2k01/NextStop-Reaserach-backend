@@ -21,6 +21,9 @@ const journeyModelRoutes = require("./routes/JourneyModel/journeyModelRoutes");
 const routeRoutes = require("./routes/SuperAdmin/routeRoutes");
 const peopleConutRoutes = require("./routes/DL/peopleConutRoutes");
 
+// National routes (national transit system)
+const nationalRoutes = require("./routes/AllRoutes/nationalRoutes");
+
 // Import New IoT Routes
 const iotRoutes = require("./routes/IoTDevice/IoTRoutes");
 
@@ -166,6 +169,9 @@ app.use("/api/fare", fareSystemRoutes);
 app.use("/api/predict", predictionRoutes);
 app.use("/api/dl", peopleConutRoutes);
 app.use("/api", routeRoutes);
+
+// National routes API
+app.use('/api/national-routes', nationalRoutes);
 
 // Mount New IoT Routes (Matches your ESP32 Config.h: /api/sensor-data)
 // This will route to your iotController
