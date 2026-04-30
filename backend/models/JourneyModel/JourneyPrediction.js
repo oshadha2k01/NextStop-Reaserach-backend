@@ -24,6 +24,15 @@ const journeyPredictionSchema = new mongoose.Schema({
     userExpectedTime: {
         type: Number
     },
+    actualTimeMinutes: {
+        type: Number
+    },
+    absoluteErrorMinutes: {
+        type: Number
+    },
+    errorPercent: {
+        type: Number
+    },
     recommendation: {
         type: String
     },
@@ -34,6 +43,25 @@ const journeyPredictionSchema = new mongoose.Schema({
     nearestStages: {
         boarding: String,
         destination: String
+    },
+    validation: {
+        distanceSource: String,
+        distanceDisagreementPct: Number,
+        googleDistanceKm: Number,
+        routeSequenceDistanceKm: Number,
+        resolvedCoordinates: {
+            boarding: {
+                lat: Number,
+                lng: Number
+            },
+            destination: {
+                lat: Number,
+                lng: Number
+            }
+        }
+    },
+    modelVersion: {
+        type: String
     },
     createdAt: {
         type: Date,

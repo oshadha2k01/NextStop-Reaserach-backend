@@ -1,15 +1,9 @@
-"""
-MongoDB to CSV Data Pipeline
-Automatically generates training datasets from MongoDB
-"""
-
 from pymongo import MongoClient
 import pandas as pd
 import os
 from datetime import datetime
 import sys
 
-# Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config import MONGODB_URI, MONGODB_DB_NAME, DATASETS_PATH

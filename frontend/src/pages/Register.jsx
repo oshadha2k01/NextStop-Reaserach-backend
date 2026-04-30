@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, Loader2, Eye, EyeOff, User, Phone } from 'lucide-react';
-import { showSuccessAlert, showErrorAlert, showToast } from '../utils/alerts';
+import { showErrorAlert, showSuccessAlert } from '../utils/alerts';
 import { authAPI } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
+import PageBackButton from '../components/PageBackButton';
 
 export default function Register() {
   const navigate = useNavigate();
+  const { register: setAuthRegister } = useAuth();
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -43,7 +47,6 @@ export default function Register() {
       ...formData,
       [name]: value,
     });
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors({
         ...errors,
@@ -83,19 +86,14 @@ export default function Register() {
 
     let isValid = true;
 
-    // First Name validation
     if (!formData.firstName.trim()) {
       newErrors.firstName = 'First name is required';
       isValid = false;
     }
-
-    // Last Name validation
     if (!formData.lastName.trim()) {
       newErrors.lastName = 'Last name is required';
       isValid = false;
     }
-
-    // Username validation
     if (!formData.username.trim()) {
       newErrors.username = 'Username is required';
       isValid = false;
@@ -103,8 +101,6 @@ export default function Register() {
       newErrors.username = 'Username must be at least 3 characters';
       isValid = false;
     }
-
-    // Email validation
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
       isValid = false;
@@ -112,8 +108,6 @@ export default function Register() {
       newErrors.email = 'Please enter a valid email address';
       isValid = false;
     }
-
-    // Phone validation
     if (!formData.phoneNo.trim()) {
       newErrors.phoneNo = 'Phone number is required';
       isValid = false;
@@ -121,8 +115,6 @@ export default function Register() {
       newErrors.phoneNo = 'Phone number must be 10 digits';
       isValid = false;
     }
-
-    // Password validation
     if (!formData.password) {
       newErrors.password = 'Password is required';
       isValid = false;
@@ -130,8 +122,6 @@ export default function Register() {
       newErrors.password = 'Password must be at least 6 characters';
       isValid = false;
     }
-
-    // Confirm Password validation
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = 'Please confirm your password';
       isValid = false;
@@ -147,7 +137,6 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Mark all fields as touched
     setTouched({
       firstName: true,
       lastName: true,
@@ -158,10 +147,7 @@ export default function Register() {
       confirmPassword: true,
     });
 
-    // Validate form
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setIsLoading(true);
 
@@ -175,34 +161,27 @@ export default function Register() {
         password: formData.password,
       });
 
-      // Store token and user info
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('username', response.username);
+      // Update auth context so protected routes allow immediate navigation.
+      setAuthRegister(response.token, response.username);
 
-      showSuccessAlert('Success!', 'Registration successful');
-      setTimeout(() => {
-        navigate('/');
-      }, 500);
+      await showSuccessAlert('Success!', 'Registration successful');
+      navigate('/admin-dashboard');
     } catch (error) {
-      setIsLoading(false);
       showErrorAlert('Registration Failed', error.message || 'Something went wrong');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
+  const togglePasswordVisibility = () => setShowPassword(!showPassword);
+  const toggleConfirmPasswordVisibility = () => setShowConfirmPassword(!showConfirmPassword);
 
-  const toggleConfirmPasswordVisibility = () => {
-    setShowConfirmPassword(!showConfirmPassword);
-  };
-
+  // Registration Step
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-gray-300 py-12">
+    <div className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-gray-300 py-12">
+      <PageBackButton to="/access" label="Back to Access" className="absolute top-6 left-6" />
       <div className="max-w-2xl w-full">
-        {/* Register Form */}
         <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6">
-          {/* Header */}
           <div className="text-center">
             <h2 className="text-3xl font-bold text-gray-900">Create Account</h2>
             <p className="mt-2 text-sm text-gray-600">
@@ -213,7 +192,6 @@ export default function Register() {
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* First Name and Last Name */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* First Name */}
               <div>
                 <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
                   First Name
@@ -230,21 +208,16 @@ export default function Register() {
                     onChange={handleChange}
                     onBlur={handleBlur}
                     className={`block w-full pl-10 pr-3 py-2 border ${
-                      errors.firstName 
-                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
+                      errors.firstName
+                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                         : 'border-gray-300 focus:ring-blue-600 focus:border-transparent'
                     } rounded-lg focus:ring-1 transition-all duration-200 outline-none h-9`}
                     placeholder="Enter first name"
                   />
                 </div>
-                {errors.firstName && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {errors.firstName}
-                  </p>
-                )}
+                {errors.firstName && <p className="mt-1 text-sm text-red-500">{errors.firstName}</p>}
               </div>
 
-              {/* Last Name */}
               <div>
                 <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
                   Last Name
@@ -261,18 +234,14 @@ export default function Register() {
                     onChange={handleChange}
                     onBlur={handleBlur}
                     className={`block w-full pl-10 pr-3 py-2 border ${
-                      errors.lastName 
-                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
+                      errors.lastName
+                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                         : 'border-gray-300 focus:ring-blue-600 focus:border-transparent'
                     } rounded-lg focus:ring-1 transition-all duration-200 outline-none h-9`}
                     placeholder="Enter last name"
                   />
                 </div>
-                {errors.lastName && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {errors.lastName}
-                  </p>
-                )}
+                {errors.lastName && <p className="mt-1 text-sm text-red-500">{errors.lastName}</p>}
               </div>
             </div>
 
@@ -293,23 +262,18 @@ export default function Register() {
                   onChange={handleChange}
                   onBlur={handleBlur}
                   className={`block w-full pl-10 pr-3 py-2 border ${
-                    errors.username 
-                      ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
+                    errors.username
+                      ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                       : 'border-gray-300 focus:ring-blue-600 focus:border-transparent'
                   } rounded-lg focus:ring-1 transition-all duration-200 outline-none h-9`}
                   placeholder="Enter username"
                 />
               </div>
-              {errors.username && (
-                <p className="mt-1 text-sm text-red-500">
-                  {errors.username}
-                </p>
-              )}
+              {errors.username && <p className="mt-1 text-sm text-red-500">{errors.username}</p>}
             </div>
 
             {/* Email and Phone */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Email */}
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                   Email Address
@@ -326,21 +290,16 @@ export default function Register() {
                     onChange={handleChange}
                     onBlur={handleBlur}
                     className={`block w-full pl-10 pr-3 py-2 border ${
-                      errors.email 
-                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
+                      errors.email
+                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                         : 'border-gray-300 focus:ring-blue-600 focus:border-transparent'
                     } rounded-lg focus:ring-1 transition-all duration-200 outline-none h-9`}
                     placeholder="Enter your email"
                   />
                 </div>
-                {errors.email && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {errors.email}
-                  </p>
-                )}
+                {errors.email && <p className="mt-1 text-sm text-red-500">{errors.email}</p>}
               </div>
 
-              {/* Phone Number */}
               <div>
                 <label htmlFor="phoneNo" className="block text-sm font-medium text-gray-700 mb-2">
                   Phone Number
@@ -357,24 +316,19 @@ export default function Register() {
                     onChange={handleChange}
                     onBlur={handleBlur}
                     className={`block w-full pl-10 pr-3 py-2 border ${
-                      errors.phoneNo 
-                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
+                      errors.phoneNo
+                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                         : 'border-gray-300 focus:ring-blue-600 focus:border-transparent'
                     } rounded-lg focus:ring-1 transition-all duration-200 outline-none h-9`}
                     placeholder="Enter phone number"
                   />
                 </div>
-                {errors.phoneNo && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {errors.phoneNo}
-                  </p>
-                )}
+                {errors.phoneNo && <p className="mt-1 text-sm text-red-500">{errors.phoneNo}</p>}
               </div>
             </div>
 
             {/* Password and Confirm Password */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Password */}
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
                   Password
@@ -391,8 +345,8 @@ export default function Register() {
                     onChange={handleChange}
                     onBlur={handleBlur}
                     className={`block w-full pl-10 pr-10 py-2 border ${
-                      errors.password 
-                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
+                      errors.password
+                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                         : 'border-gray-300 focus:ring-blue-600 focus:border-transparent'
                     } rounded-lg focus:ring-1 transition-all duration-200 outline-none h-9`}
                     placeholder="••••••••"
@@ -409,14 +363,9 @@ export default function Register() {
                     )}
                   </button>
                 </div>
-                {errors.password && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {errors.password}
-                  </p>
-                )}
+                {errors.password && <p className="mt-1 text-sm text-red-500">{errors.password}</p>}
               </div>
 
-              {/* Confirm Password */}
               <div>
                 <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
                   Confirm Password
@@ -433,8 +382,8 @@ export default function Register() {
                     onChange={handleChange}
                     onBlur={handleBlur}
                     className={`block w-full pl-10 pr-10 py-2 border ${
-                      errors.confirmPassword 
-                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
+                      errors.confirmPassword
+                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                         : 'border-gray-300 focus:ring-blue-600 focus:border-transparent'
                     } rounded-lg focus:ring-1 transition-all duration-200 outline-none h-9`}
                     placeholder="••••••••"
@@ -451,15 +400,10 @@ export default function Register() {
                     )}
                   </button>
                 </div>
-                {errors.confirmPassword && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {errors.confirmPassword}
-                  </p>
-                )}
+                {errors.confirmPassword && <p className="mt-1 text-sm text-red-500">{errors.confirmPassword}</p>}
               </div>
             </div>
 
-            {/* Submit Button */}
             <button
               type="submit"
               disabled={isLoading}
@@ -473,7 +417,6 @@ export default function Register() {
             </button>
           </form>
 
-          {/* Sign In Link */}
           <div className="text-center pt-4 border-t border-gray-200">
             <p className="text-sm text-gray-600">
               Already have an account?{' '}

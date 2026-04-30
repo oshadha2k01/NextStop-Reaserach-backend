@@ -1,4 +1,4 @@
-const BusDevice = require('../../models/Bus/BusDevice');
+const BusDevice = require('../../models/BusDevice/BusDevice');
 const Bus       = require('../../models/Bus/BusModel');
 const mongoose  = require('mongoose');
 
@@ -13,8 +13,9 @@ const mongoose  = require('mongoose');
 exports.register = async (req, res) => {
     try {
         const { busId, deviceId } = req.body;
+        const normalizedDeviceId = String(deviceId || '').trim();
 
-        if (!busId || !deviceId) {
+        if (!busId || !normalizedDeviceId) {
             return res.status(400).json({
                 error: 'Missing required fields: busId, deviceId'
             });
@@ -30,17 +31,39 @@ exports.register = async (req, res) => {
             return res.status(404).json({ error: `No bus found with id ${busId}` });
         }
 
+        // Check if device is already assigned to a different bus
+        // If yes, unassign it from the old bus first (device reassignment)
+        const existingDeviceAssignment = await BusDevice.findOne({ device_id: normalizedDeviceId }).lean();
+        if (existingDeviceAssignment && String(existingDeviceAssignment.bus_id) !== String(busId)) {
+            // Unassign device from old bus
+            const oldBusId = existingDeviceAssignment.bus_id;
+            await BusDevice.deleteOne({ _id: existingDeviceAssignment._id });
+            await Bus.findByIdAndUpdate(
+                oldBusId,
+                { device_id: null },
+                { new: true }
+            );
+        }
+
+        // Now assign the device to the requested bus
         // Upsert: if a record already exists for this bus_id, update it;
         // otherwise create a new one.
         const registration = await BusDevice.findOneAndUpdate(
             { bus_id: busId },
             {
                 bus_id:        busId,
-                device_id:     deviceId,
+                device_id:     normalizedDeviceId,
                 is_active:     true,
                 registered_at: new Date()
             },
             { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+
+        // Update the Bus document to store device_id directly
+        await Bus.findByIdAndUpdate(
+            busId,
+            { device_id: normalizedDeviceId },
+            { new: true }
         );
 
         return res.status(200).json({
@@ -59,6 +82,9 @@ exports.register = async (req, res) => {
 
     } catch (error) {
         console.error('BusDevice register error:', error);
+        if (error?.code === 11000) {
+            return res.status(409).json({ error: 'Bus or device already registered with another record' });
+        }
         return res.status(500).json({ error: 'Internal server error', details: error.message });
     }
 };
@@ -209,6 +235,61 @@ exports.remove = async (req, res) => {
 
     } catch (error) {
         console.error('BusDevice remove error:', error);
+        return res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+/**
+ * GET /api/bus-device/stats
+ * Dashboard summary for bus-device registrations.
+ */
+exports.getStats = async (req, res) => {
+    try {
+        const [total, active, inactive, busesWithDevice] = await Promise.all([
+            BusDevice.countDocuments(),
+            BusDevice.countDocuments({ is_active: true }),
+            BusDevice.countDocuments({ is_active: false }),
+            Bus.countDocuments({ device_id: { $ne: null } }),
+        ]);
+
+        const totalBuses = await Bus.countDocuments();
+
+        return res.status(200).json({
+            success: true,
+            stats: {
+                total,
+                active,
+                inactive,
+                busesWithDevice,
+                busesWithoutDevice: Math.max(0, totalBuses - busesWithDevice),
+            }
+        });
+    } catch (error) {
+        console.error('BusDevice getStats error:', error);
+        return res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+/**
+ * GET /api/bus-device/unassigned-buses
+ * List buses that do not currently have a device registration.
+ */
+exports.listUnassignedBuses = async (req, res) => {
+    try {
+        const buses = await Bus.find({
+            $or: [{ device_id: null }, { device_id: '' }, { device_id: { $exists: false } }]
+        })
+            .select('regNo route ownerName approvalStatus device_id createdAt')
+            .sort({ createdAt: -1 })
+            .lean();
+
+        return res.status(200).json({
+            success: true,
+            count: buses.length,
+            buses,
+        });
+    } catch (error) {
+        console.error('BusDevice listUnassignedBuses error:', error);
         return res.status(500).json({ error: 'Internal server error' });
     }
 };

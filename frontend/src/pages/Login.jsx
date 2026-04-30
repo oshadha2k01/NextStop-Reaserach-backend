@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
-import { showSuccessAlert, showErrorAlert, showToast } from '../utils/alerts';
+import { showSuccessAlert, showErrorAlert } from '../utils/alerts';
 import { authAPI } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
+import PageBackButton from '../components/PageBackButton';
 
 export default function Login() {
   const navigate = useNavigate();
+  const { login: setAuthLogin } = useAuth();
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -126,9 +129,8 @@ export default function Login() {
         password: formData.password,
       });
 
-      // Store token and user info
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('username', response.username);
+      // Update auth context so protected routes allow immediate navigation.
+      setAuthLogin(response.token, response.username);
 
       setIsLoading(false);
       await showSuccessAlert('Success!', 'Login successful');
@@ -144,7 +146,8 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-gray-300">
+    <div className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-gray-300">
+      <PageBackButton to="/access" label="Back to Access" className="absolute top-6 left-6" />
       <div className="max-w-md w-full">
         {/* Login Form */}
         <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6">

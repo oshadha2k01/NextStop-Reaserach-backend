@@ -261,6 +261,13 @@
       </div>
       <div class="notif-body">
         <div class="info-row">
+          <div class="info-icon">💬</div>
+          <div>
+            <div class="info-label">Passenger Message</div>
+            <div class="info-value highlight" id="notif-message" style="color: #29b6f6;">—</div>
+          </div>
+        </div>
+        <div class="info-row">
           <div class="info-icon">📏</div>
           <div>
             <div class="info-label">Road Distance</div>
@@ -519,19 +526,31 @@ function setPill(connected) {
 
 function connectDriver() {
   busId = document.getElementById('bus-id-input').value.trim();
-  const url = document.getElementById('server-url-input').value.trim() || 'http://localhost:3000';
+  const inputUrl = document.getElementById('server-url-input').value.trim() || 'http://localhost:3000';
 
   if (!busId) { setLog('Please enter a Bus ID.'); return; }
   if (socket) { socket.disconnect(); }
 
   setLog('Connecting...');
 
-  socket = io(url, {
+  // 1. Setup default options
+  let socketOptions = {
     transports: ['websocket', 'polling'],
     reconnection: true,
     reconnectionAttempts: 10,
     reconnectionDelay: 2000
-  });
+  };
+
+  // 2. Fix the Reverse Proxy Path Issue
+  let connectUrl = inputUrl;
+  if (inputUrl.includes('/backend')) {
+    // Connect to the root domain, but push socket traffic through the /backend path
+    connectUrl = inputUrl.replace('/backend', '');
+    socketOptions.path = '/backend/socket.io';
+  }
+
+  // 3. Initialize Socket
+  socket = io(connectUrl, socketOptions);
 
   socket.on('connect', () => {
     setPill(true);
@@ -580,6 +599,7 @@ function handleBoardingNotification(p) {
   updateMap(p.bus.lat, p.bus.lng, p.passenger.lat, p.passenger.lng, p.distance.text, p.duration.text);
 
   // Fill notification card
+  document.getElementById('notif-message').textContent  = p.message || "I'm waiting at the stop";
   document.getElementById('notif-distance').textContent = p.distance.text;
   document.getElementById('notif-time-val').textContent = p.duration.text;
   document.getElementById('notif-stops').textContent    = `${p.stopsAway} stop${p.stopsAway !== 1 ? 's' : ''} away`;
@@ -624,6 +644,7 @@ function addToHistory(p) {
   item.className = 'history-item';
   item.innerHTML = `
     <div class="h-time">${new Date(p.timestamp).toLocaleTimeString()}</div>
+    <div class="h-info" style="color:#29b6f6;margin-bottom:3px;">"${p.message || "I'm waiting at the stop"}"</div>
     <div class="h-info">
       ${p.distance.text} &nbsp;·&nbsp; ${p.duration.text}
       &nbsp;·&nbsp; ${p.stopsAway} stop${p.stopsAway !== 1 ? 's' : ''}

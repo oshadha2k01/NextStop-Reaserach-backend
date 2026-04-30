@@ -1,22 +1,42 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
-
-const API_BASE_URL = 'http://localhost:3000/api';
+import { showErrorAlert, showSuccessAlert } from '../utils/alerts';
+import { driverAPI } from '../utils/api';
+import PageBackButton from '../components/PageBackButton';
 
 export default function AddDriver() {
 	const navigate = useNavigate();
 	const [loading, setLoading] = useState(false);
+	const [busesLoading, setBusesLoading] = useState(false);
+	const [availableBuses, setAvailableBuses] = useState([]);
 	const [error, setError] = useState('');
 	const [success, setSuccess] = useState('');
 	const [formData, setFormData] = useState({
 		name: '',
 		phone: '',
 		licenseNumber: '',
+		busId: '',
 		shift: 'Morning',
 		status: 'active',
 		rating: 0,
 	});
+
+	useEffect(() => {
+		const loadAvailableBuses = async () => {
+			try {
+				setBusesLoading(true);
+				const buses = await driverAPI.getAvailableBuses();
+				setAvailableBuses(Array.isArray(buses) ? buses : []);
+			} catch (err) {
+				setAvailableBuses([]);
+				setError(err.message || 'Failed to load available buses');
+			} finally {
+				setBusesLoading(false);
+			}
+		};
+
+		loadAvailableBuses();
+	}, []);
 
 	const handleChange = (e) => {
 		const { name, value } = e.target;
@@ -32,7 +52,7 @@ export default function AddDriver() {
 		setSuccess('');
 
 		// Validation
-		if (!formData.name || !formData.phone || !formData.licenseNumber) {
+		if (!formData.name || !formData.phone || !formData.licenseNumber || !formData.busId) {
 			setError('Please fill in all required fields');
 			return;
 		}
@@ -45,44 +65,37 @@ export default function AddDriver() {
 		setLoading(true);
 
 		try {
-			const response = await fetch(`${API_BASE_URL}/drivers`, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify({
-					name: formData.name,
-					phone: formData.phone,
-					licenseNumber: formData.licenseNumber,
-					shift: formData.shift,
-					status: formData.status,
-					rating: parseInt(formData.rating) || 0,
-				}),
+			await driverAPI.create({
+				name: formData.name,
+				phone: formData.phone,
+				licenseNumber: formData.licenseNumber,
+				busId: formData.busId,
+				shift: formData.shift,
+				status: formData.status,
+				rating: parseFloat(formData.rating) || 0,
 			});
 
-			if (response.status === 201) {
 				setSuccess('Driver added successfully!');
+				await showSuccessAlert('Success', 'Driver added successfully!');
 				setFormData({
 					name: '',
 					phone: '',
 					licenseNumber: '',
+					busId: '',
 					shift: 'Morning',
 					status: 'active',
 					rating: 0,
 				});
+				const buses = await driverAPI.getAvailableBuses();
+				setAvailableBuses(Array.isArray(buses) ? buses : []);
 				
 				// Redirect after 2 seconds
 				setTimeout(() => {
 					navigate('/admin-dashboard');
-				}, 2000);
-			} else if (response.status === 409) {
-				setError('License number already exists');
-			} else {
-				const data = await response.json();
-				setError(data.message || 'Failed to add driver');
-			}
+				}, 600);
 		} catch (err) {
 			setError('Error adding driver: ' + err.message);
+			await showErrorAlert('Submission Failed', err.message || 'Error adding driver');
 		} finally {
 			setLoading(false);
 		}
@@ -91,14 +104,9 @@ export default function AddDriver() {
 	return (
 		<div className="min-h-screen bg-[#fff4ec]">
 			<div className="max-w-2xl mx-auto p-6">
+				<PageBackButton to="/admin-dashboard" label="Back to Dashboard" className="mb-4" />
 				{/* Header */}
 				<div className="flex items-center gap-3 mb-8">
-					<button
-						onClick={() => navigate(-1)}
-						className="p-2 hover:bg-[#f2d9cc] rounded-lg transition-colors"
-					>
-						<ArrowLeft className="h-6 w-6 text-[#ff6b35]" />
-					</button>
 					<h1 className="text-3xl font-bold text-[#2a1a15]">Add New Driver</h1>
 				</div>
 
@@ -116,7 +124,7 @@ export default function AddDriver() {
 						</div>
 					)}
 
-					<form onSubmit={handleSubmit} className="space-y-6">
+					<form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
 						{/* Name Field */}
 						<div>
 							<label className="block text-sm font-medium text-[#2a1a15] mb-2">
@@ -163,6 +171,31 @@ export default function AddDriver() {
 								className="w-full px-4 py-2 border border-[#f2d9cc] rounded-lg focus:outline-none focus:border-[#ff6b35] bg-[#fff4ec]"
 								required
 							/>
+						</div>
+
+						{/* Bus Assignment Dropdown */}
+						<div>
+							<label className="block text-sm font-medium text-[#2a1a15] mb-2">
+								Assign Bus *
+							</label>
+							<select
+								name="busId"
+								value={formData.busId}
+								onChange={handleChange}
+								className="w-full px-4 py-2 border border-[#f2d9cc] rounded-lg focus:outline-none focus:border-[#ff6b35] bg-[#fff4ec]"
+								required
+								disabled={busesLoading}
+							>
+								<option value="">{busesLoading ? 'Loading buses...' : 'Select an approved unassigned bus'}</option>
+								{availableBuses.map((bus) => (
+									<option key={bus._id} value={bus._id}>
+										{bus.regNo} - {bus.route}
+									</option>
+								))}
+							</select>
+							{!busesLoading && availableBuses.length === 0 && (
+								<p className="mt-1 text-xs text-[#b45309]">No available buses. Approve/add buses first.</p>
+							)}
 						</div>
 
 						{/* Shift Field */}
@@ -219,7 +252,7 @@ export default function AddDriver() {
 						</div>
 
 						{/* Submit Button */}
-						<div className="flex gap-3 pt-6">
+						<div className="md:col-span-2 flex gap-3 pt-2">
 							<button
 								type="submit"
 								disabled={loading}

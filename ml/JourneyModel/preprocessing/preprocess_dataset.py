@@ -103,13 +103,31 @@ def clean_data(df):
         df = df.dropna(subset=core_fields)
         print(f"--- Removed rows missing core fields: {before_core - len(df)} rows")
 
+    # Remove obviously invalid coordinates (e.g., 0,0) and out-of-route noise.
+    # Route 177 is in Colombo region; keep a conservative geo-bounding box.
+    if 'lat' in df.columns and 'lng' in df.columns:
+        before_geo = len(df)
+        lat_series = pd.to_numeric(df['lat'], errors='coerce')
+        lng_series = pd.to_numeric(df['lng'], errors='coerce')
+        valid_geo_mask = (
+            lat_series.between(5.5, 8.0)
+            & lng_series.between(79.5, 81.0)
+            & ~((lat_series.abs() < 1e-6) & (lng_series.abs() < 1e-6))
+        )
+        df = df[valid_geo_mask].copy()
+        print(f"--- Removed invalid/out-of-route coordinates: {before_geo - len(df)} rows")
+
     # Fill optional fields with safe defaults (avoid wiping out data)
     if 'weather_was_raining' in df.columns:
         df['weather_was_raining'] = pd.to_numeric(df['weather_was_raining'], errors='coerce').fillna(0).astype(int)
     if 'weather_temperature' in df.columns:
-        df['weather_temperature'] = pd.to_numeric(df['weather_temperature'], errors='coerce').fillna(df['weather_temperature'].median())
+        weather_temp = pd.to_numeric(df['weather_temperature'], errors='coerce')
+        weather_temp_median = weather_temp.median() if weather_temp.notna().any() else 28.0
+        df['weather_temperature'] = weather_temp.fillna(weather_temp_median)
     if 'speed_kmh' in df.columns:
-        df['speed_kmh'] = pd.to_numeric(df['speed_kmh'], errors='coerce').fillna(df['speed_kmh'].median())
+        speed_series = pd.to_numeric(df['speed_kmh'], errors='coerce')
+        speed_median = speed_series.median() if speed_series.notna().any() else 20.0
+        df['speed_kmh'] = speed_series.fillna(speed_median)
 
     missing_count = df.isnull().sum().sum()
     if missing_count > 0:
@@ -126,6 +144,41 @@ def clean_data(df):
     print(f"--- Final dataset: {len(df)} records")
     
     return df
+
+
+def create_lag_features(df):
+    """
+    Create rolling route-speed context from historical records.
+    The current row is excluded via shift(1) to avoid leakage.
+    """
+    print("--- Creating Time-Series Lag Features...")
+
+    if 'timestamp' not in df.columns:
+        df['avg_route_speed_last_15m'] = 20.0
+        return df
+
+    working_df = df.copy()
+    working_df['timestamp'] = pd.to_datetime(working_df['timestamp'], errors='coerce')
+    working_df = working_df.dropna(subset=['timestamp']).sort_values('timestamp').reset_index(drop=True)
+
+    if working_df.empty:
+        df['avg_route_speed_last_15m'] = 20.0
+        return df
+
+    if 'speed_kmh' in working_df.columns:
+        working_df['speed_kmh'] = pd.to_numeric(working_df['speed_kmh'], errors='coerce')
+        global_median_speed = working_df['speed_kmh'].median()
+        if pd.isna(global_median_speed):
+            global_median_speed = 20.0
+
+        df_time = working_df.set_index('timestamp')
+        rolling_speed = df_time['speed_kmh'].shift(1).rolling('15min').mean()
+        working_df['avg_route_speed_last_15m'] = rolling_speed.values
+        working_df['avg_route_speed_last_15m'] = working_df['avg_route_speed_last_15m'].fillna(global_median_speed)
+    else:
+        working_df['avg_route_speed_last_15m'] = 20.0
+
+    return working_df
 
 
 def preprocess_pipeline():
@@ -147,9 +200,18 @@ def preprocess_pipeline():
     # Clean data
     cleaned_df = clean_data(df_merged)
     
+    # Create lag features before feature engineering
+    cleaned_df = create_lag_features(cleaned_df)
+
     # Create features
     print("\n--- Creating features...")
     processed_df = create_features(cleaned_df)
+
+    # Remove duplicate columns from merge (_x, _y artifacts)
+    duplicate_merge_columns = [col for col in processed_df.columns if col.endswith('_x') or col.endswith('_y')]
+    if duplicate_merge_columns:
+        processed_df = processed_df.drop(columns=duplicate_merge_columns)
+        print(f"--- Removed duplicate merge columns: {duplicate_merge_columns}")
     
     # Validate processed data
     print("\n--- Validating processed data...")

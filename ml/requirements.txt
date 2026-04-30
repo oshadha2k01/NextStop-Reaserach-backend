@@ -8,5 +8,6 @@ pymongo==4.8.0
 schedule==1.2.2
 requests==2.32.3
 python-dotenv==1.0.1
-xgboost==2.1.1
+xgboost==3.2.0
 gunicorn==22.0.0
+holidays==0.94

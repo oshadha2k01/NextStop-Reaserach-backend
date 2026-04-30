@@ -23,6 +23,8 @@ MODELS_PATH = os.path.join(BASE_PATH, "models")
 
 # MongoDB Configuration
 MONGODB_URI = os.getenv(
+    'MONGO_URI'
+) or os.getenv(
     'MONGODB_URI',
     'mongodb://localhost:27017/'
 )
@@ -60,6 +62,17 @@ MODEL_CONFIG = {
     'colsample_bytree': 0.8,
     'random_state': 42
 }
+
+# Model promotion / validation thresholds
+MODEL_PROMOTION_MIN_IMPROVEMENT_PCT = float(os.getenv('MODEL_PROMOTION_MIN_IMPROVEMENT_PCT', 2.0))
+MODEL_PROMOTION_MIN_HOLDOUT_R2 = float(os.getenv('MODEL_PROMOTION_MIN_HOLDOUT_R2', 0.10))
+MODEL_PROMOTION_MIN_BASELINE_IMPROVEMENT_PCT = float(os.getenv('MODEL_PROMOTION_MIN_BASELINE_IMPROVEMENT_PCT', 5.0))
+MODEL_PROMOTION_MIN_HOLDOUT_SAMPLES = int(os.getenv('MODEL_PROMOTION_MIN_HOLDOUT_SAMPLES', 12))
+MODEL_ROLLBACK_ENABLED = os.getenv('MODEL_ROLLBACK_ENABLED', 'true').lower() == 'true'
+
+# Reporting / registry paths
+MODEL_REGISTRY_FILE = os.path.join(MODELS_PATH, 'model_registry.json')
+MODEL_EVALUATION_REPORT_FILE = os.path.join(MODELS_PATH, 'evaluation_report.json')
 
 # Train-Test Split
 TRAIN_TEST_SPLIT = 0.2

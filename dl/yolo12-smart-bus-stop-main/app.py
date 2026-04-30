@@ -156,6 +156,116 @@ else:
     print(f"Successfully opened video file: {source}")
     print(f"Resolution: {int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))}x{int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))}")
 
+# Resolve paths relative to this script
+ROOT = os.path.dirname(__file__)
+default_model = os.path.normpath(os.path.join(ROOT, '..', 'yolo12s.pt'))
+model_path = args.model if args.model is not None else default_model
+if not os.path.exists(model_path):
+    print(f"Model not found at {model_path}. Ultralytics will attempt to download it if needed.")
+
+# Custom MJPEG Stream Reader for ESP32-CAM
+class MJPEGStreamReader:
+    def __init__(self, url, max_retries=3):
+        self.url = url
+        self.stream = None
+        self.max_retries = max_retries
+        self.connect()
+    
+    def connect(self):
+        for attempt in range(1, self.max_retries + 1):
+            try:
+                print(f"Attempting to connect to stream (attempt {attempt}/{self.max_retries})...")
+                req = urllib.request.Request(self.url, headers={'User-Agent': 'Mozilla/5.0'})
+                self.stream = urllib.request.urlopen(req, timeout=5)
+                print(f"✓ Connected to MJPEG stream: {self.url}")
+                return
+            except Exception as e:
+                print(f"✗ Connection attempt {attempt} failed: {e}")
+                if attempt < self.max_retries:
+                    wait_time = 2 * attempt
+                    print(f"  Retrying in {wait_time} seconds...")
+                    time.sleep(wait_time)
+        
+        # All retries failed
+        print("\nConnection failed after all retries!")
+        print("Troubleshooting:")
+        print("1. Make sure ESP32-CAM is powered on")
+        print("2. Verify it's connected to WiFi (check Arduino Serial Monitor)")
+        print("3. Test in browser: " + self.url)
+        print("4. Try reducing JPEG quality in ESP32 code (change 80 to 40)")
+        print("5. Restart the ESP32 with power cycle")
+        raise RuntimeError(f"Cannot connect to stream: {self.url}")
+    
+    def read_frame(self):
+        """Read and decode the next JPEG frame from the MJPEG stream"""
+        try:
+            while True:
+                byte = self.stream.read(1)
+                if not byte:
+                    print("Stream closed by server")
+                    return False, None
+                if byte == b'\xff':
+                    next_byte = self.stream.read(1)
+                    if next_byte == b'\xd8':  # JPEG start marker
+                        jpeg_data = b'\xff\xd8'
+                        while True:
+                            byte = self.stream.read(1)
+                            if not byte:
+                                break
+                            jpeg_data += byte
+                            if byte == b'\xd9' and jpeg_data[-2:-1] == b'\xff':
+                                # Found JPEG end marker
+                                nparr = np.frombuffer(jpeg_data, np.uint8)
+                                frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+                                if frame is not None:
+                                    return True, frame
+                                else:
+                                    break
+        except Exception as e:
+            print(f"Error reading frame: {e}")
+            return False, None
+    
+    def release(self):
+        if self.stream:
+            self.stream.close()
+    
+    def get(self, prop):
+        """Dummy method for compatibility"""
+        return None
+
+# Open webcam/video source
+video_arg = str(args.video).strip()
+source = int(video_arg) if video_arg.isdigit() else video_arg
+
+# Determine if we're using an HTTP stream or a local camera
+is_http_stream = isinstance(source, str) and source.startswith(('http://', 'https://'))
+
+if isinstance(source, int):
+    # Local webcam
+    cap = cv2.VideoCapture(source, cv2.CAP_DSHOW)
+    is_mjpeg_stream = False
+    if not cap.isOpened():
+        raise RuntimeError(f"Failed to open camera {source}")
+    print(f"Successfully connected to camera {source}")
+    print(f"Resolution: {int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))}x{int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))}")
+elif is_http_stream:
+    # HTTP MJPEG stream
+    cap = MJPEGStreamReader(source)
+    is_mjpeg_stream = True
+    print("Successfully connected to HTTP stream")
+else:
+    # Local file
+    if not os.path.isabs(source):
+        source = os.path.join(ROOT, source)
+    if not os.path.exists(source):
+        raise RuntimeError(f"Video '{source}' not found.")
+    cap = cv2.VideoCapture(source)
+    is_mjpeg_stream = False
+    if not cap.isOpened():
+        raise RuntimeError(f"Failed to open video file: {source}")
+    print(f"Successfully opened video file: {source}")
+    print(f"Resolution: {int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))}x{int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))}")
+
 # Dedicated testing mode for quick source verification
 if args.camera_test:
     print("Running stream test mode (raw feed). Press ESC to exit.")
