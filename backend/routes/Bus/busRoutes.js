@@ -9,6 +9,7 @@ const {
 	deleteBus,
 	approveBus,
 	rejectBus,
+	updateTripStatus,
 	getBusStats,
 } = require("../../controllers/Bus/BusController");
 
@@ -24,6 +25,8 @@ router.get("/", getBuses);
 router.get("/:id", getBusById);
 
 router.get("/:id/image", getBusImage);
+
+router.put("/trip-status", updateTripStatus);
 
 router.put("/:id", upload.single("image"), updateBus);
 

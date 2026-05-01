@@ -36,6 +36,34 @@ async function attachDriverNames(buses) {
 	}));
 }
 
+const updateTripStatus = async (req, res) => {
+	try {
+		const { busId, isActive } = req.body;
+		if (typeof busId === 'undefined' || typeof isActive === 'undefined') {
+			return res.status(400).json({ message: 'Missing required fields: busId and isActive' });
+		}
+
+		const updatedBus = await Bus.findOneAndUpdate(
+			{ $or: [{ regNo: busId }, { device_id: busId }] },
+			{ isActive: Boolean(isActive) },
+			{ new: true, runValidators: true }
+		).lean();
+
+		if (!updatedBus) {
+			return res.status(404).json({ message: 'Bus not found' });
+		}
+
+		const io = req.app.get('io');
+		if (io) {
+			io.emit('bus_status_changed', { busId, isActive: Boolean(isActive) });
+		}
+
+		return res.status(200).json({ message: 'Trip status updated', bus: updatedBus });
+	} catch (err) {
+		return res.status(500).json({ message: err.message || 'Server error' });
+	}
+};
+
 const createBus = async (req, res) => {
 	try {
 		const { route, regNo, seats, ownerName, phoneNo, email, deviceId } = req.body;
@@ -306,5 +334,6 @@ module.exports = {
 	deleteBus,
 	approveBus,
 	rejectBus,
+	updateTripStatus,
 	getBusStats,
 };
