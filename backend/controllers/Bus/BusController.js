@@ -38,14 +38,27 @@ async function attachDriverNames(buses) {
 
 const updateTripStatus = async (req, res) => {
 	try {
-		const { busId, isActive } = req.body;
-		if (typeof busId === 'undefined' || typeof isActive === 'undefined') {
-			return res.status(400).json({ message: 'Missing required fields: busId and isActive' });
+		const busId = req.body.busId || req.body.deviceId || req.body.id || req.body.bus_id || req.body.regNo;
+		let rawActive = req.body.isActive;
+		if (typeof rawActive === 'undefined') rawActive = req.body.active;
+		if (typeof rawActive === 'undefined') rawActive = req.body.status;
+
+		if (typeof busId === 'undefined' || typeof rawActive === 'undefined') {
+			return res.status(400).json({ message: 'Missing required fields: busId and isActive / active / status' });
 		}
 
+		const normalizedIsActive = rawActive === 'false' || rawActive === '0' || rawActive === 0 ? false : Boolean(rawActive);
+		const query = {
+			$or: [
+				{ regNo: busId },
+				{ device_id: busId },
+				{ _id: busId },
+			],
+		};
+
 		const updatedBus = await Bus.findOneAndUpdate(
-			{ $or: [{ regNo: busId }, { device_id: busId }] },
-			{ isActive: Boolean(isActive) },
+			query,
+			{ isActive: normalizedIsActive },
 			{ new: true, runValidators: true }
 		).lean();
 
@@ -55,11 +68,12 @@ const updateTripStatus = async (req, res) => {
 
 		const io = req.app.get('io');
 		if (io) {
-			io.emit('bus_status_changed', { busId, isActive: Boolean(isActive) });
+			io.emit('bus_status_changed', { busId, isActive: normalizedIsActive });
 		}
 
 		return res.status(200).json({ message: 'Trip status updated', bus: updatedBus });
 	} catch (err) {
+		console.error('updateTripStatus error', { body: req.body, err });
 		return res.status(500).json({ message: err.message || 'Server error' });
 	}
 };

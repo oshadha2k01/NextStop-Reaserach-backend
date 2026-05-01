@@ -119,6 +119,7 @@ export const busAPI = {
   createBusWithImage: (formData) => apiCallFormData('POST', '/buses', formData),
   updateBus: (id, data) => apiCall('PUT', `/buses/${id}`, data),
   deleteBus: (id) => apiCall('DELETE', `/buses/${id}`),
+  updateTripStatus: (busId, isActive) => apiCall('PUT', '/buses/trip-status', { busId, isActive }),
   approveBus: (id) => apiCall('POST', `/buses/${id}/approve`),
   rejectBus: (id, reason) => apiCall('POST', `/buses/${id}/reject`, { reason }),
 };
