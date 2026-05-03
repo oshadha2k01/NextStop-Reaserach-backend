@@ -35,7 +35,7 @@ class ETADataCollector:
             
             # DEBUG CHECK: Count exactly how many documents are in the collection
             total_docs = self.db[MONGODB_SENSOR_COLLECTION].count_documents({})
-            print(f"--- 📊 DEBUG: Found {total_docs} total documents inside '{MONGODB_SENSOR_COLLECTION}' collection")
+            print(f"--- [DATA] DEBUG: Found {total_docs} total documents inside '{MONGODB_SENSOR_COLLECTION}' collection")
 
         except Exception as e:
             print(f"!!! MongoDB connection failed: {e}")
