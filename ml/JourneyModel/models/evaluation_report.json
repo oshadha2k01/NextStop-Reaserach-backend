@@ -1,5 +1,5 @@
 {
-    "trained_at": "2026-04-18T00:33:26.363455",
+    "trained_at": "2026-05-03T16:07:53.514960",
     "features_used": [
         "hour",
         "day_of_week",
@@ -28,45 +28,45 @@
     "candidate_metrics": {
         "best_params": {
             "learning_rate": 0.01,
-            "max_depth": 6,
-            "n_estimators": 100,
+            "max_depth": 4,
+            "n_estimators": 500,
             "subsample": 0.8
         },
-        "cv_best_neg_mae": -0.7364935877685166,
+        "cv_best_neg_mae": -0.6330788965448113,
         "target_transform": "log1p",
-        "holdout_count": 21,
-        "train_mae": 18.75889778137207,
-        "train_rmse": 36.22508404223774,
-        "train_r2": 0.3644077777862549,
-        "holdout_mae": 25.293296813964844,
-        "holdout_rmse": 39.41137952340034,
-        "holdout_r2": 0.09637421369552612,
-        "baseline_holdout_mae": 30.550852439741327,
-        "baseline_holdout_r2": -0.012832803249526403,
-        "baseline_improvement_pct": 17.20919452622972
+        "holdout_count": 27,
+        "train_mae": 9.573470115661621,
+        "train_rmse": 19.092376210040047,
+        "train_r2": 0.8129719495773315,
+        "holdout_mae": 20.027952194213867,
+        "holdout_rmse": 28.611762171706804,
+        "holdout_r2": -0.11302816867828369,
+        "baseline_holdout_mae": 23.91957671957672,
+        "baseline_holdout_r2": -0.1085549796329437,
+        "baseline_improvement_pct": 16.26962120185762
     },
     "current_metrics": {
         "best_params": {
             "learning_rate": 0.01,
-            "max_depth": 6,
-            "n_estimators": 100,
+            "max_depth": 4,
+            "n_estimators": 500,
             "subsample": 0.8
         },
-        "cv_best_neg_mae": -0.7364935877685166,
+        "cv_best_neg_mae": -0.6330788965448113,
         "target_transform": "log1p",
-        "holdout_count": 21,
-        "train_mae": 18.75889778137207,
-        "train_rmse": 36.22508404223774,
-        "train_r2": 0.3644077777862549,
-        "holdout_mae": 25.293296813964844,
-        "holdout_rmse": 39.41137952340034,
-        "holdout_r2": 0.09637421369552612,
-        "baseline_holdout_mae": 30.550852439741327,
-        "baseline_holdout_r2": -0.012832803249526403,
-        "baseline_improvement_pct": 17.20919452622972
+        "holdout_count": 27,
+        "train_mae": 9.573470115661621,
+        "train_rmse": 19.092376210040047,
+        "train_r2": 0.8129719495773315,
+        "holdout_mae": 20.027952194213867,
+        "holdout_rmse": 28.611762171706804,
+        "holdout_r2": -0.11302816867828369,
+        "baseline_holdout_mae": 23.91957671957672,
+        "baseline_holdout_r2": -0.1085549796329437,
+        "baseline_improvement_pct": 16.26962120185762
     },
     "promotion_reasons": [
-        "holdout_r2=0.09637421369552612 below minimum 0.1",
+        "holdout_r2=-0.11302816867828369 below minimum 0.1",
         "improvement_vs_current_pct=0.000 below minimum 2.0"
     ],
     "drift_summary": {
@@ -162,23 +162,23 @@
     "feature_importance_top5": [
         {
             "feature": "device_prev3_stop_duration_mean",
-            "importance": 0.11431270837783813
-        },
-        {
-            "feature": "lng",
-            "importance": 0.10341355204582214
+            "importance": 0.11369023472070694
         },
         {
             "feature": "hist_stop_duration_mean",
-            "importance": 0.0971447005867958
+            "importance": 0.09830210357904434
         },
         {
             "feature": "hist_stop_obs_count",
-            "importance": 0.0938059538602829
+            "importance": 0.09605632722377777
         },
         {
-            "feature": "distance_from_center",
-            "importance": 0.09248233586549759
+            "feature": "route_progress",
+            "importance": 0.09196267277002335
+        },
+        {
+            "feature": "lng",
+            "importance": 0.09122449159622192
         }
     ]
 }
