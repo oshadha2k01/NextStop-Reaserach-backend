@@ -37,7 +37,20 @@ class JourneyTimePredictor:
                 raise FileNotFoundError(f"Model not found at {self.model_path}")
             
             self.model = joblib.load(self.model_path)
-            self.features = get_feature_list()
+
+            # Backward compatibility: prefer feature names embedded in the
+            # trained model. This avoids runtime mismatch when feature
+            # engineering evolves before retraining.
+            model_features = None
+            if hasattr(self.model, 'feature_names_in_'):
+                model_features = list(self.model.feature_names_in_)
+            elif hasattr(self.model, 'get_booster'):
+                try:
+                    model_features = list(self.model.get_booster().feature_names or [])
+                except Exception:
+                    model_features = None
+
+            self.features = model_features if model_features else get_feature_list()
             if os.path.exists(self.metadata_path):
                 try:
                     import json
@@ -108,19 +121,10 @@ class JourneyTimePredictor:
                 'is_weekend': int(is_weekend),
                 'is_rush_hour': is_rush_hour_val,
                 'traffic_intensity': int(traffic_intensity_val),
-                'weather_temperature': 25,  # default neutral temp
-                'speed_kmh': 22.0,  # default city bus speed
+                'speed_kmh': 22.0,
                 'avg_route_speed_last_15m': 22.0,
-                'timestamp': datetime.now().isoformat(),
-                'device_id': 'prediction_api'  # for lag feature consistency
+                'timestamp': datetime.now().isoformat()
             }
-
-            # Add journey coords for distance + direction features
-            if boarding_lat is not None:
-                input_dict['boarding_lat'] = boarding_lat
-                input_dict['boarding_lng'] = boarding_lng
-                input_dict['destination_lat'] = destination_lat
-                input_dict['destination_lng'] = destination_lng
 
             # Inject real road distance so feature_engineering skips fallback
             if road_distance_km is not None:
@@ -129,9 +133,18 @@ class JourneyTimePredictor:
             input_data = pd.DataFrame([input_dict])
             feature_data = create_features(input_data)
 
+            # Build feature matrix with only numeric features (avoid dtype errors in XGBoost)
             X = pd.DataFrame(index=[0])
             for f in self.features:
-                X[f] = feature_data[f] if f in feature_data.columns else 0.0
+                if f in feature_data.columns:
+                    val = feature_data[f].iloc[0] if len(feature_data) > 0 else 0.0
+                    # Ensure numeric type
+                    try:
+                        X[f] = pd.to_numeric([val], errors='coerce').iloc[0]
+                    except Exception:
+                        X[f] = 0.0
+                else:
+                    X[f] = 0.0
 
             ml_delay = self.model.predict(X)[0]
             if self.target_transform == 'log1p':
@@ -178,15 +191,16 @@ class JourneyTimePredictor:
                     print("--- Fallback failed: coordinates missing")
 
             if google_duration > 0:
-                if ml_delay < 900:
-                    prediction = google_duration + ml_delay
-                    print(f"--- Hybrid (Base+Delay): {google_duration/60:.1f} + {ml_delay/60:.1f} = {prediction/60:.1f} mins")
-                else:
-                    prediction = (ml_delay * 0.6) + (google_duration * 0.4)
-                    print(f"--- Hybrid (Blend): ML={ml_delay/60:.1f}, Google={google_duration/60:.1f}, Result={prediction/60:.1f} mins")
+                # Base prediction: Google Maps time (100% accurate for road conditions)
+                # ML adjustment: Bounded delay cap to avoid inflating short trips
+                # Tighter cap ensures short journeys stay accurate while long trips get reasonable buffer
+                delay_cap = max(120.0, min(google_duration * 0.15, 300.0))
+                ml_adjustment = min(ml_delay, delay_cap)
+                prediction = google_duration + ml_adjustment
+                print(f"--- Prediction (Google Base + Bounded ML): {google_duration/60:.1f} + {ml_adjustment/60:.1f} = {prediction/60:.1f} mins")
             else:
                 prediction = ml_delay
-                print(f"--- No base duration, using ML only: {prediction/60:.1f} mins")
+                print(f"--- Fallback (ML only): {prediction/60:.1f} mins")
 
             return float(prediction)
 

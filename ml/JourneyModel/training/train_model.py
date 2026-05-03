@@ -60,13 +60,13 @@ def prepare_training_data(df):
         # Filter to only available features
         available_features = [f for f in feature_list if f in df.columns]
         
-        # Target variable
-        if 'stop_duration_seconds' in df.columns:
-            target = 'stop_duration_seconds'
+        # Target variable: must be journey-level duration (not stop dwell time)
+        if 'journey_duration_seconds' in df.columns:
+            target = 'journey_duration_seconds'
         elif 'journey_time_seconds' in df.columns:
             target = 'journey_time_seconds'
         else:
-            print("--- No target variable found")
+            print("--- No journey-duration target found (expected journey_duration_seconds or journey_time_seconds)")
             return None, None, None, None
         
         # Remove rows with missing target
