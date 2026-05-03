@@ -129,7 +129,7 @@ def save_model(model, feature_names):
 def main():
     """Main training function"""
     print("="*60)
-    print("  🚍 ETA MODEL TRAINING")
+    print("  [*] ETA MODEL TRAINING")
     print("="*60)
 
     # Load training data
@@ -155,7 +155,7 @@ def main():
     model_path = save_model(model, X.columns.tolist())
 
     print("\n" + "="*60)
-    print("  ✅ ETA MODEL TRAINING COMPLETED")
+    print("  [OK] ETA MODEL TRAINING COMPLETED")
     print("="*60)
     print(f"Model saved: {model_path}")
     print(f"Features: {len(X.columns)}")

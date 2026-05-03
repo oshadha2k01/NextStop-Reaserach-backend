@@ -1,5 +1,6 @@
 const SensorData = require('../../models/IoTDevice/SensorData');
 const BusStop = require('../../models/IoTDevice/BusStops');
+const Bus = require('../../models/Bus/BusModel');
 const axios = require('axios');
 
 // SERVER MEMORY STATE 
@@ -7,30 +8,35 @@ const busStates = {};
 
 exports.receiveSensorData = async (req, res) => {
     try {
-        const data = req.body;
-        const deviceId = data.device_id;
+        const payload = req.body;
+        const deviceId = payload.device_id;
         
         console.log("\n-----------------------------------------");
         console.log(`📡 Data received from Bus: ${deviceId}`);
 
-        // 1. Save Raw Data
-        const newData = new SensorData(data);
+        // 1. Always save raw sensor payload for ML/history
+        const newData = new SensorData(payload);
         await newData.save();
 
-        // 2. WEBSOCKET BROADCAST
-        const io = req.app.get('io'); 
-        if (io) {
-            io.emit('bus_location_update', {
-                bus_id: deviceId,
-                lat: data.gps.lat,
-                lng: data.gps.lng,
-                speed: data.gps.speed_kmh,
-                status: data.imu.status
-            });
+        const io = req.app.get('io');
+        const bus = await Bus.findOne({ device_id: deviceId }).lean();
+
+        if (bus && bus.isActive) {
+            if (io) {
+                io.emit('bus_location_update', {
+                    bus_id: deviceId,
+                    lat: payload.gps.lat,
+                    lng: payload.gps.lng,
+                    speed: payload.gps.speed_kmh,
+                    status: payload.imu.status
+                });
+            }
+        } else {
+            return res.status(200).send('Data saved (Hidden from map)');
         }
 
         // 3. STOP DETECTION LOGIC 
-        const speed = data.gps.speed_kmh;
+        const speed = payload.gps.speed_kmh;
         const SPEED_THRESHOLD = 3.0; 
 
         if (!busStates[deviceId]) {
@@ -42,8 +48,8 @@ exports.receiveSensorData = async (req, res) => {
         if (speed < SPEED_THRESHOLD && !state.isStopped) {
             state.isStopped = true;
             state.stopStartTime = Date.now();
-            state.lastLat = data.gps.lat;
-            state.lastLng = data.gps.lng;
+            state.lastLat = payload.gps.lat;
+            state.lastLng = payload.gps.lng;
             console.log(`🛑 Bus ${deviceId} stopped. Tracking duration...`);
         } 
         else if (speed >= SPEED_THRESHOLD && state.isStopped) {
@@ -56,8 +62,8 @@ exports.receiveSensorData = async (req, res) => {
                     lat: state.lastLat,
                     lng: state.lastLng,
                     stop_duration_seconds: stopDurationSeconds,
-                    weather_was_raining: data.weather.is_raining,
-                    imu_status: data.imu.status
+                    weather_was_raining: payload.weather.is_raining,
+                    imu_status: payload.imu.status
                 });
                 console.log(`📊 ML DATA SAVED: Bus ${deviceId} stopped for ${stopDurationSeconds}s`);
             }
