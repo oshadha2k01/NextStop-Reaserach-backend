@@ -37,6 +37,8 @@ const etaRoutes = require("./routes/IoTDevice/etaRoutes");
 // Import Bus-Device Registration Routes
 const busDeviceRoutes = require("./routes/BusDevice/busDeviceRoutes");
 
+const directionsRoute = require('./routes/directionsRoute');
+
 // Import Data Routes
 const dataRoutes = require("./routes/SuperAdmin/dataRoutes");
 
@@ -184,6 +186,8 @@ app.use("/api/notify", boardingNotificationRoutes);
 app.use("/api/eta", etaRoutes); 
 // Mount Bus-Device Registration Routes
 app.use("/api/bus-device", busDeviceRoutes);
+
+app.use('/api/direction', directionsRoute);
 
 // Global error handler
 // eslint-disable-next-line no-unused-vars
