@@ -74,6 +74,47 @@ function resolveToRouteStopCoordinates(locationName) {
     return null;
 }
 
+function haversineKm(lat1, lon1, lat2, lon2) {
+    const R = 6371.0;
+    const toRad = (deg) => (deg * Math.PI) / 180.0;
+    const dlat = toRad(lat2 - lat1);
+    const dlon = toRad(lon2 - lon1);
+    const a = Math.sin(dlat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dlon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function calculateRouteSequenceDistanceKm(b_lat, b_lng, d_lat, d_lng) {
+    const stops = loadRouteStops();
+    if (!stops || !stops.length) {
+        // fallback to straight-line haversine
+        return haversineKm(b_lat, b_lng, d_lat, d_lng);
+    }
+
+    // find nearest stops
+    let b_idx = 0, d_idx = 0, bestDist = Infinity;
+    for (let i = 0; i < stops.length; i++) {
+        const c = stops[i].coordinates;
+        const dist = haversineKm(b_lat, b_lng, c.latitude, c.longitude);
+        if (dist < bestDist) { bestDist = dist; b_idx = i; }
+    }
+    bestDist = Infinity;
+    for (let i = 0; i < stops.length; i++) {
+        const c = stops[i].coordinates;
+        const dist = haversineKm(d_lat, d_lng, c.latitude, c.longitude);
+        if (dist < bestDist) { bestDist = dist; d_idx = i; }
+    }
+
+    if (b_idx === d_idx) return 0.0;
+    const lo = Math.min(b_idx, d_idx), hi = Math.max(b_idx, d_idx);
+    let total = 0.0;
+    for (let i = lo; i < hi; i++) {
+        const c1 = stops[i].coordinates;
+        const c2 = stops[i + 1].coordinates;
+        total += haversineKm(c1.latitude, c1.longitude, c2.latitude, c2.longitude);
+    }
+    return Math.round(total * 1000) / 1000;
+}
+
 /**
  * Fetch actual road distance and driving duration between two location names
  * using the Google Maps Distance Matrix API.
@@ -89,6 +130,9 @@ async function fetchRoadDistance(origin, destination) {
     try {
         const originStop = resolveToRouteStopCoordinates(origin);
         const destinationStop = resolveToRouteStopCoordinates(destination);
+
+        console.log(`--- Resolving stops: "${origin}" → ${originStop ? `(${originStop.lat}, ${originStop.lng})` : 'UNRESOLVED'}`);
+        console.log(`                  "${destination}" → ${destinationStop ? `(${destinationStop.lat}, ${destinationStop.lng})` : 'UNRESOLVED'}`);
 
         // Prefer exact Route 177 coordinates to avoid ambiguous place-name geocoding.
         const originsParam = originStop
@@ -150,19 +194,86 @@ async function fetchRoadDistance(origin, destination) {
  */
 exports.getSimplePrediction = async (boardingLocation, destinationLocation, userExpectedTime) => {
     try {
+        console.log(`\n--- getSimplePrediction: ${boardingLocation} → ${destinationLocation}`);
+        
         // Fetch actual road distance & duration before calling Flask
         const roadData = await fetchRoadDistance(boardingLocation, destinationLocation);
+        console.log(`--- Google result: ${roadData ? `${roadData.road_distance_km} km, ${Math.round(roadData.road_duration_seconds/60)} min` : 'FAILED'}`);
 
-        const body = {
+        // Ensure we always inject road distance + duration (prefer Google, else estimate)
+        let injectedRoadData = null;
+        if (roadData) {
+            // Validate Google result against route-sequence distance
+            let routeSeqKm = null;
+            try {
+                const originStop = resolveToRouteStopCoordinates(boardingLocation);
+                const destStop = resolveToRouteStopCoordinates(destinationLocation);
+                if (originStop && destStop) {
+                    routeSeqKm = calculateRouteSequenceDistanceKm(originStop.lat, originStop.lng, destStop.lat, destStop.lng);
+                }
+            } catch (err) {
+                routeSeqKm = null;
+            }
+
+            // If Google disagrees wildly with route sequence, ignore Google
+            let useGoogle = true;
+            if (routeSeqKm && routeSeqKm > 0) {
+                const diff = Math.abs(roadData.road_distance_km - routeSeqKm) / routeSeqKm;
+                if (diff > 0.5) {
+                    console.warn(`⚠️  Google distance disagrees with route-sequence by ${(diff*100).toFixed(1)}% — ignoring Google result`);
+                    useGoogle = false;
+                }
+            }
+
+            if (useGoogle) {
+                injectedRoadData = {
+                    road_distance_km: roadData.road_distance_km,
+                    road_duration_seconds: roadData.road_duration_seconds,
+                    road_data_source: 'google'
+                };
+            } else {
+                // fallback to estimated using routeSeqKm when available
+                const est_distance_km = routeSeqKm && routeSeqKm > 0 ? routeSeqKm : 2.0;
+                const est_duration_seconds = Math.round((est_distance_km / 22.0) * 3600);
+                injectedRoadData = {
+                    road_distance_km: Math.round(est_distance_km * 100) / 100,
+                    road_duration_seconds: est_duration_seconds,
+                    road_data_source: 'estimated'
+                };
+            }
+        } else {
+            // Estimate using route sequence distance and a conservative average speed
+            try {
+                const stops = loadRouteStops();
+                // fallback simple estimate: zero if stops missing
+                let est_km = 0.0;
+                if (stops && stops.length) {
+                    // Resolve nearest indices for origin/destination similar to ML side
+                    const findNearestIdx = (latlngStr) => {
+                        // latlngStr may be a name; resolution not possible here, return null
+                        return null;
+                    };
+                }
+            } catch (err) {
+                // ignore
+            }
+
+            // Conservative default: assume short trip of 2 km and 22 km/h if unknown
+            const est_distance_km = 2.0;
+            const est_duration_seconds = Math.round((est_distance_km / 22.0) * 3600);
+            injectedRoadData = {
+                road_distance_km: Math.round(est_distance_km * 100) / 100,
+                road_duration_seconds: est_duration_seconds,
+                road_data_source: 'estimated'
+            };
+            console.warn('⚠️  Google road data missing — injecting estimated road_distance_km and road_duration_seconds');
+        }
+
+        const body = Object.assign({
             boardingLocation,
             destinationLocation,
-            userExpectedTime,
-            // Only include road data if Google API returned a valid result
-            ...(roadData && {
-                road_distance_km: roadData.road_distance_km,
-                road_duration_seconds: roadData.road_duration_seconds
-            })
-        };
+            userExpectedTime
+        }, injectedRoadData);
 
         const response = await axios.post(`${ML_API_URL}/predict-simple`, body, {
             timeout: 15000,

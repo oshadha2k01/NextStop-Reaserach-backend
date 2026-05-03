@@ -4,10 +4,8 @@ Creates features for ML model training
 """
 
 import pandas as pd
-import numpy as np
 import json
 import os
-from datetime import datetime
 from math import radians, sin, cos, sqrt, atan2
 
 
@@ -65,21 +63,6 @@ def _nearest_stop_idx(lat, lng, stops):
     return best_idx
 
 
-def _route_stop_count():
-    stops = _load_route_stops()
-    return len(stops) if stops else 0
-
-
-def _nearest_stop_idx_safe(lat, lng):
-    stops = _load_route_stops()
-    if not stops:
-        return 0
-    try:
-        return int(_nearest_stop_idx(float(lat), float(lng), stops))
-    except Exception:
-        return 0
-
-
 def calculate_route_sequence_distance_km(b_lat, b_lng, d_lat, d_lng):
     """
     Along-route distance by summing Haversine distances between consecutive
@@ -105,19 +88,6 @@ def calculate_route_sequence_distance_km(b_lat, b_lng, d_lat, d_lng):
         total += haversine_km(c1['latitude'], c1['longitude'],
                               c2['latitude'], c2['longitude'])
     return round(total, 3)
-
-
-def get_route_direction(b_lat, b_lng, d_lat, d_lng):
-    """
-    0 = forward  (boarding closer to Kaduwela  / stop id=1)
-    1 = reverse  (boarding closer to Kollupitiya / stop id=20)
-    """
-    stops = _load_route_stops()
-    if not stops:
-        return 0
-    b_idx = _nearest_stop_idx(b_lat, b_lng, stops)
-    d_idx = _nearest_stop_idx(d_lat, d_lng, stops)
-    return 0 if b_idx <= d_idx else 1
 
 
 def estimate_expected_stop_duration(hour, is_rush_hour, traffic_intensity):
@@ -153,30 +123,16 @@ def create_features(data):
     df = data.copy()
 
     if df.empty:
-        # Ensure required columns exist even for empty frames
+        # Ensure required columns exist even for empty frames (minimal set)
         for column in [
             'hour', 'day_of_week', 'is_weekend', 'is_rush_hour',
-            'weather_was_raining', 'is_hot', 'is_cold',
-            'distance_from_center', 'stop_duration_minutes', 'traffic_intensity',
-            'direction'
+            'weather_was_raining', 'speed_kmh', 'stop_duration_minutes',
+            'journey_distance_km', 'traffic_intensity', 'avg_route_speed_last_15m'
         ]:
             if column not in df.columns:
                 df[column] = pd.Series(dtype='float64')
         return df
 
-    # Normalize merged coordinate column names to expected model schema
-    if 'lat' not in df.columns:
-        if 'lat_x' in df.columns:
-            df['lat'] = df['lat_x']
-        elif 'lat_y' in df.columns:
-            df['lat'] = df['lat_y']
-
-    if 'lng' not in df.columns:
-        if 'lng_x' in df.columns:
-            df['lng'] = df['lng_x']
-        elif 'lng_y' in df.columns:
-            df['lng'] = df['lng_y']
-    
     # Parse timestamp if exists
     if 'timestamp' in df.columns:
         df['timestamp'] = pd.to_datetime(df['timestamp'])
@@ -202,148 +158,22 @@ def create_features(data):
     else:
         df['weather_was_raining'] = 0
     
-    if 'weather_temperature' in df.columns:
-        df['is_hot'] = (df['weather_temperature'] > 30).astype(int)
-        df['is_cold'] = (df['weather_temperature'] < 10).astype(int)
+    # Journey Distance: prefer Google road_distance_km when available (real-time)
+    if 'road_distance_km' in df.columns:
+        df['journey_distance_km'] = pd.to_numeric(df['road_distance_km'], errors='coerce').fillna(0.0)
+        print("--- journey_distance_km: using Google road distance")
     else:
-        df['is_hot'] = 0
-        df['is_cold'] = 0
+        # If Google distance is not provided, default to 0.0 (caller should provide road_distance_km)
+        df['journey_distance_km'] = 0.0
     
-    # Location-based features
-    if 'lat' in df.columns and 'lng' in df.columns:
-        try:
-            from ..config import DEFAULT_CENTER_LAT, DEFAULT_CENTER_LNG
-        except ImportError:
-            from config import DEFAULT_CENTER_LAT, DEFAULT_CENTER_LNG
-        
-        # Haversine distance from Colombo city centre
-        df['distance_from_center'] = df.apply(
-            lambda row: haversine_km(
-                float(row['lat']), float(row['lng']),
-                DEFAULT_CENTER_LAT, DEFAULT_CENTER_LNG
-            ), axis=1
-        )
-
-        # Journey Distance
-        # Priority 1: real road_distance_km injected by Node.js Google Maps call
-        if 'road_distance_km' in df.columns:
-            df['journey_distance_km'] = pd.to_numeric(df['road_distance_km'], errors='coerce').fillna(0.0)
-            print("--- journey_distance_km: using Google road distance")
-        # Priority 2: route-sequence Haversine (accurate along-route; same for A->B and B->A)
-        elif 'boarding_lat' in df.columns and 'destination_lat' in df.columns:
-            def _route_dist(row):
-                try:
-                    return calculate_route_sequence_distance_km(
-                        float(row['boarding_lat']), float(row['boarding_lng']),
-                        float(row['destination_lat']), float(row['destination_lng'])
-                    )
-                except Exception:
-                    return haversine_km(
-                        float(row['boarding_lat']), float(row['boarding_lng']),
-                        float(row['destination_lat']), float(row['destination_lng'])
-                    )
-            df['journey_distance_km'] = df.apply(_route_dist, axis=1)
-            print("--- journey_distance_km: using route-sequence Haversine")
-        # Priority 3: default
-        else:
-            df['journey_distance_km'] = 0.0
-
-        # Direction feature (0=forward Kaduwela->Kollupitiya, 1=reverse)
-        # Stored here for future model retraining; not yet in get_feature_list()
-        if 'boarding_lat' in df.columns and 'destination_lat' in df.columns:
-            def _direction(row):
-                try:
-                    return get_route_direction(
-                        float(row['boarding_lat']), float(row['boarding_lng']),
-                        float(row['destination_lat']), float(row['destination_lng'])
-                    )
-                except Exception:
-                    return 0
-            df['direction'] = df.apply(_direction, axis=1)
-
-            # Route segment features from nearest route stop indices.
-            df['boarding_stop_idx'] = df.apply(
-                lambda row: _nearest_stop_idx_safe(row['boarding_lat'], row['boarding_lng']),
-                axis=1
-            )
-            df['destination_stop_idx'] = df.apply(
-                lambda row: _nearest_stop_idx_safe(row['destination_lat'], row['destination_lng']),
-                axis=1
-            )
-            df['segment_count'] = (df['destination_stop_idx'] - df['boarding_stop_idx']).abs().astype(int)
-        else:
-            df['direction'] = 0
-
-            # Training-time fallback when only current GPS is available.
-            df['current_stop_idx'] = df.apply(
-                lambda row: _nearest_stop_idx_safe(row['lat'], row['lng']),
-                axis=1
-            )
-            if 'timestamp' in df.columns and 'device_id' in df.columns:
-                df = df.sort_values(['device_id', 'timestamp']).reset_index(drop=True)
-                df['previous_stop_idx'] = df.groupby('device_id')['current_stop_idx'].shift(1)
-            else:
-                df['previous_stop_idx'] = df['current_stop_idx']
-
-            df['previous_stop_idx'] = df['previous_stop_idx'].fillna(df['current_stop_idx']).astype(int)
-            df['boarding_stop_idx'] = df['previous_stop_idx']
-            df['destination_stop_idx'] = df['current_stop_idx']
-            df['segment_count'] = (df['destination_stop_idx'] - df['boarding_stop_idx']).abs().astype(int)
-
-        stop_count = max(_route_stop_count() - 1, 1)
-        df['route_progress'] = pd.to_numeric(df['destination_stop_idx'], errors='coerce').fillna(0) / stop_count
-    
-    # Stop duration features
+    # Stop duration feature (from bus_stop_data.csv)
     if 'stop_duration_seconds' in df.columns:
-        df['stop_duration_minutes'] = df['stop_duration_seconds'] / 60
-
-    # Historical stop-duration proxy features (leakage-safe via shift(1)).
-    # These features give the model route/stop temporal context and are only
-    # computed from past observations.
-    expected_proxy_seconds = estimate_expected_stop_duration(
-        hour=int(df['hour'].iloc[0]) if len(df) else 12,
-        is_rush_hour=int(df['is_rush_hour'].iloc[0]) if len(df) else 0,
-        traffic_intensity=int(df['traffic_intensity'].iloc[0]) if 'traffic_intensity' in df.columns and len(df) else 1,
-    )
-
-    if 'stop_duration_seconds' in df.columns and 'timestamp' in df.columns:
-        target_series = pd.to_numeric(df['stop_duration_seconds'], errors='coerce')
-        global_target_median = float(target_series.dropna().median()) if target_series.dropna().size > 0 else float(expected_proxy_seconds)
-
-        grouped = df.groupby(['destination_stop_idx', 'hour'])['stop_duration_seconds']
-        df['hist_stop_duration_mean'] = grouped.transform(
-            lambda series: pd.to_numeric(series, errors='coerce').shift(1).expanding().mean()
-        )
-        df['hist_stop_obs_count'] = grouped.cumcount()
-
-        if 'device_id' in df.columns:
-            device_target = df.groupby('device_id')['stop_duration_seconds']
-            df['device_prev_stop_duration'] = device_target.shift(1)
-            df['device_prev3_stop_duration_mean'] = device_target.transform(
-                lambda series: pd.to_numeric(series, errors='coerce').shift(1).rolling(3, min_periods=1).mean()
-            )
-        else:
-            df['device_prev_stop_duration'] = np.nan
-            df['device_prev3_stop_duration_mean'] = np.nan
-
-        df['hist_stop_duration_mean'] = pd.to_numeric(df['hist_stop_duration_mean'], errors='coerce').fillna(global_target_median)
-        df['hist_stop_obs_count'] = pd.to_numeric(df['hist_stop_obs_count'], errors='coerce').fillna(0).astype(int)
-        df['device_prev_stop_duration'] = pd.to_numeric(df['device_prev_stop_duration'], errors='coerce').fillna(global_target_median)
-        df['device_prev3_stop_duration_mean'] = pd.to_numeric(df['device_prev3_stop_duration_mean'], errors='coerce').fillna(global_target_median)
+        df['stop_duration_minutes'] = pd.to_numeric(df['stop_duration_seconds'], errors='coerce').fillna(0.0) / 60.0
     else:
-        df['hist_stop_duration_mean'] = float(expected_proxy_seconds)
-        df['hist_stop_obs_count'] = 0
-        df['device_prev_stop_duration'] = float(expected_proxy_seconds)
-        df['device_prev3_stop_duration_mean'] = float(expected_proxy_seconds)
+        df['stop_duration_minutes'] = 0.0
     
-    # Traffic intensity must not be derived from target-like stop duration values.
-    # Priority:
-    # 1) keep provided traffic_intensity if present
-    # 2) infer from speed_kmh (slower speed => heavier traffic)
-    # 3) fallback to medium
-    if 'traffic_intensity' in df.columns:
-        df['traffic_intensity'] = pd.to_numeric(df['traffic_intensity'], errors='coerce').fillna(1).astype(int)
-    elif 'speed_kmh' in df.columns:
+    # Traffic intensity: infer from speed_kmh when available
+    if 'speed_kmh' in df.columns:
         speed_series = pd.to_numeric(df['speed_kmh'], errors='coerce').fillna(20.0)
 
         def get_intensity_from_speed(speed):
@@ -357,11 +187,7 @@ def create_features(data):
     else:
         df['traffic_intensity'] = 1
     
-    # Passenger count features (if available)
-    if 'passenger_count' in df.columns:
-        df['passenger_count'] = df['passenger_count'].fillna(0)
-
-    # Lag feature default for prediction-time single rows
+    # Lag/default speed feature for prediction-time single rows
     if 'avg_route_speed_last_15m' not in df.columns:
         if 'speed_kmh' in df.columns:
             df['avg_route_speed_last_15m'] = pd.to_numeric(df['speed_kmh'], errors='coerce').fillna(20.0)
@@ -373,24 +199,15 @@ def create_features(data):
     for feature in required_features:
         if feature not in df.columns:
             # Set appropriate defaults based on feature name
-            if 'duration' in feature or 'obs_count' in feature:
+            # Minimal sensible defaults
+            if 'duration' in feature:
                 df[feature] = 0.0
-            elif 'idx' in feature or 'segment' in feature:
-                df[feature] = 0
-            elif 'progress' in feature:
-                df[feature] = 0.5
-            elif 'stop_minutes' in feature:
-                df[feature] = 1.0
+            elif 'speed' in feature:
+                df[feature] = 20.0
             else:
                 df[feature] = 0.0
     
-    print("--- Features created:")
-    print(f"  - Time-based: hour, day_of_week, is_weekend, is_rush_hour")
-    print(f"  - Weather: weather_was_raining, is_hot, is_cold")
-    print(f"  - Location: lat, lng, distance_from_center")
-    print(f"  - Route segments: boarding_stop_idx, destination_stop_idx, segment_count, route_progress")
-    print(f"  - Historical proxies: hist_stop_duration_mean, hist_stop_obs_count, device_prev_stop_duration, device_prev3_stop_duration_mean")
-    print(f"  - Traffic: stop_duration_minutes, traffic_intensity")
+    print("--- Features created: minimal set (time, weather, speed, stop duration, google distance, traffic)")
     
     return df
 
@@ -403,22 +220,11 @@ def get_feature_list():
         "is_weekend",
         "is_rush_hour",
         "weather_was_raining",
-        "is_hot",
-        "is_cold",
-        "lat",
-        "lng",
-        "distance_from_center",
+        "speed_kmh",
+        "stop_duration_minutes",
         "traffic_intensity",
         "journey_distance_km",
-        "avg_route_speed_last_15m",
-        "boarding_stop_idx",
-        "destination_stop_idx",
-        "segment_count",
-        "route_progress",
-        "hist_stop_duration_mean",
-        "hist_stop_obs_count",
-        "device_prev_stop_duration",
-        "device_prev3_stop_duration_mean"
+        "avg_route_speed_last_15m"
     ]
     return features
 

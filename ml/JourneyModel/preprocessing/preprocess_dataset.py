@@ -12,7 +12,7 @@ from datetime import datetime
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config import DATASETS_PATH
-from utils.feature_engineering import create_features
+from utils.feature_engineering import create_features, get_feature_list
 
 
 def load_raw_data():
@@ -146,41 +146,6 @@ def clean_data(df):
     return df
 
 
-def create_lag_features(df):
-    """
-    Create rolling route-speed context from historical records.
-    The current row is excluded via shift(1) to avoid leakage.
-    """
-    print("--- Creating Time-Series Lag Features...")
-
-    if 'timestamp' not in df.columns:
-        df['avg_route_speed_last_15m'] = 20.0
-        return df
-
-    working_df = df.copy()
-    working_df['timestamp'] = pd.to_datetime(working_df['timestamp'], errors='coerce')
-    working_df = working_df.dropna(subset=['timestamp']).sort_values('timestamp').reset_index(drop=True)
-
-    if working_df.empty:
-        df['avg_route_speed_last_15m'] = 20.0
-        return df
-
-    if 'speed_kmh' in working_df.columns:
-        working_df['speed_kmh'] = pd.to_numeric(working_df['speed_kmh'], errors='coerce')
-        global_median_speed = working_df['speed_kmh'].median()
-        if pd.isna(global_median_speed):
-            global_median_speed = 20.0
-
-        df_time = working_df.set_index('timestamp')
-        rolling_speed = df_time['speed_kmh'].shift(1).rolling('15min').mean()
-        working_df['avg_route_speed_last_15m'] = rolling_speed.values
-        working_df['avg_route_speed_last_15m'] = working_df['avg_route_speed_last_15m'].fillna(global_median_speed)
-    else:
-        working_df['avg_route_speed_last_15m'] = 20.0
-
-    return working_df
-
-
 def preprocess_pipeline():
     """Run complete preprocessing pipeline"""
     print("\n--- Starting Data Preprocessing Pipeline...")
@@ -200,12 +165,26 @@ def preprocess_pipeline():
     # Clean data
     cleaned_df = clean_data(df_merged)
     
-    # Create lag features before feature engineering
-    cleaned_df = create_lag_features(cleaned_df)
-
     # Create features
     print("\n--- Creating features...")
     processed_df = create_features(cleaned_df)
+
+    # Create journey_time_seconds target: use stop_duration_seconds as proxy
+    # (actual journey time not available in MongoDB exports; will improve with journey outcome data)
+    if 'journey_time_seconds' not in processed_df.columns:
+        if 'stop_duration_seconds' in processed_df.columns:
+            processed_df['journey_time_seconds'] = processed_df['stop_duration_seconds']
+            print("--- Using stop_duration_seconds as journey_time_seconds proxy (actual journey times not in data)")
+        else:
+            processed_df['journey_time_seconds'] = 0.0
+
+    # Keep only essential model columns plus available target/time columns
+    keep_columns = get_feature_list()
+    for optional_col in ['timestamp', 'journey_time_seconds', 'stop_duration_seconds']:
+        if optional_col in processed_df.columns:
+            keep_columns.append(optional_col)
+    keep_columns = [col for col in keep_columns if col in processed_df.columns]
+    processed_df = processed_df[keep_columns].copy()
 
     # Remove duplicate columns from merge (_x, _y artifacts)
     duplicate_merge_columns = [col for col in processed_df.columns if col.endswith('_x') or col.endswith('_y')]

@@ -1,72 +1,60 @@
 {
-    "trained_at": "2026-04-18T00:33:26.363455",
+    "trained_at": "2026-05-04T01:01:18.020136",
     "features_used": [
         "hour",
         "day_of_week",
         "is_weekend",
         "is_rush_hour",
         "weather_was_raining",
-        "is_hot",
-        "is_cold",
-        "lat",
-        "lng",
-        "distance_from_center",
+        "speed_kmh",
+        "stop_duration_minutes",
         "traffic_intensity",
         "journey_distance_km",
-        "avg_route_speed_last_15m",
-        "boarding_stop_idx",
-        "destination_stop_idx",
-        "segment_count",
-        "route_progress",
-        "hist_stop_duration_mean",
-        "hist_stop_obs_count",
-        "device_prev_stop_duration",
-        "device_prev3_stop_duration_mean"
+        "avg_route_speed_last_15m"
     ],
     "promotion_threshold_percent": 2.0,
     "production_state": "retained_current",
     "candidate_metrics": {
         "best_params": {
-            "learning_rate": 0.01,
-            "max_depth": 6,
-            "n_estimators": 100,
+            "learning_rate": 0.1,
+            "max_depth": 4,
+            "n_estimators": 500,
             "subsample": 0.8
         },
-        "cv_best_neg_mae": -0.7364935877685166,
+        "cv_best_neg_mae": -0.07345324876071088,
         "target_transform": "log1p",
-        "holdout_count": 21,
-        "train_mae": 18.75889778137207,
-        "train_rmse": 36.22508404223774,
-        "train_r2": 0.3644077777862549,
-        "holdout_mae": 25.293296813964844,
-        "holdout_rmse": 39.41137952340034,
-        "holdout_r2": 0.09637421369552612,
-        "baseline_holdout_mae": 30.550852439741327,
-        "baseline_holdout_r2": -0.012832803249526403,
-        "baseline_improvement_pct": 17.20919452622972
+        "holdout_count": 28,
+        "train_mae": 0.036306172609329224,
+        "train_rmse": 0.06173473170852528,
+        "train_r2": 0.9999988675117493,
+        "holdout_mae": 4.156033039093018,
+        "holdout_rmse": 10.712548956208328,
+        "holdout_r2": 0.9689745306968689,
+        "baseline_holdout_mae": 38.88466579292267,
+        "baseline_holdout_r2": -0.00020443997501473632,
+        "baseline_improvement_pct": 89.31189723675226
     },
     "current_metrics": {
         "best_params": {
             "learning_rate": 0.01,
-            "max_depth": 6,
+            "max_depth": 4,
             "n_estimators": 100,
             "subsample": 0.8
         },
-        "cv_best_neg_mae": -0.7364935877685166,
+        "cv_best_neg_mae": 0.0,
         "target_transform": "log1p",
-        "holdout_count": 21,
-        "train_mae": 18.75889778137207,
-        "train_rmse": 36.22508404223774,
-        "train_r2": 0.3644077777862549,
-        "holdout_mae": 25.293296813964844,
-        "holdout_rmse": 39.41137952340034,
-        "holdout_r2": 0.09637421369552612,
-        "baseline_holdout_mae": 30.550852439741327,
-        "baseline_holdout_r2": -0.012832803249526403,
-        "baseline_improvement_pct": 17.20919452622972
+        "holdout_count": 28,
+        "train_mae": 0.0,
+        "train_rmse": 0.0,
+        "train_r2": 1.0,
+        "holdout_mae": 0.0,
+        "holdout_rmse": 0.0,
+        "holdout_r2": 1.0,
+        "baseline_holdout_mae": 0.0,
+        "baseline_holdout_r2": 1.0,
+        "baseline_improvement_pct": null
     },
     "promotion_reasons": [
-        "holdout_r2=0.09637421369552612 below minimum 0.1",
         "improvement_vs_current_pct=0.000 below minimum 2.0"
     ],
     "drift_summary": {
@@ -93,23 +81,11 @@
                 "relative_mean_shift_pct": 0.0,
                 "standardized_shift": 0.0
             },
-            "is_hot": {
+            "speed_kmh": {
                 "relative_mean_shift_pct": 0.0,
                 "standardized_shift": 0.0
             },
-            "is_cold": {
-                "relative_mean_shift_pct": 0.0,
-                "standardized_shift": 0.0
-            },
-            "lat": {
-                "relative_mean_shift_pct": 0.0,
-                "standardized_shift": 0.0
-            },
-            "lng": {
-                "relative_mean_shift_pct": 0.0,
-                "standardized_shift": 0.0
-            },
-            "distance_from_center": {
+            "stop_duration_minutes": {
                 "relative_mean_shift_pct": 0.0,
                 "standardized_shift": 0.0
             },
@@ -124,61 +100,29 @@
             "avg_route_speed_last_15m": {
                 "relative_mean_shift_pct": 0.0,
                 "standardized_shift": 0.0
-            },
-            "boarding_stop_idx": {
-                "relative_mean_shift_pct": 0.0,
-                "standardized_shift": 0.0
-            },
-            "destination_stop_idx": {
-                "relative_mean_shift_pct": 0.0,
-                "standardized_shift": 0.0
-            },
-            "segment_count": {
-                "relative_mean_shift_pct": 0.0,
-                "standardized_shift": 0.0
-            },
-            "route_progress": {
-                "relative_mean_shift_pct": 0.0,
-                "standardized_shift": 0.0
-            },
-            "hist_stop_duration_mean": {
-                "relative_mean_shift_pct": 0.0,
-                "standardized_shift": 0.0
-            },
-            "hist_stop_obs_count": {
-                "relative_mean_shift_pct": 0.0,
-                "standardized_shift": 0.0
-            },
-            "device_prev_stop_duration": {
-                "relative_mean_shift_pct": 0.0,
-                "standardized_shift": 0.0
-            },
-            "device_prev3_stop_duration_mean": {
-                "relative_mean_shift_pct": 0.0,
-                "standardized_shift": 0.0
             }
         }
     },
     "feature_importance_top5": [
         {
-            "feature": "device_prev3_stop_duration_mean",
-            "importance": 0.11431270837783813
+            "feature": "stop_duration_minutes",
+            "importance": 0.8750366568565369
         },
         {
-            "feature": "lng",
-            "importance": 0.10341355204582214
+            "feature": "day_of_week",
+            "importance": 0.07364664226770401
         },
         {
-            "feature": "hist_stop_duration_mean",
-            "importance": 0.0971447005867958
+            "feature": "is_rush_hour",
+            "importance": 0.02874705195426941
         },
         {
-            "feature": "hist_stop_obs_count",
-            "importance": 0.0938059538602829
+            "feature": "hour",
+            "importance": 0.022557271644473076
         },
         {
-            "feature": "distance_from_center",
-            "importance": 0.09248233586549759
+            "feature": "is_weekend",
+            "importance": 1.2342868103587534e-05
         }
     ]
 }

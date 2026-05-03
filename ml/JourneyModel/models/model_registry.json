@@ -1,5 +1,5 @@
 {
-    "trained_at": "2026-04-18T00:33:26.357298",
+    "trained_at": "2026-05-04T01:01:18.010600",
     "production_state": "retained_current",
     "promotion_threshold_percent": 2.0,
     "features": [
@@ -8,89 +8,77 @@
         "is_weekend",
         "is_rush_hour",
         "weather_was_raining",
-        "is_hot",
-        "is_cold",
-        "lat",
-        "lng",
-        "distance_from_center",
+        "speed_kmh",
+        "stop_duration_minutes",
         "traffic_intensity",
         "journey_distance_km",
-        "avg_route_speed_last_15m",
-        "boarding_stop_idx",
-        "destination_stop_idx",
-        "segment_count",
-        "route_progress",
-        "hist_stop_duration_mean",
-        "hist_stop_obs_count",
-        "device_prev_stop_duration",
-        "device_prev3_stop_duration_mean"
+        "avg_route_speed_last_15m"
     ],
     "production_metrics": {
         "best_params": {
-            "learning_rate": 0.01,
-            "max_depth": 6,
-            "n_estimators": 100,
+            "learning_rate": 0.1,
+            "max_depth": 4,
+            "n_estimators": 500,
             "subsample": 0.8
         },
-        "cv_best_neg_mae": -0.7364935877685166,
+        "cv_best_neg_mae": -0.07345324876071088,
         "target_transform": "log1p",
-        "holdout_count": 21,
-        "train_mae": 18.75889778137207,
-        "train_rmse": 36.22508404223774,
-        "train_r2": 0.3644077777862549,
-        "holdout_mae": 25.293296813964844,
-        "holdout_rmse": 39.41137952340034,
-        "holdout_r2": 0.09637421369552612,
-        "baseline_holdout_mae": 30.550852439741327,
-        "baseline_holdout_r2": -0.012832803249526403,
-        "baseline_improvement_pct": 17.20919452622972
+        "holdout_count": 28,
+        "train_mae": 0.036306172609329224,
+        "train_rmse": 0.06173473170852528,
+        "train_r2": 0.9999988675117493,
+        "holdout_mae": 4.156033039093018,
+        "holdout_rmse": 10.712548956208328,
+        "holdout_r2": 0.9689745306968689,
+        "baseline_holdout_mae": 38.88466579292267,
+        "baseline_holdout_r2": -0.00020443997501473632,
+        "baseline_improvement_pct": 89.31189723675226
     },
     "current_metrics": {
         "best_params": {
             "learning_rate": 0.01,
-            "max_depth": 6,
+            "max_depth": 4,
             "n_estimators": 100,
             "subsample": 0.8
         },
-        "cv_best_neg_mae": -0.7364935877685166,
+        "cv_best_neg_mae": 0.0,
         "target_transform": "log1p",
-        "holdout_count": 21,
-        "train_mae": 18.75889778137207,
-        "train_rmse": 36.22508404223774,
-        "train_r2": 0.3644077777862549,
-        "holdout_mae": 25.293296813964844,
-        "holdout_rmse": 39.41137952340034,
-        "holdout_r2": 0.09637421369552612,
-        "baseline_holdout_mae": 30.550852439741327,
-        "baseline_holdout_r2": -0.012832803249526403,
-        "baseline_improvement_pct": 17.20919452622972
+        "holdout_count": 28,
+        "train_mae": 0.0,
+        "train_rmse": 0.0,
+        "train_r2": 1.0,
+        "holdout_mae": 0.0,
+        "holdout_rmse": 0.0,
+        "holdout_r2": 1.0,
+        "baseline_holdout_mae": 0.0,
+        "baseline_holdout_r2": 1.0,
+        "baseline_improvement_pct": null
     },
     "promotion_reasons": [
-        "holdout_r2=0.09637421369552612 below minimum 0.1",
         "improvement_vs_current_pct=0.000 below minimum 2.0"
     ],
     "data_profile": {
         "hour": {
-            "mean": 11.450980392156863,
-            "std": 1.3832624013175716,
-            "min": 8.0,
-            "max": 13.0
+            "mean": 11.197080291970803,
+            "std": 2.1619687924857445,
+            "min": 4.0,
+            "max": 17.0
         },
         "day_of_week": {
-            "mean": 2.3627450980392157,
-            "std": 0.7283402491556327,
+            "mean": 3.197080291970803,
+            "std": 1.62172482641891,
             "min": 0.0,
-            "max": 3.0
+            "max": 6.0
         },
         "is_weekend": {
-            "mean": 0.0,
-            "std": 0.0,
+            "mean": 0.24087591240875914,
+            "std": 0.4291843742916439,
             "min": 0.0,
-            "max": 0.0
+            "max": 1.0
         },
         "is_rush_hour": {
-            "mean": 0.0784313725490196,
-            "std": 0.27017685846053213,
+            "mean": 0.2846715328467153,
+            "std": 0.45291385217553903,
             "min": 0.0,
             "max": 1.0
         },
@@ -100,35 +88,17 @@
             "min": 0.0,
             "max": 0.0
         },
-        "is_hot": {
-            "mean": 0.0,
-            "std": 0.0,
-            "min": 0.0,
-            "max": 0.0
+        "speed_kmh": {
+            "mean": 6.815359999999998,
+            "std": 1.782875602002023e-15,
+            "min": 6.81536,
+            "max": 6.81536
         },
-        "is_cold": {
-            "mean": 0.0,
-            "std": 0.0,
-            "min": 0.0,
-            "max": 0.0
-        },
-        "lat": {
-            "mean": 6.909871068627451,
-            "std": 0.004569757415533996,
-            "min": 6.90204,
-            "max": 6.934643
-        },
-        "lng": {
-            "mean": 79.90334647058823,
-            "std": 0.04181815763770545,
-            "min": 79.84867,
-            "max": 79.98394
-        },
-        "distance_from_center": {
-            "mean": 5.538527962588587,
-            "std": 4.01904708201866,
-            "min": 1.6051299009891788,
-            "max": 13.574268984057932
+        "stop_duration_minutes": {
+            "mean": 0.8103406326034063,
+            "std": 0.9851659795685548,
+            "min": 0.1833333333333333,
+            "max": 6.066666666666666
         },
         "traffic_intensity": {
             "mean": 2.0,
@@ -143,58 +113,10 @@
             "max": 0.0
         },
         "avg_route_speed_last_15m": {
-            "mean": 3.592879999999999,
-            "std": 8.92564512644941e-16,
-            "min": 3.59288,
-            "max": 3.59288
-        },
-        "boarding_stop_idx": {
-            "mean": 11.362745098039216,
-            "std": 5.731257384004701,
-            "min": 0.0,
-            "max": 19.0
-        },
-        "destination_stop_idx": {
-            "mean": 11.382352941176471,
-            "std": 5.695306592373221,
-            "min": 0.0,
-            "max": 19.0
-        },
-        "segment_count": {
-            "mean": 0.7450980392156863,
-            "std": 1.1141419867013227,
-            "min": 0.0,
-            "max": 6.0
-        },
-        "route_progress": {
-            "mean": 0.5990712074303407,
-            "std": 0.29975297854595906,
-            "min": 0.0,
-            "max": 1.0
-        },
-        "hist_stop_duration_mean": {
-            "mean": 33.697435004694604,
-            "std": 20.269154482048396,
-            "min": 11.0,
-            "max": 112.0
-        },
-        "hist_stop_obs_count": {
-            "mean": 2.6470588235294117,
-            "std": 4.397675035661209,
-            "min": 0.0,
-            "max": 19.0
-        },
-        "device_prev_stop_duration": {
-            "mean": 43.31372549019608,
-            "std": 44.94418549429593,
-            "min": 11.0,
-            "max": 243.0
-        },
-        "device_prev3_stop_duration_mean": {
-            "mean": 43.03104575163398,
-            "std": 28.34762530621809,
-            "min": 11.666666666666666,
-            "max": 139.33333333333334
+            "mean": 6.815359999999998,
+            "std": 1.782875602002023e-15,
+            "min": 6.81536,
+            "max": 6.81536
         }
     },
     "drift_summary": {
@@ -221,23 +143,11 @@
                 "relative_mean_shift_pct": 0.0,
                 "standardized_shift": 0.0
             },
-            "is_hot": {
+            "speed_kmh": {
                 "relative_mean_shift_pct": 0.0,
                 "standardized_shift": 0.0
             },
-            "is_cold": {
-                "relative_mean_shift_pct": 0.0,
-                "standardized_shift": 0.0
-            },
-            "lat": {
-                "relative_mean_shift_pct": 0.0,
-                "standardized_shift": 0.0
-            },
-            "lng": {
-                "relative_mean_shift_pct": 0.0,
-                "standardized_shift": 0.0
-            },
-            "distance_from_center": {
+            "stop_duration_minutes": {
                 "relative_mean_shift_pct": 0.0,
                 "standardized_shift": 0.0
             },
@@ -250,38 +160,6 @@
                 "standardized_shift": 0.0
             },
             "avg_route_speed_last_15m": {
-                "relative_mean_shift_pct": 0.0,
-                "standardized_shift": 0.0
-            },
-            "boarding_stop_idx": {
-                "relative_mean_shift_pct": 0.0,
-                "standardized_shift": 0.0
-            },
-            "destination_stop_idx": {
-                "relative_mean_shift_pct": 0.0,
-                "standardized_shift": 0.0
-            },
-            "segment_count": {
-                "relative_mean_shift_pct": 0.0,
-                "standardized_shift": 0.0
-            },
-            "route_progress": {
-                "relative_mean_shift_pct": 0.0,
-                "standardized_shift": 0.0
-            },
-            "hist_stop_duration_mean": {
-                "relative_mean_shift_pct": 0.0,
-                "standardized_shift": 0.0
-            },
-            "hist_stop_obs_count": {
-                "relative_mean_shift_pct": 0.0,
-                "standardized_shift": 0.0
-            },
-            "device_prev_stop_duration": {
-                "relative_mean_shift_pct": 0.0,
-                "standardized_shift": 0.0
-            },
-            "device_prev3_stop_duration_mean": {
                 "relative_mean_shift_pct": 0.0,
                 "standardized_shift": 0.0
             }

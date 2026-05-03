@@ -263,21 +263,23 @@ def predict_simple():
 
         google_distance_km = float(road_distance_km) if road_distance_km is not None else None
 
-        # Distance calibration: blend only when both sources disagree notably.
-        # This reduces endpoint/geocoding bias while preserving real-time road awareness.
-        distance_disagreement_pct = 0.0
-        if google_distance_km is not None and route_distance_km and route_distance_km > 0:
-            distance_disagreement_pct = abs(google_distance_km - route_distance_km) / route_distance_km
-
+        # Distance: Use 100% Google Maps for accuracy
+        # Only fall back to route-sequence if Google is unavailable
         if google_distance_km is None:
             journey_distance_km = round(route_distance_km, 2)
             distance_source = "route_sequence"
-        elif distance_disagreement_pct > 0.10:
-            journey_distance_km = round((google_distance_km * 0.65) + (route_distance_km * 0.35), 2)
-            distance_source = "calibrated_google_route"
         else:
             journey_distance_km = round(google_distance_km, 2)
             distance_source = "google_distance_matrix"
+
+        # Compute distance disagreement percentage (for validation) when both present
+        try:
+            if google_distance_km is not None and route_distance_km is not None and route_distance_km > 0:
+                distance_disagreement_pct = abs(google_distance_km - route_distance_km) / route_distance_km
+            else:
+                distance_disagreement_pct = 0.0
+        except Exception:
+            distance_disagreement_pct = 0.0
 
         # Time validation against physical speed bounds to avoid unrealistic outputs.
         if predicted_minutes > 0 and journey_distance_km > 0:
