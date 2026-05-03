@@ -16,6 +16,7 @@ def parse_args():
     p.add_argument('--model', '-m', default=None, help='Path to YOLO model file (default: ../yolo12s.pt)')
     p.add_argument('--output', '-o', default=None, help='Path to save annotated output video (optional)')
     p.add_argument('--max-frames', type=int, default=0, help='Max frames to process (0 = all)')
+    p.add_argument('--zoom', type=float, default=1.0, help='Zoom level for display (0.5 = 50% zoom out, 1.0 = normal, 2.0 = zoom in)')
     p.add_argument('--camera-test', action='store_true', help='Show raw camera feed only (no YOLO), useful for stream testing')
     return p.parse_args()
 
@@ -156,6 +157,10 @@ else:
     print(f"Successfully opened video file: {source}")
     print(f"Resolution: {int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))}x{int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))}")
 
+# Calculate display dimensions based on zoom
+display_width = int(1020 * args.zoom)
+display_height = int(600 * args.zoom)
+
 # Dedicated testing mode for quick source verification
 if args.camera_test:
     print("Running stream test mode (raw feed). Press ESC to exit.")
@@ -167,7 +172,7 @@ if args.camera_test:
             ret, frame = cap.read()
         if not ret:
             break
-        frame = cv2.resize(frame, (1020, 600))
+        frame = cv2.resize(frame, (display_width, display_height))
         cv2.imshow("Stream Test", frame)
         if cv2.waitKey(1) & 0xFF == 27:
             break
@@ -223,7 +228,7 @@ while True:
         break
 
     # Optionally resize for display/performance
-    frame = cv2.resize(frame, (1020, 600))
+    frame = cv2.resize(frame, (display_width, display_height))
 
     # Initialize counting line once (horizontal line at 50% height)
     if line_y is None:
