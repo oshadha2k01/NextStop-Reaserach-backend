@@ -2,13 +2,6 @@
 
 **Full Research Main Core** — This repository contains the NextStop research and production codebase for public-transport journey time prediction, ETA services, crowd prediction, fare calculation and related tooling. It includes backend API services, a frontend UI, machine learning research modules, and experiment/visualization tools used to develop and evaluate the Journey Time prediction model (XGBoost).
 
-**Quick links**
-- **Backend:** [backend/server.js](backend/server.js)
-- **Frontend:** [frontend/index.html](frontend/index.html)
-- **ML research modules:** [ml/JourneyModel](ml/JourneyModel)
-- **Training script:** [ml/JourneyModel/training/train_model.py](ml/JourneyModel/training/train_model.py)
-- **Training visualizer:** [ml/JourneyModel/visualize/training_history.py](ml/JourneyModel/visualize/training_history.py)
-
 **Contents / Architecture**
 - **backend/**: Express.js API and controllers that integrate prediction endpoints, route management, device registration and administrative dashboards. Key controllers are under [backend/controllers](backend/controllers) and routes under [backend/routes](backend/routes).
 - **frontend/**: Vite + React single-page app used for dashboards and operator interfaces. See [frontend/src](frontend/src).
